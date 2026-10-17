@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react'
 
 import * as api from '@/api'
-import { useServerEvent } from '@/api/events'
+import { RECONNECTED, useServerEvent } from '@/api/events'
 import { approvers, replyMeaning } from '@/mocks/playbook'
 import { NO_REPLY_MS } from '@/state/decision'
 import type { Agreement, ApprovalChannel, ApprovalReply, Decision, Integrations, Outcome } from '@/types'
@@ -158,6 +158,15 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   })
   useServerEvent<{ agreement: Agreement }>('agreement.updated', ({ agreement }) => {
     if (agreement) dispatch({ type: 'agreement', agreement })
+  })
+  // Replies and calls sent while the stream was down were missed: reload the open agreement quietly.
+  useServerEvent(RECONNECTED, () => {
+    const id = agreementId.current
+    if (!id) return
+    api.getAgreement(id).then(
+      (res) => agreementId.current === id && dispatch({ type: 'loaded', agreement: res.agreement, decisions: res.decisions }),
+      () => undefined,
+    )
   })
   useServerEvent('demo.reset', () => {
     agreementId.current = null

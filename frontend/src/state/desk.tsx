@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import * as api from '@/api'
-import { useServerEvent } from '@/api/events'
+import { RECONNECTED, useServerEvent } from '@/api/events'
 import type { Agreement, EscalationQueueItem, InboundEmail } from '@/types'
 
 /** What the desk pages share: every agreement, the inbound mailbox and the escalation queue. */
@@ -59,6 +59,7 @@ export function DeskProvider({ children }: { children: ReactNode }) {
   useServerEvent('email.received', refresh)
   useServerEvent('email.updated', refresh)
   useServerEvent('demo.reset', refresh)
+  useServerEvent(RECONNECTED, refresh) // events sent while the stream was down are gone
 
   const value = useMemo(() => ({ agreements, emails, queue, imap, error, refresh: () => void load() }), [agreements, emails, queue, imap, error, load])
   return <DeskContext.Provider value={value}>{children}</DeskContext.Provider>
