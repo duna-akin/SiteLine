@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 from contextlib import asynccontextmanager
 from typing import Literal
 
@@ -12,7 +13,7 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 
-from siteline import approvals, events, export, inbound_email, photon, store, voice
+from siteline import approvals, events, export, inbound_email, photon, precedent, storage, store, voice
 from siteline.config import is_fictional_phone, settings
 from siteline.demo import DEMO_FILE_NAME, ensure_demo
 from siteline.extraction import SEED_CACHE
@@ -64,6 +65,8 @@ def integrations() -> dict:
         "photon": settings.photon_enabled,
         "voice": settings.voice_enabled,
         "imap": settings.imap_enabled,
+        "precedentStore": "postgres" if settings.database_url else "json",
+        "documentStore": "s3" if settings.s3_enabled else "local",
         "publicUrl": bool(settings.public_base_url),
         "approverPhonesReal": real_phones,
         "noReplySeconds": settings.no_reply_seconds,
@@ -264,6 +267,47 @@ async def export_docx(agreement_id: str) -> Response:
             "X-Siteline-Export": json.dumps({k: v for k, v in meta.items() if k != "fileName"}),
         },
     )
+
+
+@app.post("/api/agreements/{agreement_id}/complete")
+async def complete_agreement(agreement_id: str) -> dict:
+    """Confirm the agreement: keep the final document, save its accepted terms as precedent
+    (the one write to the precedent store) and mark it executed."""
+    try:
+        data, meta = export.build_export(agreement_id)
+    except KeyError:
+        raise HTTPException(404, "Triage this agreement before confirming it") from None
+    if meta["pending"]:
+        raise HTTPException(409, f"{meta['pending']} item(s) still pending. Resolve them before confirming.")
+    file_name = re.sub(r"[^\w.-]", "_", meta["fileName"].replace("_counter-proposal", "_final"))
+    key = f"{agreement_id}/{file_name}"
+    try:
+        storage.put(key, data)  # first, so no precedent ever cites a missing document
+    except storage.StorageError as e:
+        log.warning("final document upload failed: %s", e)
+        raise HTTPException(502, "Could not store the final document. Nothing was saved; try again.") from None
+    records = precedent.completed_records(agreement_id, key)
+    store.post_completed(records)
+    a = store.state()["agreements"][agreement_id]
+    store.put_agreement({**a, "status": "executed", "finalDocumentKey": key, "completedAt": store.iso_now()})
+    summary = store.get_agreement(agreement_id)
+    events.publish("agreement.updated", {"agreement": summary})
+    return {"agreement": summary, "finalDocumentKey": key, "precedentsSaved": len(records)}
+
+
+@app.get("/api/sources")
+async def source_document(key: str) -> Response:
+    """The final agreed document a precedent cites (its sourceKey)."""
+    if not storage.valid_key(key):
+        raise HTTPException(400, "Not a source document key")
+    try:
+        data = storage.get(key)
+    except storage.StorageError as e:
+        log.warning("source download failed: %s", e)
+        raise HTTPException(502, "Could not fetch the source document") from None
+    if data is None:
+        raise HTTPException(404, "No such source document")
+    return Response(data, media_type=storage.DOCX, headers={"Content-Disposition": f'attachment; filename="{key.rsplit("/", 1)[1]}"'})
 
 
 # ---- playbook ---------------------------------------------------------------------------

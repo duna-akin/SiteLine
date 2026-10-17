@@ -41,11 +41,14 @@ def _short(text: str, n: int = 220) -> str:
 
 def message_text(agreement_id: str, d: dict) -> str:
     changed = d["revised"] or f"deletes: {d['original']}"
+    prec = d.get("precedent")
     return (
         f"Siteline · {SPONSOR['protocol']} {_site_label(agreement_id)}\n"
         f"{_code(d)} · {d['section']}\n"
         f"Site’s edit: “{_short(changed)}”\n"
-        f"Rule {d['ruleId']}: {d['ruleText']}\n\n"
+        f"Rule {d['ruleId']}: {d['ruleText']}\n"
+        + (f"Precedent: {prec['summary']}\n" if prec else "")
+        + "\n"
         f"Reply 1 = approve the site’s language, 2 = counter with the playbook fallback, 3 = reject and hold the standard."
         f" (Several open? Reply “{_code(d)} 1”.)"
     )

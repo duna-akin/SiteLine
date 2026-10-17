@@ -12,5 +12,6 @@
   "emails": [
     {"id": "em-1", "from": "contracts@riverbend.example", "siteName": "Riverbend Cancer Care", "siteNumber": "12", "city": "Dayton, OH", "subject": "NSO-417 CTA – our redline v2", "attachment": "NSO-417_CTA_Site12_v2.docx", "receivedAt": "2026-10-15T19:41:00", "triaged": false},
     {"id": "em-2", "from": "osp@tidewater.example", "siteName": "Tidewater Research Hospital", "siteNumber": "15", "city": "Norfolk, VA", "subject": "Re: CTA for NSO-417", "attachment": "Tidewater_CTA_markup.docx", "receivedAt": "2026-10-13T16:20:00", "triaged": false}
-  ]
+  ],
+  "precedents": []
 }

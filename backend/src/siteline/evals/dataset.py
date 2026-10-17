@@ -5,6 +5,9 @@ Every change is generated from templates written for this project (no real contr
 text). Labels follow the playbook, not Siteline's rules code, and include cases the rules
 do not cover: cosmetic edits (accept), ambiguous wording (human review) and terms the
 playbook never mentions (novel).
+
+After those 150 come 12 escalations judged with the site's history (precedent_items): six
+where precedent should turn them into accepts and six where it must not.
 """
 
 from __future__ import annotations
@@ -281,9 +284,65 @@ def build() -> list[dict]:
             extra.append(repl("§14.2 Termination by Institution", "termination", "Institution may end this Agreement by giving ", qty(30), qty(v),
                               " days’ written notice.", gold, f"site notice {v}d (variant)"))
     out.extend(extra)
-    out = out[:TARGET]
+    out = out[:TARGET] + precedent_items()
     for i, it in enumerate(out, 1):
         it["id"] = f"lc-{i:03d}"
+    return out
+
+
+EVAL_SITE = "Riverbend Cancer Care"
+
+
+def prec(clause: str, values: dict, site: str = EVAL_SITE, agreement: str = "eval-prior", reply: int | None = None) -> dict:
+    return {"siteName": site, "agreementId": agreement, "siteNumber": "12", "protocol": "NSO-311", "clauseType": clause,
+            "values": values, "via": "executed" if reply is None else "approver_reply", "reply": reply,
+            "decidedAt": "2026-03-01T00:00:00Z", "label": ", ".join(f"{k} {v}" for k, v in values.items())}
+
+
+def precedent_items() -> list[dict]:
+    """Escalations judged with a site's history. `ask` holds the values a correct extraction
+    reports, so the precedent step can be tested offline."""
+    baa = "Sponsor shall sign Institution’s Business Associate Agreement before receiving study data."
+    mutual = "Each party shall indemnify the other for claims arising from its own acts, and the obligations in this Section 9 are mutual."
+    si = "Sponsor shall reimburse reasonable and necessary medical expenses"
+    out: list[dict] = []
+
+    def add(it: dict, ask: dict, precedents: list[dict], note: str, site: str = EVAL_SITE) -> None:
+        out.append({**it, "note": note, "ask": ask, "precedents": precedents, "siteName": site, "agreementId": "eval-current"})
+
+    # Precedent should apply: same site, equal or more sponsor-favourable, nothing newer against it
+    add(item("§11.3 HIPAA", "data_privacy", [I(baa)], "accept", "", mark="ins"),
+        {"requires_baa": "true"}, [prec("data_privacy", {"requires_baa": "true"})], "BAA signed with this site before")
+    add(item("§9.3 Mutual Indemnification", "indemnification", [I(mutual)], "accept", "", mark="ins"),
+        {"mutual_indemnity": "true"}, [prec("indemnification", {"mutual_indemnity": "true"}, reply=1)], "mutual indemnity approved for this site")
+    add(repl("§6.2 Invoices", "payment_terms", "Sponsor shall pay each undisputed invoice within ", qty(45), qty(20), " days of receipt.", "accept", ""),
+        {"net_days": "20"}, [prec("payment_terms", {"net_days": "15"}, reply=1)], "Net 20 after this site got Net 15")
+    add(repl("§8.4 Term of Confidentiality", "confidentiality", "The obligations in this Section 8 survive for ", qty(7), qty(2), " years after study close.", "accept", ""),
+        {"survival_years": "2"}, [prec("confidentiality", {"survival_years": "2"})], "2-year survival signed with this site")
+    add(item("§12.3 Patent Delay", "publication",
+             [D("At Sponsor’s request, Institution shall delay publication up to an additional sixty (60) days to permit patent filings.")],
+             "accept", "", mark="del"),
+        {"patent_delay": "removed"}, [prec("publication", {"patent_delay": "removed"})], "patent delay dropped in this site's signed CTA")
+    add(item("§11.3 HIPAA", "data_privacy", [I(baa)], "accept", "", mark="ins"),
+        {"requires_baa": "true"}, [prec("data_privacy", {"requires_baa": "true"}, site="RIVERBEND CANCER CARE.")], "same site, name typed differently")
+
+    # Precedent should not apply
+    add(item("§11.3 HIPAA", "data_privacy", [I(baa)], "escalate", "", mark="ins"),
+        {"requires_baa": "true"}, [prec("data_privacy", {"requires_baa": "true"}, site="Cedar Hollow Cancer Center")], "BAA granted only to another site")
+    add(repl("§6.2 Invoices", "payment_terms", "Sponsor shall pay each undisputed invoice within ", qty(45), qty(10), " days of receipt.", "escalate", ""),
+        {"net_days": "10"}, [prec("payment_terms", {"net_days": "20"}, reply=1)], "Net 10 is worse than the Net 20 granted")
+    add(repl("§6.3 Start-up Fee", "payment_terms", "Sponsor shall pay a non-refundable start-up fee equal to ", f"{words(10)} percent (10%)",
+             f"{words(25)} percent (25%)", " of the study budget.", "escalate", ""),
+        {"start_up_fee_pct": "25", "start_up_fee_refundable": "false"}, [prec("payment_terms", {"net_days": "30"})],
+        "a different payment field was granted")
+    add(item("§11.3 HIPAA", "data_privacy", [I(baa)], "escalate", "", mark="ins"),
+        {"requires_baa": "true"}, [prec("data_privacy", {"requires_baa": "true"}, agreement="eval-current", reply=1)], "only match is this same agreement")
+    add(item("§10.2 Subject Injury", "subject_injury",
+             [T(si), I(", lost wages and compensation for pain and suffering"), T(" incurred by a Study Subject for a Study Injury.")], "escalate", ""),
+        {"covers_lost_wages": "true", "covers_pain_and_suffering": "true"}, [prec("subject_injury", {"covers_lost_wages": "true"})],
+        "ask goes beyond what was granted")
+    add(item("§10.2 Subject Injury", "subject_injury", [T(si), I(", lost wages"), T(" incurred by a Study Subject for a Study Injury.")], "escalate", ""),
+        {"covers_lost_wages": "true"}, [prec("subject_injury", {"covers_pain_and_suffering": "true"})], "a different subject-injury term was granted")
     return out
 
 

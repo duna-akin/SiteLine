@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Download, LoaderCircle, TriangleAlert } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, Download, FileText, LoaderCircle, TriangleAlert } from 'lucide-react'
 
 import * as api from '@/api'
 import { OutcomeBadge } from '@/components/siteline/outcome'
@@ -60,6 +60,20 @@ export function ExportPage() {
     }
   }
 
+  async function confirm() {
+    if (!agreementId) return
+    setBusy(true)
+    try {
+      const res = await api.completeAgreement(agreementId)
+      notify(`Agreement confirmed · ${res.precedentsSaved} accepted term${res.precedentsSaved === 1 ? '' : 's'} saved as precedent`)
+      await loadAgreement(agreementId)
+    } catch (e) {
+      notify(e instanceof Error ? e.message : 'Confirm failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="wrap py-10 sm:py-14">
       <Link to={`/review/${agreementId}`} className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-muted hover:text-text">
@@ -72,10 +86,27 @@ export function ExportPage() {
             <h1 className="text-4xl sm:text-5xl">Counter-proposal</h1>
             <p className="mt-2 text-muted">Word file with tracked changes and one comment per decision.</p>
           </div>
-          <button type="button" className="btn btn-primary" onClick={download} disabled={busy || decisions.length === 0}>
-            {busy ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Download aria-hidden className="size-4" />}
-            Download .docx
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button type="button" className="btn btn-primary" onClick={download} disabled={busy || decisions.length === 0}>
+              {busy ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Download aria-hidden className="size-4" />}
+              Download .docx
+            </button>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={confirm}
+              disabled={busy || decisions.length === 0 || pending > 0 || agreement?.status === 'executed'}
+              title={pending > 0 ? 'Resolve every pending item first' : undefined}
+            >
+              <BadgeCheck aria-hidden className="size-4" />
+              {agreement?.status === 'executed' ? 'Agreement confirmed' : 'Confirm agreement'}
+            </button>
+            {agreement?.finalDocumentKey && (
+              <a href={api.sourceUrl(agreement.finalDocumentKey)} className="btn btn-ghost">
+                <FileText aria-hidden className="size-4" /> Download final document
+              </a>
+            )}
+          </div>
         </div>
       </BlurFade>
 
