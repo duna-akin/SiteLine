@@ -140,6 +140,7 @@ function RadarTile() {
               </Link>
             </li>
           ))}
+          {ranked.length === 0 && <li className="empty">No open sites yet. Triage a redline to add one.</li>}
         </ol>
       </div>
       <RadarLegend />

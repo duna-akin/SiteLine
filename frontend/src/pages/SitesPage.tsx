@@ -191,6 +191,9 @@ export function SitesPage() {
                     <td className="text-muted">{s.stuckClauses.map((c) => clauseLabel[c]).join(', ') || '—'}</td>
                   </tr>
                 ))}
+                {agreements.length === 0 && (
+                  <tr><td colSpan={5} className="text-center text-muted">No agreements yet. Triage an inbound redline or upload one.</td></tr>
+                )}
               </tbody>
             </table>
           </div>
