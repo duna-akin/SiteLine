@@ -20,6 +20,8 @@
     --teal-soft: #E3F1EF;
     --orange: #B23A0A;
     --orange-soft: #FDEBE1;
+    --amber: #92400E;
+    --amber-soft: #FDF1D8;
     --blue: #1D4ED8;
     --blue-soft: #E8EEFC;
     --green: #15803D;
@@ -36,21 +38,24 @@
   .icon { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
   .sm { width: 15px; height: 15px; }
   button { font: inherit; color: inherit; cursor: pointer; }
+  button:disabled { cursor: not-allowed; }
   a { color: inherit; }
   .mono { font-family: var(--mono); font-size: 12.5px; }
   .muted { color: var(--muted); }
   .tabular { font-variant-numeric: tabular-nums; }
 
-  .app { display: grid; grid-template-columns: 232px minmax(0, 1fr) 392px; min-height: 100dvh; }
+  .app { display: grid; grid-template-columns: 232px minmax(0, 1fr) 412px; min-height: 100dvh; }
 
   /* Sidebar */
   .nav { border-right: 1px solid var(--line); padding: 20px 14px; display: flex; flex-direction: column; gap: 4px; position: sticky; top: 0; height: 100dvh; }
   .brand { display: flex; align-items: center; gap: 8px; padding: 4px 10px 18px; font-weight: 800; font-size: 19px; letter-spacing: -.02em; }
   .brand i { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); display: inline-block; }
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-weight: 600; font-size: 14px; transition: background .18s var(--ease), border-color .18s var(--ease); }
-  .btn:hover { border-color: #CFC6B8; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); font-weight: 600; font-size: 14px; transition: background .18s var(--ease), border-color .18s var(--ease); white-space: nowrap; }
+  .btn:hover:not(:disabled) { border-color: #CFC6B8; }
   .btn-primary { background: var(--ink); color: #fff; border-color: var(--ink); }
-  .btn-primary:hover { background: #33302C; border-color: #33302C; }
+  .btn-primary:hover:not(:disabled) { background: #33302C; border-color: #33302C; }
+  .btn-teal { background: var(--teal); color: #fff; border-color: var(--teal); }
+  .btn:disabled { background: var(--sunk); color: #8F877C; border-color: var(--line); }
   .btn-sm { min-height: 32px; padding: 0 10px; font-size: 13px; border-radius: 8px; }
   .nav .btn-primary { margin: 0 2px 14px; }
   .nav a.item { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 10px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px; color: var(--muted); transition: background .18s var(--ease), color .18s var(--ease); }
@@ -75,9 +80,10 @@
   .pill.attn { background: var(--orange-soft); border-color: transparent; color: #7C2D12; }
 
   section + section { margin-top: 32px; }
-  .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; flex-wrap: wrap; }
   h2 { font-size: 17px; margin: 0; font-weight: 700; letter-spacing: -.01em; }
-  .sec-head a { font-size: 13px; font-weight: 600; color: var(--teal); text-decoration: none; }
+  .sec-head a, .sec-head span { font-size: 13px; font-weight: 600; color: var(--teal); text-decoration: none; }
+  .sec-head span { color: var(--muted); font-weight: 500; }
 
   .card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); }
 
@@ -94,6 +100,7 @@
   .chip i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
   .c-blue { background: var(--blue-soft); color: var(--blue); }
   .c-orange { background: var(--orange-soft); color: var(--orange); }
+  .c-amber { background: var(--amber-soft); color: var(--amber); }
   .c-teal { background: var(--teal-soft); color: var(--teal); }
   .c-green { background: var(--green-soft); color: var(--green); }
   .c-stone { background: var(--stone-soft); color: #57534E; }
@@ -102,7 +109,14 @@
     @keyframes arrive { from { opacity: 0; transform: translateY(-8px) scale(.98); } to { opacity: 1; transform: none; } }
   }
 
-  /* Sites table */
+  /* Priority badge: level + money at risk, source quote underneath */
+  .prio { display: inline-flex; flex-direction: column; gap: 2px; }
+  .prio .money { font-size: 13px; font-weight: 700; }
+  .prio.high .money { color: var(--orange); }
+  .prio.elevated .money { color: var(--amber); }
+  .quote { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+
+  /* Waiting-on-us table */
   table { width: 100%; border-collapse: collapse; font-size: 14px; }
   th { text-align: left; font-size: 12px; font-weight: 600; color: var(--muted); padding: 10px 16px; border-bottom: 1px solid var(--line); }
   td { padding: 12px 16px; border-bottom: 1px solid var(--line); vertical-align: middle; }
@@ -111,14 +125,11 @@
   tbody tr:hover { background: #FCFBF8; }
   tbody tr.sel { background: var(--teal-soft); }
   tbody tr.sel td:first-child { box-shadow: inset 3px 0 0 var(--teal); }
+  tbody tr.group td { background: var(--sunk); font-size: 12px; font-weight: 700; color: var(--muted); padding: 6px 16px; cursor: default; letter-spacing: .02em; }
   .site-n { font-weight: 700; }
   .site-sub { font-size: 13px; color: var(--muted); }
-  .days { display: flex; align-items: center; gap: 10px; min-width: 150px; }
-  .bar { position: relative; flex: 1; height: 6px; border-radius: 999px; background: var(--sunk); }
-  .bar span { position: absolute; inset: 0 auto 0 0; border-radius: 999px; background: var(--teal); }
-  .bar.over span { background: var(--orange); }
-  .bar::after { content: ""; position: absolute; left: 50%; top: -3px; bottom: -3px; width: 2px; border-radius: 2px; background: var(--ink); opacity: .35; }
-  .next { font-size: 13px; color: var(--muted); max-width: 240px; }
+  .reason { font-size: 13px; color: var(--ink); max-width: 260px; }
+  .reason small { display: block; color: var(--muted); font-size: 12.5px; }
   .table-wrap { overflow-x: auto; }
   .legend { font-size: 12px; color: var(--muted); padding: 10px 16px; border-top: 1px solid var(--line); display: flex; gap: 16px; flex-wrap: wrap; }
 
@@ -127,29 +138,36 @@
   .eyebrow { font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
   .detail h2 { font-size: 22px; letter-spacing: -.02em; margin-top: 6px; }
   .detail .loc { font-size: 14px; color: var(--muted); margin: 2px 0 12px; }
-  .stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0 24px; }
-  .stat { background: var(--sunk); border-radius: 12px; padding: 10px 12px; }
-  .stat b { display: block; font-size: 20px; letter-spacing: -.02em; }
-  .stat span { font-size: 12px; color: var(--muted); }
-  .stat.warn b { color: var(--orange); }
+  .risk { border-radius: 12px; background: var(--orange-soft); padding: 12px 14px; }
+  .risk-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .risk b { font-size: 18px; color: var(--orange); letter-spacing: -.01em; }
+  .risk .quote { display: block; margin-top: 6px; color: #7C2D12; }
+  .risk .calc { font-size: 12.5px; color: #7C2D12; margin-top: 4px; }
   h3 { font-size: 14px; margin: 0 0 10px; font-weight: 700; }
-  .ask { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
-  .ask-top { display: flex; justify-content: space-between; gap: 8px; font-weight: 600; font-size: 14px; }
-  .ask p { margin: 4px 0 10px; font-size: 13px; color: var(--muted); }
-  .ask .acts { display: flex; gap: 6px; flex-wrap: wrap; }
   .block { margin-top: 24px; }
+
+  .confirm-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .progress { height: 8px; border-radius: 999px; background: var(--sunk); overflow: hidden; margin-bottom: 12px; }
+  .progress span { display: block; height: 100%; background: var(--teal); border-radius: 999px; }
+  .dec { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+  .dec-top { display: flex; justify-content: space-between; gap: 8px; align-items: center; font-weight: 600; font-size: 14px; }
+  .rule { font: 500 11.5px var(--mono); background: var(--sunk); padding: 2px 6px; border-radius: 6px; color: var(--ink); }
+  .dec p { margin: 6px 0 10px; font-size: 13px; color: var(--muted); }
+  .dec .acts { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .dec .srcline { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; background: var(--sunk); border-radius: 8px; padding: 8px 10px; margin: 0 0 10px; color: var(--ink); }
+  .more { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; border: 1px dashed var(--line); border-radius: 12px; font-size: 13px; color: var(--muted); }
+  .export { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+  .export small { font-size: 12.5px; color: var(--muted); text-align: center; }
 
   /* Magic UI File Tree pattern: where each piece of this agreement lives */
   .tree { list-style: none; margin: 0; padding: 0; font-size: 13.5px; }
-  .tree li { position: relative; }
-  .node { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 8px 8px; border-radius: 10px; }
+  .node { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 10px; align-items: start; padding: 7px 8px; border-radius: 10px; }
   .node:hover { background: var(--sunk); }
   .node .t { font-weight: 600; }
   .node .p { display: block; font-family: var(--mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
   .tree ul { list-style: none; margin: 0 0 0 17px; padding: 0 0 0 12px; border-left: 1px dashed var(--line); }
   .node.gone .t, .node.gone .p { color: #A39B90; }
   .node.gone .t { text-decoration: line-through; text-decoration-color: #C9C1B5; }
-  .note { margin-top: 12px; font-size: 12.5px; color: var(--muted); display: flex; gap: 8px; }
 
   :focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
 
@@ -158,7 +176,7 @@
     .detail { grid-column: 2; position: static; height: auto; border-left: 0; border-top: 1px solid var(--line); }
   }
   @media (max-width: 760px) {
-    .app { grid-template-columns: 1fr; }
+    .app { grid-template-columns: minmax(0, 1fr); }
     .nav { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; border-right: 0; border-bottom: 1px solid var(--line); padding: 12px 16px; }
     .brand { padding: 0 8px 0 0; }
     .nav .btn-primary { margin: 0 0 0 auto; order: 2; }
@@ -167,11 +185,14 @@
     .detail { grid-column: 1; }
     .inbound li { grid-template-columns: 36px minmax(0, 1fr); }
     .doc-act { grid-column: 2; }
-    .next, thead { display: none; }
+    thead { display: none; }
     tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
     tbody tr:last-child { border-bottom: 0; }
+    tbody tr.group { display: block; padding: 0; }
     tbody td { padding: 0; border: 0; }
-    tbody td:nth-child(3) { grid-column: 1 / -1; }
+    tbody td.reason { grid-column: 1 / -1; max-width: none; }
+    tbody td:nth-child(3) { grid-column: 1 / -1; text-align: left !important; }
+    tbody td:nth-child(3) b::after { content: " days open"; font-weight: 400; color: var(--muted); }
     tbody tr.sel td:first-child { box-shadow: none; }
     tbody tr.sel { box-shadow: inset 3px 0 0 var(--teal); }
     .summary .pill { padding: 6px 12px; font-size: 13px; }
@@ -186,7 +207,9 @@
   <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></symbol>
   <symbol id="i-book" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></symbol>
   <symbol id="i-flask" viewBox="0 0 24 24"><path d="M10 2v7.5a2 2 0 0 1-.2.9L4.7 20.6a1 1 0 0 0 .9 1.4h12.8a1 1 0 0 0 .9-1.4l-5.1-10.2a2 2 0 0 1-.2-.9V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></symbol>
+  <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/></symbol>
   <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></symbol>
+  <symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></symbol>
   <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
   <symbol id="i-mail" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
   <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8M16 17H8M10 9H8"/></symbol>
@@ -194,8 +217,8 @@
   <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></symbol>
   <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.9 5.8L20 10.7l-6.1 1.9L12 18.5l-1.9-5.9L4 10.7l6.1-1.9z"/></symbol>
   <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></symbol>
-  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
-  <symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></symbol>
 </svg>
 
 <div class="app">
@@ -208,6 +231,7 @@
     <a class="item" href="#"><svg class="icon"><use href="#i-database"/></svg>Data</a>
     <a class="item" href="#"><svg class="icon"><use href="#i-book"/></svg>Playbook</a>
     <div class="sep" role="separator"></div>
+    <a class="item" href="a-priority-settings.html"><svg class="icon"><use href="#i-sliders"/></svg>Priority settings</a>
     <a class="item" href="#"><svg class="icon"><use href="#i-flask"/></svg>Evals</a>
     <div class="study"><span class="muted">Study</span><b>NSO-417</b><span class="muted">Northstar Oncology</span></div>
   </nav>
@@ -222,10 +246,61 @@
     </div>
 
     <div class="summary" role="list">
+      <span class="pill attn" role="listitem"><b class="tabular">≈$26,500</b> a week at risk on sites waiting on us</span>
+      <span class="pill" role="listitem"><b class="tabular">5</b> escalations out</span>
       <span class="pill" role="listitem"><b class="tabular">1</b> new document</span>
-      <span class="pill" role="listitem"><b class="tabular">6</b> open sites</span>
-      <span class="pill attn" role="listitem"><b class="tabular">2</b> decisions need you</span>
     </div>
+
+    <section aria-labelledby="sites-h">
+      <div class="sec-head"><h2 id="sites-h">Waiting on us</h2><span>Most money at risk first, then longest open</span></div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th scope="col">Site</th><th scope="col">Priority</th><th scope="col" style="text-align:right">Days open</th><th scope="col">Why it's waiting</th></tr></thead>
+            <tbody>
+              <tr class="sel" aria-selected="true">
+                <td><div class="site-n">07 · Larkspur Cancer Institute</div><div class="site-sub">Madison, WI</div></td>
+                <td><div class="prio high"><span class="chip c-orange"><i></i>High</span><span class="money tabular">≈$11,200/week at risk</span></div></td>
+                <td style="text-align:right"><b class="tabular">112</b></td>
+                <td class="reason">10 decisions to confirm<small>Subject injury is with Legal</small></td>
+              </tr>
+              <tr>
+                <td><div class="site-n">03 · Quarry Hill Medical Center</div><div class="site-sub">Burlington, VT</div></td>
+                <td><div class="prio high"><span class="chip c-orange"><i></i>High</span><span class="money tabular">≈$10,700/week at risk</span></div></td>
+                <td style="text-align:right"><b class="tabular">97</b></td>
+                <td class="reason">Payment terms past the escalate floor<small>With Finance for 20 days</small></td>
+              </tr>
+              <tr>
+                <td><div class="site-n">11 · Juniper Ridge Clinic</div><div class="site-sub">Boise, ID</div></td>
+                <td><div class="prio elevated"><span class="chip c-amber"><i></i>Elevated</span><span class="money tabular">≈$4,600/week at risk</span></div></td>
+                <td style="text-align:right"><b class="tabular">128</b></td>
+                <td class="reason">3 escalations open<small>Data privacy, IP and publication</small></td>
+              </tr>
+              <tr>
+                <td><div class="site-n">12 · Saltmarsh University Hospital</div><div class="site-sub">Charleston, SC</div></td>
+                <td><div class="prio"><span class="chip c-stone"><i></i>Standard</span><span class="money tabular muted">≈$2,300/week at risk</span></div></td>
+                <td style="text-align:right"><b class="tabular">64</b></td>
+                <td class="reason">All 9 decisions confirmed<small>Ready to export the counter-proposal</small></td>
+              </tr>
+              <tr>
+                <td><div class="site-n">15 · Fernbrook Cancer Center</div><div class="site-sub">Tucson, AZ</div></td>
+                <td><div class="prio"><span class="chip c-blue"><i></i>Not triaged</span></div></td>
+                <td style="text-align:right"><b class="tabular">2</b></td>
+                <td class="reason">New redline arrived today<small>Priority appears after triage</small></td>
+              </tr>
+              <tr class="group"><td colspan="4">With the site</td></tr>
+              <tr>
+                <td><div class="site-n">09 · Cobalt Bay Health</div><div class="site-sub">Portland, ME</div></td>
+                <td><div class="prio"><span class="chip c-stone"><i></i>Unknown</span><span class="quote">Figures not in contract</span></div></td>
+                <td style="text-align:right"><b class="tabular">41</b></td>
+                <td class="reason">Counter-proposal sent Oct 1<small>Treated as standard</small></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="legend"><span>Money at risk = patients per week × per-patient amount, from figures Claude quoted from each contract.</span></div>
+      </div>
+    </section>
 
     <section aria-labelledby="inbound-h">
       <div class="sec-head"><h2 id="inbound-h">Inbound documents</h2><a href="#">View all</a></div>
@@ -250,116 +325,72 @@
           <span class="src"><svg class="icon"><use href="#i-upload"/></svg></span>
           <div style="min-width:0">
             <div class="doc-name">NSO-417_CTA_Site07_redline.docx</div>
-            <div class="doc-meta">Uploaded by you · Site 07 · Oct 15</div>
+            <div class="doc-meta">Uploaded by you · Site 07 · Oct 5</div>
           </div>
           <div class="doc-act"><span class="chip c-stone">14 changes</span></div>
         </li>
       </ul>
-    </section>
-
-    <section aria-labelledby="sites-h">
-      <div class="sec-head"><h2 id="sites-h">Open sites</h2><a href="#">Sorted by priority</a></div>
-      <div class="card">
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th scope="col">Site</th><th scope="col">Stage</th><th scope="col">Days open</th><th scope="col">Next step</th></tr></thead>
-            <tbody>
-              <tr class="sel" aria-selected="true">
-                <td><div class="site-n">07 · Larkspur Cancer Institute</div><div class="site-sub">Madison, WI</div></td>
-                <td><span class="chip c-orange"><i></i>Needs approval</span></td>
-                <td><div class="days"><div class="bar over"><span style="width:62%"></span></div><b class="tabular">112</b></div></td>
-                <td class="next">Legal to reply on 2 clauses</td>
-              </tr>
-              <tr>
-                <td><div class="site-n">11 · Juniper Ridge Clinic</div><div class="site-sub">Boise, ID</div></td>
-                <td><span class="chip c-orange"><i></i>Needs approval</span></td>
-                <td><div class="days"><div class="bar over"><span style="width:71%"></span></div><b class="tabular">128</b></div></td>
-                <td class="next">Privacy to review data terms</td>
-              </tr>
-              <tr>
-                <td><div class="site-n">03 · Quarry Hill Medical Center</div><div class="site-sub">Burlington, VT</div></td>
-                <td><span class="chip c-orange"><i></i>Needs approval</span></td>
-                <td><div class="days"><div class="bar over"><span style="width:54%"></span></div><b class="tabular">97</b></div></td>
-                <td class="next">Finance on payment terms</td>
-              </tr>
-              <tr>
-                <td><div class="site-n">12 · Saltmarsh University Hospital</div><div class="site-sub">Charleston, SC</div></td>
-                <td><span class="chip c-teal"><i></i>Ready to send</span></td>
-                <td><div class="days"><div class="bar"><span style="width:36%"></span></div><b class="tabular">64</b></div></td>
-                <td class="next">Export the counter-proposal</td>
-              </tr>
-              <tr>
-                <td><div class="site-n">09 · Cobalt Bay Health</div><div class="site-sub">Portland, ME</div></td>
-                <td><span class="chip c-stone"><i></i>With site</span></td>
-                <td><div class="days"><div class="bar"><span style="width:23%"></span></div><b class="tabular">41</b></div></td>
-                <td class="next">Waiting on the site</td>
-              </tr>
-              <tr>
-                <td><div class="site-n">15 · Fernbrook Cancer Center</div><div class="site-sub">Tucson, AZ</div></td>
-                <td><span class="chip c-blue"><i></i>New redline</span></td>
-                <td><div class="days"><div class="bar"><span style="width:2%"></span></div><b class="tabular">2</b></div></td>
-                <td class="next">Triage the v2 redline</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="legend"><span>Bar spans 180 days. The tick marks the 90-day start-up target.</span></div>
-      </div>
     </section>
   </main>
 
   <aside class="detail" aria-labelledby="detail-h">
     <span class="eyebrow">Selected site</span>
     <h2 id="detail-h">Site 07 · Larkspur Cancer Institute</h2>
-    <p class="loc">Madison, WI · <span class="chip c-orange"><i></i>Needs approval</span></p>
+    <p class="loc">Madison, WI · 112 days open · redline waiting 12 days</p>
 
-    <div class="stat-row">
-      <div class="stat warn"><b class="tabular">112</b><span>days open</span></div>
-      <div class="stat"><b class="tabular">14</b><span>changes</span></div>
-      <div class="stat"><b class="tabular">11</b><span>auto-handled</span></div>
+    <div class="risk">
+      <div class="risk-top"><span class="chip c-orange" style="background:#fff"><i></i>High priority</span><b class="tabular">≈$11,200/week at risk</b></div>
+      <span class="quote">§2.3: "48 subjects over 18 months" · §7.1: "$18,200 per patient"</span>
+      <div class="calc">48 ÷ 78 weeks ≈ 0.62 patients a week × $18,200 · 14% of the study's 340 planned patients</div>
     </div>
 
-    <h3>Needs you</h3>
-    <div class="ask">
-      <div class="ask-top"><span>Indemnification</span><span class="chip c-stone">Legal</span></div>
-      <p>Site removed the cap on sponsor indemnity. Texted Maya Chen 3 h ago.</p>
-      <div class="acts"><button class="btn btn-sm" type="button">Accept</button><button class="btn btn-sm" type="button">Use fallback</button><button class="btn btn-sm" type="button">Open clause</button></div>
-    </div>
-    <div class="ask">
-      <div class="ask-top"><span>Subject injury</span><span class="chip c-stone">Legal</span></div>
-      <p>Site added coverage for standard-of-care costs. No reply yet.</p>
-      <div class="acts"><button class="btn btn-sm" type="button">Accept</button><button class="btn btn-sm" type="button">Use fallback</button><button class="btn btn-sm" type="button">Open clause</button></div>
+    <div class="block">
+      <div class="confirm-head"><h3 style="margin:0">Confirm decisions</h3><span class="tabular" style="font-size:13px;font-weight:700">4 of 14 confirmed</span></div>
+      <div class="progress" role="progressbar" aria-valuemin="0" aria-valuemax="14" aria-valuenow="4" aria-label="Decisions confirmed"><span style="width:28.6%"></span></div>
+
+      <div class="dec">
+        <div class="dec-top"><span>Start-up fee</span><span class="chip c-teal">Accept · leniency</span></div>
+        <p><span class="rule">PAY-A3P</span> High priority (≈$11,200/week at risk), 12 days waiting → 50% of the gap between the $10,000 standard and the $16,000 floor → the site's $12,500 is within the $13,000 band.</p>
+        <div class="acts"><button class="btn btn-sm btn-teal" type="button"><svg class="icon sm"><use href="#i-check"/></svg>Confirm</button><button class="btn btn-sm" type="button">Change</button></div>
+      </div>
+
+      <div class="dec">
+        <div class="dec-top"><span>Indemnification</span><span class="chip c-teal">Accept · precedent</span></div>
+        <p><span class="rule">PREC-A1</span> Larkspur already agreed to the capped version, so this would have escalated but is suggested as accept.</p>
+        <div class="srcline"><svg class="icon sm"><use href="#i-history"/></svg><span>NSO-301 CTA with Larkspur, executed Mar 12, 2025 · §9.1<br><span class="quote">site-07/NSO-301_CTA_final.docx</span></span></div>
+        <div class="acts"><button class="btn btn-sm btn-teal" type="button"><svg class="icon sm"><use href="#i-check"/></svg>Confirm precedent</button><button class="btn btn-sm" type="button">View source</button></div>
+      </div>
+
+      <div class="dec">
+        <div class="dec-top"><span>Subject injury</span><span class="chip c-orange">Escalated · Legal</span></div>
+        <p><span class="rule">INJ-E2</span> Site added standard-of-care costs. Past the escalate floor, which priority never moves. Maya was texted 3 h ago.</p>
+        <div class="acts"><button class="btn btn-sm" type="button" disabled>Confirm after Maya replies</button></div>
+      </div>
+
+      <div class="more"><span>7 more suggested by the playbook</span><button class="btn btn-sm" type="button">Confirm all suggested (8)</button></div>
+
+      <div class="export">
+        <button class="btn btn-primary" type="button" disabled><svg class="icon sm"><use href="#i-download"/></svg>Export counter-proposal</button>
+        <small>Confirm all 14 decisions to export. 10 left.</small>
+      </div>
     </div>
 
     <div class="block">
       <h3>Where this agreement lives</h3>
       <ul class="tree" role="tree" aria-label="Storage locations for Site 07">
+        <li role="treeitem"><div class="node"><svg class="icon sm"><use href="#i-mail"/></svg><div><span class="t">Agent mailbox</span><span class="p">redlines@siteline.demo</span></div><span class="chip c-stone">Oct 5</span></div></li>
+        <li role="treeitem"><div class="node gone"><svg class="icon sm"><use href="#i-box"/></svg><div><span class="t">Daytona sandbox</span><span class="p">sbx-4f2a · parsed tracked changes</span></div><span class="chip c-stone">Deleted</span></div></li>
+        <li role="treeitem"><div class="node"><svg class="icon sm"><use href="#i-spark"/></svg><div><span class="t">Claude extraction</span><span class="p">14 changes + 3 priority figures, all quoted</span></div><span class="chip c-green">Saved</span></div></li>
+        <li role="treeitem"><div class="node"><svg class="icon sm"><use href="#i-database"/></svg><div><span class="t">Postgres · precedents</span><span class="p">3 past agreements with Larkspur</span></div><span class="chip c-green">Saved</span></div></li>
         <li role="treeitem" aria-expanded="true">
-          <div class="node"><svg class="icon sm"><use href="#i-mail"/></svg><div><span class="t">Agent mailbox</span><span class="p">redlines@siteline.demo</span></div><span class="chip c-stone">Oct 15</span></div>
-        </li>
-        <li role="treeitem">
-          <div class="node gone"><svg class="icon sm"><use href="#i-box"/></svg><div><span class="t">Daytona sandbox</span><span class="p">sbx-4f2a · parsed tracked changes</span></div><span class="chip c-stone">Deleted</span></div>
-        </li>
-        <li role="treeitem">
-          <div class="node"><svg class="icon sm"><use href="#i-spark"/></svg><div><span class="t">Claude extraction</span><span class="p">14 changes · 13 of 14 quotes verified</span></div><span class="chip c-green">Saved</span></div>
-        </li>
-        <li role="treeitem">
-          <div class="node"><svg class="icon sm"><use href="#i-database"/></svg><div><span class="t">Postgres · precedents</span><span class="p">3 past agreements with Larkspur</span></div><span class="chip c-green">Saved</span></div>
-        </li>
-        <li role="treeitem" aria-expanded="true">
-          <div class="node"><svg class="icon sm"><use href="#i-cloud"/></svg><div><span class="t">S3 · document store</span><span class="p">siteline-docs</span></div><span></span></div>
+          <div class="node"><svg class="icon sm"><use href="#i-cloud"/></svg><div><span class="t">S3 · siteline-docs</span><span class="p">site-07/</span></div><span></span></div>
           <ul role="group">
-            <li role="treeitem" aria-expanded="true">
-              <div class="node"><svg class="icon sm"><use href="#i-folder"/></svg><div><span class="t mono">site-07/</span></div><span></span></div>
-              <ul role="group">
-                <li role="treeitem"><div class="node"><svg class="icon sm"><use href="#i-file"/></svg><div><span class="p" style="color:var(--ink)">NSO-417_CTA_Site07_redline.docx</span></div><span class="chip c-stone">Original</span></div></li>
-                <li role="treeitem"><div class="node"><svg class="icon sm"><use href="#i-file"/></svg><div><span class="p" style="color:var(--ink)">counter_v1.docx</span></div><span class="chip c-teal">Draft</span></div></li>
-              </ul>
-            </li>
+            <li role="treeitem"><div class="node"><svg class="icon sm"><use href="#i-file"/></svg><div><span class="p" style="color:var(--ink)">NSO-417_CTA_Site07_redline.docx</span></div><span class="chip c-stone">Original</span></div></li>
+            <li role="treeitem"><div class="node"><svg class="icon sm"><use href="#i-file"/></svg><div><span class="p" style="color:var(--ink)">NSO-301_CTA_final.docx</span></div><span class="chip c-stone">Precedent</span></div></li>
+            <li role="treeitem"><div class="node"><svg class="icon sm"><use href="#i-file"/></svg><div><span class="p" style="color:var(--ink)">counter_v1.docx</span></div><span class="chip c-teal">Draft</span></div></li>
           </ul>
         </li>
       </ul>
-      <p class="note"><svg class="icon sm"><use href="#i-lock"/></svg>The sandbox is deleted after each parse. Only the documents and extracted values are kept.</p>
     </div>
   </aside>
 </div>
