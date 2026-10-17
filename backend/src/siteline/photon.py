@@ -1,8 +1,9 @@
 """Photon REST client: one iMessage per escalation, and verification of inbound webhooks.
 
 API: https://api.photon.codes/v1/projects/{projectId}/{users,spaces,messages}.
-Note: a shared Photon iMessage line only sends to a person who has messaged that line
-since their assignment, so each approver texts the Siteline line once before the demo.
+Note: each person is assigned one of the project's shared iMessage lines, and a line only
+sends to someone who has messaged it since their assignment, so each approver texts their
+assigned line once before the demo.
 """
 
 from __future__ import annotations
@@ -79,11 +80,21 @@ async def _space_id(client: httpx.AsyncClient, agent_id: str, approver_id: str) 
     return spaces[approver_id]
 
 
+async def _line_for(client: httpx.AsyncClient, handle: str) -> str:
+    """The shared iMessage line Photon assigned to `handle`; each person can be on a different line."""
+    r = await client.get(_url("platforms/imessage/assignments"), headers=_headers())
+    if r.status_code < 400:
+        for a in r.json().get("assignments", []):
+            if a.get("handle") == handle and a.get("assignedPhoneNumber"):
+                return a["assignedPhoneNumber"]
+    return settings.photon_agent_handle
+
+
 async def send_text(phone: str, text: str) -> dict:
-    """Send `text` to `phone` from the Siteline agent line. Returns {"messageId", "spaceId"}."""
+    """Send `text` to `phone` from the line assigned to it. Returns {"messageId", "spaceId"}."""
     handle = e164(phone)
     async with httpx.AsyncClient(timeout=20) as client:
-        agent_id = await _user_id(client, settings.photon_agent_handle)
+        agent_id = await _user_id(client, await _line_for(client, handle))
         approver_id = await _user_id(client, handle)
         space_id = await _space_id(client, agent_id, approver_id)
         msg = await _post(
