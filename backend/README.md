@@ -26,6 +26,7 @@ Other commands:
 | `uv run siteline make-dataset` | Rewrite the labeled eval set (150 playbook changes + 12 precedent cases) |
 | `uv run siteline eval [--limit N]` | Siteline vs the LLM-only baseline; writes `data/evals/latest.json` |
 | `uv run siteline reset` | Clear agreements and approvals back to the seed portfolio |
+| `uv run siteline seed-precedents` | Save four past NSO-212 agreements (Sites 07, 22, 25, 27) and their final documents as precedent |
 | `uv run pytest` | Offline tests (parser, rules, quotes, export, eval set) |
 | `uv run --extra chalk python -m siteline.evals.chalk_eval` | Same comparison on Chalk Agent Evals |
 
@@ -56,6 +57,12 @@ Precedents live in one `precedents` table (created on first use) with two querie
   section and quote, and marks the agreement executed. Approver replies alone write nothing.
 
 Without `DATABASE_URL` the same two operations use `var/state.json`.
+
+For demos, `uv run siteline seed-precedents` adds four past confirmed agreements on an earlier
+fictional protocol (`history.py`). On the Site 07 demo, subject injury and the BAA then come back
+as `PREC-A1` while indemnification and the patent delay still go to Legal; Sites 22, 25 and 27 each
+get one escalation from precedent. In Postgres they survive resets; in the state file, `siteline
+reset` clears them, so seed again after a reset.
 
 The final document goes to the S3 bucket set by `S3_ENDPOINT`, `S3_REGION`, `S3_ACCESS_KEY_ID`,
 `S3_SECRET_ACCESS_KEY` and `S3_BUCKET` (Supabase: Storage → Settings → S3 Connection). It is

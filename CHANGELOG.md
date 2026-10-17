@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · Demo precedent history
+
+### Added
+
+- **`uv run siteline seed-precedents`** saves four past confirmed agreements as precedent (`backend/src/siteline/history.py`). Each is an earlier fictional protocol (NSO-212) with an institution from the demo or samples: Larkspur (Site 07), Halvorsen (22), Thornbury (25) and Kestrel Valley (27). Each one's final document is stored first (S3 or `var/documents/`), then its accepted terms go to Postgres (or the state file), the same way **Confirm agreement** writes them. Re-running is safe.
+- On the Site 07 demo, subject injury and the BAA now come back as `PREC-A1` with a link to the NSO-212 document, while indemnification and the patent delay still text Legal. Sites 22, 25 and 27 each get one escalation from precedent and keep the rest. `tests/test_history.py` checks both, and that each cited quote is in its document.
+
 ## [Unreleased] · Sample redlines
 
 ### Added
