@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Siteline · Mockup C · Night Shift</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  /* Mockup C: Night Shift. Bricolage Grotesque + DM Sans, warm dark, keeps the Siteline yellow. */
+  :root {
+    --bg: #131116;
+    --surface: #1B191F;
+    --raise: #242129;
+    --line: rgba(244, 241, 228, .10);
+    --line-2: rgba(244, 241, 228, .18);
+    --text: #F4F1E4;
+    --muted: rgba(244, 241, 228, .66);
+    --faint: rgba(244, 241, 228, .42);
+    --yellow: #FFDD00;
+    --mint: #7DFFAA;
+    --coral: #FF8A7A;
+    --sky: #8AB4FF;
+    --magenta: #FF4FBF;
+    --display: "Bricolage Grotesque", system-ui, sans-serif;
+    --sans: "DM Sans", system-ui, sans-serif;
+    --mono: "DM Mono", ui-monospace, monospace;
+    --ease: cubic-bezier(.2, .8, .2, 1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 400 15px/1.55 var(--sans); -webkit-font-smoothing: antialiased; }
+  .icon { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+  .sm { width: 15px; height: 15px; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+  h1, h2, h3 { font-family: var(--display); margin: 0; letter-spacing: -.02em; font-weight: 600; }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .muted { color: var(--muted); }
+
+  /* Top bar */
+  header { position: sticky; top: 0; z-index: 10; background: rgba(19, 17, 22, .86); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .bar { display: flex; align-items: center; gap: 14px; height: 64px; padding: 0 clamp(16px, 2.4vw, 28px); }
+  .logo { font-family: var(--display); font-weight: 700; font-size: 22px; color: var(--yellow); display: flex; align-items: baseline; gap: 6px; }
+  .logo i { width: 7px; height: 7px; border-radius: 50%; background: var(--magenta); display: inline-block; }
+  .cmd { flex: 1; max-width: 520px; margin: 0 auto; display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 14px; border-radius: 12px; background: var(--surface); border: 1px solid var(--line); color: var(--faint); font-size: 14px; }
+  .cmd kbd { margin-left: auto; font: 500 11px var(--mono); color: var(--muted); border: 1px solid var(--line-2); border-radius: 6px; padding: 1px 6px; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 40px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--line-2); background: transparent; font-weight: 600; font-size: 14px; transition: background .18s var(--ease), border-color .18s var(--ease); white-space: nowrap; }
+  .btn:hover { background: var(--raise); }
+  .btn-yellow { background: var(--yellow); color: #17140A; border-color: var(--yellow); }
+  .btn-yellow:hover { background: #FFE84D; }
+  .btn-sm { min-height: 32px; padding: 0 10px; font-size: 13px; border-radius: 8px; }
+  .inb { position: relative; }
+  .inb .n { position: absolute; top: -6px; right: -6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--coral); color: #1A0F0D; font-size: 11px; font-weight: 700; display: grid; place-items: center; }
+
+  .app { display: grid; grid-template-columns: 300px minmax(0, 1fr); min-height: calc(100dvh - 64px); }
+
+  /* Site rail */
+  .rail { border-right: 1px solid var(--line); padding: 18px 12px; }
+  .rail-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 8px 12px; }
+  .rail-head h2 { font-size: 18px; }
+  .filters { display: flex; gap: 6px; padding: 0 6px 12px; flex-wrap: wrap; }
+  .filters button { min-height: 32px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--line-2); background: transparent; font-size: 13px; font-weight: 600; color: var(--muted); }
+  .filters button[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .sites { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+  .sites a { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 10px 8px; border-radius: 12px; transition: background .15s var(--ease); }
+  .sites a:hover { background: var(--surface); }
+  .sites a[aria-current="true"] { background: var(--raise); box-shadow: inset 0 0 0 1px var(--line-2); }
+  .sites .no { font: 600 17px var(--display); color: var(--yellow); text-align: center; }
+  .sites .nm { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sites .sub { font-size: 12.5px; color: var(--faint); }
+  .sites .d { font-size: 13px; font-weight: 600; }
+  .over { color: var(--coral); }
+  .dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; }
+
+  /* Site page */
+  .page { padding: 26px clamp(16px, 3vw, 40px) 56px; min-width: 0; }
+  .crumbs { font-size: 13px; color: var(--faint); display: flex; gap: 6px; align-items: center; }
+  .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 8px; }
+  .head h1 { font-size: clamp(34px, 4vw, 48px); line-height: 1; }
+  .head h1 span { color: var(--yellow); }
+  .head p { margin: 8px 0 0; color: var(--muted); }
+  .meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 600; border: 1px solid var(--line-2); color: var(--muted); }
+  .tag.hot { color: var(--coral); border-color: rgba(255, 138, 122, .4); background: rgba(255, 138, 122, .08); }
+
+  /* Stage tracker */
+  .stages { list-style: none; margin: 26px 0 0; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .stages li { position: relative; padding-top: 14px; font-size: 13px; color: var(--faint); }
+  .stages li::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; border-radius: 4px; background: var(--raise); }
+  .stages li.done { color: var(--muted); }
+  .stages li.done::before { background: var(--mint); opacity: .7; }
+  .stages li.now { color: var(--text); font-weight: 600; }
+  .stages li.now::before { background: linear-gradient(90deg, var(--yellow) 50%, var(--raise) 50%); }
+  .stages small { display: block; font-weight: 400; color: var(--faint); }
+
+  .grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 16px; margin-top: 28px; }
+  .card { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 20px; overflow: hidden; }
+  .card h2 { font-size: 19px; display: flex; align-items: center; gap: 8px; }
+  .card .sub { font-size: 13.5px; color: var(--muted); margin: 4px 0 14px; }
+  .wide { grid-column: 1 / -1; }
+
+  /* Magic UI Border Beam on the one card that needs attention */
+  .beam { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; padding: 1px; background: conic-gradient(from var(--a, 0deg), transparent 0 80%, var(--yellow) 90%, transparent 100%); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; }
+  @property --a { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+  @media (prefers-reduced-motion: no-preference) { .beam { animation: spin 6s linear infinite; } @keyframes spin { to { --a: 360deg; } } }
+
+  .ask { padding: 14px 0; border-top: 1px solid var(--line); }
+  .ask:first-of-type { border-top: 0; padding-top: 0; }
+  .ask-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .ask h3 { font-size: 16px; }
+  .ask p { margin: 4px 0 10px; font-size: 14px; color: var(--muted); }
+  .ask .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+  .ask .wait { font-size: 12.5px; color: var(--faint); white-space: nowrap; }
+
+  /* Document versions */
+  .versions { list-style: none; margin: 0; padding: 0; position: relative; }
+  .versions::before { content: ""; position: absolute; left: 15px; top: 8px; bottom: 8px; width: 2px; background: var(--line); }
+  .versions li { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 8px 0; }
+  .versions .pin { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; background: var(--raise); color: var(--muted); position: relative; }
+  .versions li.cur .pin { background: rgba(255, 221, 0, .14); color: var(--yellow); }
+  .versions .f { font: 500 13px var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .versions .w { font-size: 12.5px; color: var(--faint); }
+
+  /* Where it lives: horizontal path, Magic UI Animated Beam between nodes */
+  .path { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 0; margin-top: 4px; }
+  .stop { position: relative; padding: 0 10px; }
+  .stop:first-child { padding-left: 0; }
+  .stop .ic { width: 44px; height: 44px; border-radius: 14px; display: grid; place-items: center; background: var(--raise); border: 1px solid var(--line-2); position: relative; z-index: 1; }
+  .stop:not(:last-child)::after { content: ""; position: absolute; top: 22px; left: 54px; right: -10px; height: 2px; background: linear-gradient(90deg, var(--line-2), var(--line-2)); }
+  .stop:first-child:not(:last-child)::after { left: 44px; }
+  .stop .flow { position: absolute; top: 21px; left: 54px; right: -10px; height: 4px; overflow: hidden; z-index: 0; }
+  .stop:first-child .flow { left: 44px; }
+  .stop .flow::before { content: ""; position: absolute; top: 0; width: 40%; height: 4px; border-radius: 4px; background: linear-gradient(90deg, transparent, var(--yellow)); left: -40%; }
+  @media (prefers-reduced-motion: no-preference) { .stop .flow::before { animation: travel 2.4s var(--ease) infinite; } .stop:nth-child(2) .flow::before { animation-delay: .5s; } .stop:nth-child(3) .flow::before { animation-delay: 1s; } .stop:nth-child(4) .flow::before { animation-delay: 1.5s; } @keyframes travel { to { left: 100%; } } }
+  .stop h3 { font-size: 15px; margin-top: 12px; }
+  .stop .loc { font: 400 12px var(--mono); color: var(--muted); overflow-wrap: anywhere; margin-top: 2px; }
+  .stop .keep { margin-top: 8px; font-size: 12px; font-weight: 600; display: inline-flex; align-items: center; gap: 5px; }
+  .stop.gone .ic { border-style: dashed; color: var(--faint); }
+  .stop.gone h3 { color: var(--muted); }
+  .k-yes { color: var(--mint); }
+  .k-no { color: var(--faint); }
+
+  :focus-visible { outline: 2px solid var(--yellow); outline-offset: 2px; }
+
+  @media (max-width: 1100px) {
+    .grid { grid-template-columns: 1fr; }
+    .path { grid-template-columns: 1fr; gap: 14px; }
+    .stop { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0 14px; padding: 0; }
+    .stop > :not(.ic):not(.flow) { grid-column: 2; }
+    .stop h3 { margin-top: 0; }
+    .stop .ic { grid-row: span 3; }
+    .stop::after, .stop .flow { display: none; }
+  }
+  @media (max-width: 820px) {
+    .app { grid-template-columns: minmax(0, 1fr); }
+    .rail { border-right: 0; border-bottom: 1px solid var(--line); min-width: 0; }
+    .head h1 { font-size: 32px; line-height: 1.08; }
+    .sites { flex-direction: row; overflow-x: auto; gap: 6px; padding-bottom: 4px; }
+    .sites a { min-width: 220px; background: var(--surface); }
+    .cmd span { display: none; }
+    .cmd { flex: 0 0 auto; margin: 0 0 0 auto; }
+    .cmd kbd { display: none; }
+    .stages { grid-template-columns: repeat(5, minmax(56px, 1fr)); }
+    .stages small { display: none; }
+    .up-label { display: none; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-inbox" viewBox="0 0 24 24"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+  <symbol id="i-file" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8M16 17H8M10 9H8"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.9 5.8L20 10.7l-6.1 1.9L12 18.5l-1.9-5.9L4 10.7l6.1-1.9z"/></symbol>
+  <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+  <symbol id="i-chev" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-msg" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></symbol>
+</svg>
+
+<header>
+  <div class="bar">
+    <a class="logo" href="#">Siteline<i aria-hidden="true"></i></a>
+    <label class="cmd"><svg class="icon sm"><use href="#i-search"/></svg><span>Jump to a site, file or clause</span><kbd>⌘K</kbd></label>
+    <button class="btn inb" type="button" aria-label="Inbound documents, 1 new"><svg class="icon"><use href="#i-inbox"/></svg><span class="up-label">Inbound</span><span class="n">1</span></button>
+    <button class="btn btn-yellow" type="button"><svg class="icon sm"><use href="#i-upload"/></svg><span class="up-label">Upload</span></button>
+  </div>
+</header>
+
+<div class="app">
+  <nav class="rail" aria-label="Open sites">
+    <div class="rail-head"><h2>Open sites</h2><span class="muted tabular">6</span></div>
+    <div class="filters">
+      <button type="button" aria-pressed="true">All</button>
+      <button type="button" aria-pressed="false">Needs you · 3</button>
+      <button type="button" aria-pressed="false">Over 90 d</button>
+    </div>
+    <ul class="sites">
+      <li><a href="#"><span class="no">11</span><div style="min-width:0"><div class="nm">Juniper Ridge Clinic</div><div class="sub"><span class="dot" style="background:var(--coral)"></span>Needs approval</div></div><span class="d over tabular">128 d</span></a></li>
+      <li><a href="#" aria-current="true"><span class="no">07</span><div style="min-width:0"><div class="nm">Larkspur Cancer Institute</div><div class="sub"><span class="dot" style="background:var(--coral)"></span>Needs approval</div></div><span class="d over tabular">112 d</span></a></li>
+      <li><a href="#"><span class="no">03</span><div style="min-width:0"><div class="nm">Quarry Hill Medical Center</div><div class="sub"><span class="dot" style="background:var(--coral)"></span>Needs approval</div></div><span class="d over tabular">97 d</span></a></li>
+      <li><a href="#"><span class="no">12</span><div style="min-width:0"><div class="nm">Saltmarsh University Hospital</div><div class="sub"><span class="dot" style="background:var(--yellow)"></span>Ready to send</div></div><span class="d tabular">64 d</span></a></li>
+      <li><a href="#"><span class="no">09</span><div style="min-width:0"><div class="nm">Cobalt Bay Health</div><div class="sub"><span class="dot" style="background:var(--faint)"></span>With the site</div></div><span class="d tabular">41 d</span></a></li>
+      <li><a href="#"><span class="no">15</span><div style="min-width:0"><div class="nm">Fernbrook Cancer Center</div><div class="sub"><span class="dot" style="background:var(--sky)"></span>New redline</div></div><span class="d tabular">2 d</span></a></li>
+    </ul>
+  </nav>
+
+  <main class="page">
+    <div class="crumbs">NSO-417 <svg class="icon sm"><use href="#i-chev"/></svg> Sites <svg class="icon sm"><use href="#i-chev"/></svg> Site 07</div>
+    <div class="head">
+      <div>
+        <h1><span>07</span> Larkspur Cancer Institute</h1>
+        <p>Madison, WI · Clinical trial agreement, redline round 2</p>
+      </div>
+      <button class="btn btn-yellow" type="button">Open review</button>
+    </div>
+    <div class="meta">
+      <span class="tag hot">112 days open · 22 over target</span>
+      <span class="tag">14 changes</span>
+      <span class="tag">11 handled automatically</span>
+    </div>
+
+    <ol class="stages" aria-label="Agreement stage">
+      <li class="done">Received<small>Oct 15</small></li>
+      <li class="done">Triaged<small>14 changes</small></li>
+      <li class="now" aria-current="step">Approvals<small>2 waiting</small></li>
+      <li>Counter sent<small>Draft ready</small></li>
+      <li>Executed</li>
+    </ol>
+
+    <div class="grid">
+      <section class="card" aria-labelledby="needs-h">
+        <span class="beam" aria-hidden="true"></span>
+        <h2 id="needs-h">Needs a decision</h2>
+        <p class="sub">Everything else in this redline matched the playbook.</p>
+        <div class="ask">
+          <div class="ask-top"><h3>Indemnification</h3><span class="wait">Texted Maya · 3 h</span></div>
+          <p>Site removed the cap on sponsor indemnity. Larkspur accepted the capped version in 2 past agreements.</p>
+          <div class="acts"><button class="btn btn-sm" type="button">Accept</button><button class="btn btn-sm" type="button">Use fallback</button><button class="btn btn-sm" type="button"><svg class="icon sm"><use href="#i-msg"/></svg>Call Maya</button></div>
+        </div>
+        <div class="ask">
+          <div class="ask-top"><h3>Subject injury</h3><span class="wait">Texted Maya · 3 h</span></div>
+          <p>Site added coverage for standard-of-care costs. No precedent for this ask.</p>
+          <div class="acts"><button class="btn btn-sm" type="button">Accept</button><button class="btn btn-sm" type="button">Use fallback</button><button class="btn btn-sm" type="button"><svg class="icon sm"><use href="#i-msg"/></svg>Call Maya</button></div>
+        </div>
+      </section>
+
+      <section class="card" aria-labelledby="docs-h">
+        <h2 id="docs-h">Documents</h2>
+        <p class="sub">Every version for this site, newest first.</p>
+        <ul class="versions">
+          <li class="cur"><span class="pin"><svg class="icon sm"><use href="#i-pen"/></svg></span><div style="min-width:0"><div class="f">counter_v1.docx</div><div class="w">Draft counter-proposal · waiting on approvals</div></div><button class="btn btn-sm" type="button">Preview</button></li>
+          <li><span class="pin"><svg class="icon sm"><use href="#i-upload"/></svg></span><div style="min-width:0"><div class="f">NSO-417_CTA_Site07_redline.docx</div><div class="w">Round 2 redline · uploaded Oct 15</div></div><button class="btn btn-sm" type="button">Open</button></li>
+          <li><span class="pin"><svg class="icon sm"><use href="#i-mail"/></svg></span><div style="min-width:0"><div class="f">NSO-417_CTA_Site07_v1.docx</div><div class="w">Round 1 redline · emailed Sep 2</div></div><button class="btn btn-sm" type="button">Open</button></li>
+          <li><span class="pin"><svg class="icon sm"><use href="#i-file"/></svg></span><div style="min-width:0"><div class="f">NSO-417_CTA_template.docx</div><div class="w">Sponsor template · Jun 26</div></div><button class="btn btn-sm" type="button">Open</button></li>
+        </ul>
+      </section>
+
+      <section class="card wide" aria-labelledby="where-h">
+        <h2 id="where-h">Where this agreement lives</h2>
+        <p class="sub">Follow the redline from your inbox to storage. Dashed means nothing was kept.</p>
+        <div class="path">
+          <div class="stop"><span class="ic"><svg class="icon"><use href="#i-mail"/></svg></span><span class="flow" aria-hidden="true"></span>
+            <h3>Agent mailbox</h3><div class="loc">redlines@siteline.demo</div><span class="keep k-yes"><svg class="icon sm"><use href="#i-check"/></svg>Message kept</span></div>
+          <div class="stop gone"><span class="ic"><svg class="icon"><use href="#i-box"/></svg></span><span class="flow" aria-hidden="true"></span>
+            <h3>Daytona sandbox</h3><div class="loc">sbx-4f2a · 38 s</div><span class="keep k-no"><svg class="icon sm"><use href="#i-trash"/></svg>Deleted after parse</span></div>
+          <div class="stop"><span class="ic"><svg class="icon"><use href="#i-spark"/></svg></span><span class="flow" aria-hidden="true"></span>
+            <h3>Claude extraction</h3><div class="loc">13 of 14 quotes verified</div><span class="keep k-yes"><svg class="icon sm"><use href="#i-check"/></svg>Values saved</span></div>
+          <div class="stop"><span class="ic"><svg class="icon"><use href="#i-database"/></svg></span><span class="flow" aria-hidden="true"></span>
+            <h3>Postgres</h3><div class="loc">precedents · 3 for Larkspur</div><span class="keep k-yes"><svg class="icon sm"><use href="#i-check"/></svg>Kept</span></div>
+          <div class="stop"><span class="ic"><svg class="icon"><use href="#i-cloud"/></svg></span>
+            <h3>S3 document store</h3><div class="loc">siteline-docs/site-07/</div><span class="keep k-yes"><svg class="icon sm"><use href="#i-check"/></svg>3 files kept</span></div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</body>
+</html>

@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Siteline · Mockup B · Sunday Morning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* Mockup B: Sunday Morning. Fredoka + Nunito, cream, tangerine + trust blue, pastel card fills. */
+  :root {
+    --bg: #FFF8EE;
+    --card: #FFFFFF;
+    --ink: #3A2A1E;
+    --muted: #75614F;
+    --line: #F0E4D3;
+    --tangerine: #F97316;
+    --tangerine-ink: #C2410C;
+    --blue: #2563EB;
+    --butter: #FFF1C9;
+    --sky: #E6EFFF;
+    --mint: #DDF5E6;
+    --mint-ink: #166534;
+    --peach: #FFE6D5;
+    --rose: #FFE1E4;
+    --rose-ink: #BE123C;
+    --display: "Fredoka", system-ui, sans-serif;
+    --body: "Nunito", system-ui, sans-serif;
+    --shadow: 0 1px 0 rgba(58, 42, 30, .05), 0 12px 28px -16px rgba(58, 42, 30, .22);
+    --ease: cubic-bezier(.2, .8, .2, 1);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body { background: var(--bg); color: var(--ink); font: 500 16px/1.55 var(--body); -webkit-font-smoothing: antialiased; }
+  .icon { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+  .sm { width: 16px; height: 16px; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  a { color: inherit; text-decoration: none; }
+  h1, h2, h3 { font-family: var(--display); font-weight: 600; margin: 0; letter-spacing: -.01em; }
+  .tabular { font-variant-numeric: tabular-nums; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 clamp(16px, 3vw, 32px); }
+
+  /* Top bar */
+  header { padding: 18px 0; }
+  .bar { display: flex; align-items: center; gap: 16px; }
+  .logo { font-family: var(--display); font-weight: 700; font-size: 26px; display: flex; align-items: center; gap: 8px; }
+  .logo .sun { width: 22px; height: 22px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #FFD27A, var(--tangerine)); box-shadow: 0 0 0 4px var(--peach); }
+  .tabs { display: flex; gap: 4px; background: var(--card); padding: 5px; border-radius: 999px; box-shadow: var(--shadow); margin-left: 16px; }
+  .tabs a { padding: 8px 16px; border-radius: 999px; font-weight: 700; font-size: 15px; color: var(--muted); min-height: 40px; display: inline-flex; align-items: center; gap: 6px; transition: background .2s var(--ease), color .2s var(--ease); }
+  .tabs a:hover { color: var(--ink); background: var(--bg); }
+  .tabs a[aria-current="page"] { background: var(--ink); color: #FFF8EE; }
+  .tabs .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--tangerine); }
+  .right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .search { display: flex; align-items: center; gap: 8px; background: var(--card); border-radius: 999px; padding: 0 16px; min-height: 44px; color: var(--muted); box-shadow: var(--shadow); font-size: 15px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 18px; border-radius: 999px; border: 0; font-weight: 800; font-size: 15px; transition: transform .15s var(--ease), box-shadow .2s var(--ease); }
+  .btn:active { transform: scale(.97); }
+  .btn-orange { background: var(--tangerine); color: #2B1608; box-shadow: 0 6px 16px -8px var(--tangerine); }
+  .btn-soft { background: var(--card); color: var(--ink); box-shadow: inset 0 0 0 2px var(--line); }
+  .btn-sm { min-height: 36px; padding: 0 14px; font-size: 14px; }
+
+  /* Greeting with Magic UI Highlighter-style marker */
+  .hello { padding: 28px 0 24px; }
+  .hello h1 { font-size: clamp(32px, 4.4vw, 48px); line-height: 1.08; }
+  .hello p { font-size: 18px; color: var(--muted); margin: 10px 0 0; max-width: 640px; }
+  .mark { position: relative; white-space: nowrap; color: var(--ink); font-weight: 800; }
+  .mark::before { content: ""; position: absolute; left: -4px; right: -4px; bottom: 2px; height: 46%; background: #FFD27A; border-radius: 6px 10px 4px 12px; transform: rotate(-1.2deg); z-index: -1; }
+  .mark { z-index: 0; isolation: isolate; }
+
+  /* Bento grid */
+  .bento { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 18px; padding-bottom: 48px; }
+  .tile { background: var(--card); border-radius: 28px; padding: 24px; box-shadow: var(--shadow); min-width: 0; }
+  .t-needs { grid-column: span 5; background: var(--butter); }
+  .t-inbound { grid-column: span 7; }
+  .t-sites { grid-column: span 7; }
+  .t-data { grid-column: span 5; background: var(--sky); }
+  .tile-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+  .tile-head h2 { font-size: 24px; display: flex; align-items: center; gap: 10px; }
+  .tile-head .link { font-weight: 800; font-size: 14px; color: var(--blue); display: inline-flex; align-items: center; gap: 4px; min-height: 44px; }
+  .badge { font-family: var(--body); font-size: 13px; font-weight: 800; background: var(--ink); color: #FFF8EE; border-radius: 999px; padding: 2px 10px; }
+
+  /* Needs you */
+  .ask { background: var(--card); border-radius: 20px; padding: 14px 16px; margin-bottom: 10px; }
+  .ask-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .ask h3 { font-size: 18px; }
+  .ask p { margin: 4px 0 12px; font-size: 14.5px; color: var(--muted); }
+  .ask .acts { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 800; white-space: nowrap; }
+  .p-peach { background: var(--peach); color: var(--tangerine-ink); }
+  .p-mint { background: var(--mint); color: var(--mint-ink); }
+  .p-sky { background: var(--sky); color: var(--blue); }
+  .p-rose { background: var(--rose); color: var(--rose-ink); }
+  .p-cream { background: var(--bg); color: var(--muted); }
+  /* Magic UI Avatar Circles */
+  .avatars { display: flex; align-items: center; margin-top: 14px; gap: 10px; font-size: 14px; color: var(--muted); }
+  .avatars .stack { display: flex; }
+  .avatars .stack span { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font: 600 13px var(--display); color: var(--ink); border: 3px solid var(--butter); margin-left: -8px; }
+  .drop { margin-top: 12px; display: flex; align-items: center; gap: 12px; border: 2px dashed var(--line); border-radius: 20px; padding: 14px 16px; font-size: 14.5px; color: var(--muted); }
+  .drop code { font: 700 13.5px ui-monospace, Menlo, monospace; color: var(--ink); background: var(--bg); padding: 2px 8px; border-radius: 8px; }
+  .avatars .stack span:first-child { margin-left: 0; }
+
+  /* Inbound: Magic UI Animated List (notification stack) */
+  .feed { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+  .feed li { display: grid; grid-template-columns: 48px minmax(0, 1fr) auto; gap: 14px; align-items: center; padding: 12px 14px; border-radius: 20px; background: var(--bg); }
+  .blob { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; }
+  .feed .name { font-weight: 800; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .feed .meta { font-size: 13.5px; color: var(--muted); }
+  @media (prefers-reduced-motion: no-preference) {
+    .feed li { animation: pop .5s var(--ease) both; }
+    .feed li:nth-child(2) { animation-delay: .08s; }
+    .feed li:nth-child(3) { animation-delay: .16s; }
+    @keyframes pop { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+  }
+
+  /* Sites: tiles with Magic UI circular progress (days open vs 90-day target) */
+  .sites { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+  .site { background: var(--bg); border-radius: 22px; padding: 14px; display: flex; flex-direction: column; gap: 10px; transition: transform .2s var(--ease), box-shadow .2s var(--ease); cursor: pointer; }
+  .site:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+  .site-top { display: flex; align-items: center; gap: 12px; }
+  .ring { position: relative; width: 56px; height: 56px; flex-shrink: 0; }
+  .ring svg { width: 56px; height: 56px; transform: rotate(-90deg); }
+  .ring .track { stroke: var(--line); }
+  .ring b { position: absolute; inset: 0; display: grid; place-items: center; font: 600 15px var(--display); }
+  .site .num { font: 600 22px var(--display); line-height: 1; }
+  .site .nm { font-size: 13.5px; color: var(--muted); line-height: 1.3; }
+  .ring-note { font-size: 13px; color: var(--muted); margin-top: 12px; }
+
+  /* Data map: Magic UI Animated Beam */
+  .map { position: relative; background: var(--card); border-radius: 22px; padding: 10px; }
+  .map svg.beams { display: block; width: 100%; height: auto; }
+  .beam-base { stroke: #D6E2FA; stroke-width: 2.5; fill: none; }
+  .beam { stroke: url(#beamGrad); stroke-width: 3; fill: none; stroke-linecap: round; stroke-dasharray: 24 140; }
+  @media (prefers-reduced-motion: no-preference) {
+    .beam { animation: flow 2.6s linear infinite; }
+    .beam.d2 { animation-delay: .6s; } .beam.d3 { animation-delay: 1.2s; } .beam.d4 { animation-delay: 1.8s; }
+    @keyframes flow { from { stroke-dashoffset: 164; } to { stroke-dashoffset: 0; } }
+  }
+  .kept { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; font-size: 14.5px; }
+  .kept li { display: flex; align-items: flex-start; gap: 10px; background: var(--card); border-radius: 16px; padding: 10px 12px; }
+  .kept code { font: 600 12.5px ui-monospace, Menlo, monospace; color: var(--muted); display: block; overflow-wrap: anywhere; }
+  .kept .gone { color: var(--muted); }
+
+  :focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
+
+  @media (max-width: 1080px) {
+    .tabs { display: none; }
+    .t-needs, .t-inbound, .t-sites, .t-data { grid-column: span 12; }
+  }
+  @media (max-width: 640px) {
+    .search span { display: none; }
+    .sites { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .feed li { grid-template-columns: 48px minmax(0, 1fr); }
+    .feed li > :last-child { grid-column: 2; justify-self: start; }
+    .tile { padding: 18px; border-radius: 24px; }
+  }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></symbol>
+  <symbol id="i-mail" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></symbol>
+  <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></symbol>
+  <symbol id="i-msg" viewBox="0 0 24 24"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></symbol>
+  <symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></symbol>
+  <symbol id="i-cloud" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></symbol>
+  <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.9 5.8L20 10.7l-6.1 1.9L12 18.5l-1.9-5.9L4 10.7l6.1-1.9z"/></symbol>
+</svg>
+
+<header>
+  <div class="wrap bar">
+    <a class="logo" href="#"><span class="sun" aria-hidden="true"></span>siteline</a>
+    <nav class="tabs" aria-label="Primary">
+      <a href="#" aria-current="page">Home</a>
+      <a href="#">Inbound <span class="dot" aria-label="1 new"></span></a>
+      <a href="#">Sites</a>
+      <a href="#">Data</a>
+      <a href="#">Playbook</a>
+    </nav>
+    <div class="right">
+      <label class="search"><svg class="icon sm"><use href="#i-search"/></svg><span>Find a site or file</span></label>
+      <button class="btn btn-orange" type="button"><svg class="icon sm"><use href="#i-upload"/></svg>Upload</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hello">
+    <h1>Good morning! Here's your desk.</h1>
+    <p>One new redline came in overnight, and <span class="mark">2 clauses</span> are waiting on an approver. Everything else is on track.</p>
+  </section>
+
+  <div class="bento">
+    <section class="tile t-needs" aria-labelledby="needs-h">
+      <div class="tile-head"><h2 id="needs-h">Needs you <span class="badge tabular">2</span></h2></div>
+      <div class="ask">
+        <div class="ask-top"><h3>Indemnification</h3><span class="pill p-cream">Site 07</span></div>
+        <p>Larkspur removed the cap on sponsor indemnity. Maya was texted 3 h ago.</p>
+        <div class="acts"><button class="btn btn-soft btn-sm" type="button">Accept</button><button class="btn btn-soft btn-sm" type="button">Use fallback</button><button class="btn btn-soft btn-sm" type="button"><svg class="icon sm"><use href="#i-msg"/></svg>Nudge Maya</button></div>
+      </div>
+      <div class="ask">
+        <div class="ask-top"><h3>Data privacy</h3><span class="pill p-cream">Site 11</span></div>
+        <p>Juniper Ridge wants raw data kept on site for 15 years.</p>
+        <div class="acts"><button class="btn btn-soft btn-sm" type="button">Accept</button><button class="btn btn-soft btn-sm" type="button">Use fallback</button><button class="btn btn-soft btn-sm" type="button"><svg class="icon sm"><use href="#i-msg"/></svg>Nudge Ines</button></div>
+      </div>
+      <div class="avatars">
+        <div class="stack" aria-hidden="true"><span style="background:#FFD6C2">MC</span><span style="background:#CFE0FF">TB</span><span style="background:#CDEFD9">ID</span></div>
+        <span>Legal, Finance and Privacy are on call</span>
+      </div>
+    </section>
+
+    <section class="tile t-inbound" aria-labelledby="inb-h">
+      <div class="tile-head"><h2 id="inb-h">Inbound</h2><a class="link" href="#">All documents <svg class="icon sm"><use href="#i-arrow"/></svg></a></div>
+      <ul class="feed">
+        <li>
+          <span class="blob" style="background:var(--peach);color:var(--tangerine-ink)"><svg class="icon"><use href="#i-mail"/></svg></span>
+          <div style="min-width:0"><div class="name">Fernbrook redline, v2</div><div class="meta">Site 15 · emailed by contracts@fernbrook.org · 9:42 AM</div></div>
+          <button class="btn btn-orange btn-sm" type="button">Triage now</button>
+        </li>
+        <li>
+          <span class="blob" style="background:var(--mint);color:var(--mint-ink)"><svg class="icon"><use href="#i-check"/></svg></span>
+          <div style="min-width:0"><div class="name">Juniper Ridge redline, v3</div><div class="meta">Site 11 · 6 changes · 5 handled for you · Yesterday</div></div>
+          <span class="pill p-mint">Triaged</span>
+        </li>
+        <li>
+          <span class="blob" style="background:var(--mint);color:var(--mint-ink)"><svg class="icon"><use href="#i-check"/></svg></span>
+          <div style="min-width:0"><div class="name">Larkspur redline</div><div class="meta">Site 07 · 14 changes · 11 handled for you · Oct 15</div></div>
+          <span class="pill p-mint">Triaged</span>
+        </li>
+      </ul>
+      <div class="drop"><svg class="icon"><use href="#i-upload"/></svg><span>Drop a .docx here, or have sites email <code>redlines@siteline.demo</code></span></div>
+    </section>
+
+    <section class="tile t-sites" aria-labelledby="sites-h">
+      <div class="tile-head"><h2 id="sites-h">Open sites <span class="badge tabular">6</span></h2><a class="link" href="#">See all sites <svg class="icon sm"><use href="#i-arrow"/></svg></a></div>
+      <div class="sites">
+        <!-- Ring circumference = 2πr = 2π·24 ≈ 150.8. Fill = min(days, 90) / 90. -->
+        <a class="site" href="#">
+          <div class="site-top"><div class="ring"><svg viewBox="0 0 56 56"><circle class="track" cx="28" cy="28" r="24" fill="none" stroke-width="6"/><circle cx="28" cy="28" r="24" fill="none" stroke="#F43F5E" stroke-width="6" stroke-linecap="round" stroke-dasharray="150.8 150.8"/></svg><b class="tabular">128</b></div>
+            <div><div class="num">11</div><div class="nm">Juniper Ridge Clinic</div></div></div>
+          <span class="pill p-rose">38 days over</span>
+        </a>
+        <a class="site" href="#">
+          <div class="site-top"><div class="ring"><svg viewBox="0 0 56 56"><circle class="track" cx="28" cy="28" r="24" fill="none" stroke-width="6"/><circle cx="28" cy="28" r="24" fill="none" stroke="#F43F5E" stroke-width="6" stroke-linecap="round" stroke-dasharray="150.8 150.8"/></svg><b class="tabular">112</b></div>
+            <div><div class="num">07</div><div class="nm">Larkspur Cancer Institute</div></div></div>
+          <span class="pill p-rose">22 days over</span>
+        </a>
+        <a class="site" href="#">
+          <div class="site-top"><div class="ring"><svg viewBox="0 0 56 56"><circle class="track" cx="28" cy="28" r="24" fill="none" stroke-width="6"/><circle cx="28" cy="28" r="24" fill="none" stroke="#F43F5E" stroke-width="6" stroke-linecap="round" stroke-dasharray="150.8 150.8"/></svg><b class="tabular">97</b></div>
+            <div><div class="num">03</div><div class="nm">Quarry Hill Medical Center</div></div></div>
+          <span class="pill p-rose">7 days over</span>
+        </a>
+        <a class="site" href="#">
+          <div class="site-top"><div class="ring"><svg viewBox="0 0 56 56"><circle class="track" cx="28" cy="28" r="24" fill="none" stroke-width="6"/><circle cx="28" cy="28" r="24" fill="none" stroke="#F97316" stroke-width="6" stroke-linecap="round" stroke-dasharray="107.2 150.8"/></svg><b class="tabular">64</b></div>
+            <div><div class="num">12</div><div class="nm">Saltmarsh University Hospital</div></div></div>
+          <span class="pill p-peach">Ready to send</span>
+        </a>
+        <a class="site" href="#">
+          <div class="site-top"><div class="ring"><svg viewBox="0 0 56 56"><circle class="track" cx="28" cy="28" r="24" fill="none" stroke-width="6"/><circle cx="28" cy="28" r="24" fill="none" stroke="#22C55E" stroke-width="6" stroke-linecap="round" stroke-dasharray="68.7 150.8"/></svg><b class="tabular">41</b></div>
+            <div><div class="num">09</div><div class="nm">Cobalt Bay Health</div></div></div>
+          <span class="pill p-cream">With the site</span>
+        </a>
+        <a class="site" href="#">
+          <div class="site-top"><div class="ring"><svg viewBox="0 0 56 56"><circle class="track" cx="28" cy="28" r="24" fill="none" stroke-width="6"/><circle cx="28" cy="28" r="24" fill="none" stroke="#2563EB" stroke-width="6" stroke-linecap="round" stroke-dasharray="3.4 150.8"/></svg><b class="tabular">2</b></div>
+            <div><div class="num">15</div><div class="nm">Fernbrook Cancer Center</div></div></div>
+          <span class="pill p-sky">New redline</span>
+        </a>
+      </div>
+      <p class="ring-note">The ring fills toward the 90-day start-up target. The number is days open.</p>
+    </section>
+
+    <section class="tile t-data" aria-labelledby="data-h">
+      <div class="tile-head"><h2 id="data-h">Where your data lives</h2></div>
+      <div class="map">
+        <svg class="beams" viewBox="0 0 360 230" role="img" aria-label="Redlines arrive by email or upload, are parsed in a sandbox that is then deleted, Claude extracts the values, and results are saved to Postgres and S3.">
+          <defs>
+            <linearGradient id="beamGrad" x1="0" x2="1"><stop offset="0" stop-color="#F97316" stop-opacity="0"/><stop offset=".5" stop-color="#F97316"/><stop offset="1" stop-color="#2563EB"/></linearGradient>
+          </defs>
+          <path class="beam-base" d="M58 60 C110 60 120 115 158 115"/>
+          <path class="beam-base" d="M58 170 C110 170 120 115 158 115"/>
+          <path class="beam-base" d="M202 115 C240 115 250 60 302 60"/>
+          <path class="beam-base" d="M202 115 C240 115 250 170 302 170"/>
+          <path class="beam" d="M58 60 C110 60 120 115 158 115"/>
+          <path class="beam d2" d="M58 170 C110 170 120 115 158 115"/>
+          <path class="beam d3" d="M202 115 C240 115 250 60 302 60"/>
+          <path class="beam d4" d="M202 115 C240 115 250 170 302 170"/>
+          <g font-family="Nunito, sans-serif" font-size="12" font-weight="800" fill="#3A2A1E" text-anchor="middle">
+            <circle cx="36" cy="60" r="22" fill="#FFE6D5"/><text x="36" y="100">Email</text>
+            <circle cx="36" cy="170" r="22" fill="#FFE6D5"/><text x="36" y="210">Upload</text>
+            <circle cx="180" cy="115" r="28" fill="#FFF1C9"/><text x="180" y="162">Sandbox + Claude</text>
+            <circle cx="324" cy="60" r="22" fill="#DDF5E6"/><text x="324" y="100">Postgres</text>
+            <circle cx="324" cy="170" r="22" fill="#DDF5E6"/><text x="324" y="210">S3</text>
+          </g>
+          <g fill="none" stroke="#3A2A1E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <g transform="translate(26 50) scale(.84)"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></g>
+            <g transform="translate(26 160) scale(.84)"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" x2="12" y1="3" y2="15"/></g>
+            <g transform="translate(168 103)"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></g>
+            <g transform="translate(314 50) scale(.84)"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/></g>
+            <g transform="translate(314 160) scale(.84)"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></g>
+          </g>
+        </svg>
+      </div>
+      <ul class="kept">
+        <li><svg class="icon sm" style="color:var(--mint-ink)"><use href="#i-cloud"/></svg><div><b>Documents</b> are kept in S3<code>siteline-docs/site-07/counter_v1.docx</code></div></li>
+        <li><svg class="icon sm" style="color:var(--mint-ink)"><use href="#i-database"/></svg><div><b>Precedents</b> are kept in Postgres<code>3 past agreements for Larkspur</code></div></li>
+        <li class="gone"><svg class="icon sm"><use href="#i-trash"/></svg><div><b>Sandboxes</b> are deleted right after each parse</div></li>
+      </ul>
+    </section>
+  </div>
+</main>
+</body>
+</html>
