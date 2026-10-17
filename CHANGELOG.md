@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · Redline on Sites
+
+### Added
+
+- **Redline in the Sites panel:** choosing a triaged site shows its changed paragraphs in document order, as the site marked them up: deleted wording struck through in place and new wording underlined after it, with the author on hover, site comments, and Siteline's outcome per paragraph. Seed sites without a redline keep their empty state.
+- **Override from Sites:** paragraphs marked Human review or Novel show the rule that sent them there and an Override button that opens the same reasoned override form as the Review page (accept, fallback or escalate), with Undo. Overriding to escalate texts the approver, as it does on Review.
+
 ## [Unreleased] · Institutional frontend
 
 ### Changed
