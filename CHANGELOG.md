@@ -10,6 +10,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Redline in the Sites panel:** choosing a triaged site shows its changed paragraphs in document order, as the site marked them up: deleted wording struck through in place and new wording underlined after it, with the author on hover, site comments, and Siteline's outcome per paragraph. Seed sites without a redline keep their empty state.
 - **Override from Sites:** paragraphs marked Human review or Novel show the rule that sent them there and an Override button that opens the same reasoned override form as the Review page (accept, fallback or escalate), with Undo. Overriding to escalate texts the approver, as it does on Review.
 
+### Changed
+
+- **Start from the inbox only:** the seed no longer includes the seven pre-filled site agreements, so the app opens with just the two inbound demo emails. Sites appear once a redline is triaged or uploaded; Home and Sites show empty states until then.
+
 ## [Unreleased] · Institutional frontend
 
 ### Changed
