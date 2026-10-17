@@ -1,0 +1,16 @@
+{
+  "_note": "Fictional sites for the portfolio radar and inbox. Site 07 is created live by uploading the demo redline.",
+  "agreements": [
+    {"id": "site-03", "siteNumber": "03", "siteName": "Bellwether Oncology Group", "city": "Raleigh, NC", "status": "ready_to_export", "daysOpen": 41, "changes": 9, "stuckClauses": [], "outcomeMix": {"accept": 5, "fallback": 3, "escalate": 1, "human_review": 0, "novel": 0}, "source": "upload", "receivedAt": "2026-09-05T14:30:00"},
+    {"id": "site-11", "siteNumber": "11", "siteName": "Ironwood University Medical Center", "city": "Tempe, AZ", "status": "awaiting_approval", "daysOpen": 128, "changes": 22, "stuckClauses": ["intellectual_property", "publication"], "outcomeMix": {"accept": 9, "fallback": 6, "escalate": 5, "human_review": 1, "novel": 1}, "source": "email", "receivedAt": "2026-06-10T08:02:00"},
+    {"id": "site-02", "siteNumber": "02", "siteName": "Cedar Hollow Cancer Center", "city": "Boise, ID", "status": "executed", "daysOpen": 74, "changes": 6, "stuckClauses": [], "outcomeMix": {"accept": 4, "fallback": 2, "escalate": 0, "human_review": 0, "novel": 0}, "source": "upload", "receivedAt": "2026-08-03T11:45:00"},
+    {"id": "site-09", "siteNumber": "09", "siteName": "Granite Peak Health", "city": "Billings, MT", "status": "awaiting_approval", "daysOpen": 167, "changes": 19, "stuckClauses": ["indemnification", "governing_law", "payment_terms"], "outcomeMix": {"accept": 7, "fallback": 5, "escalate": 6, "human_review": 1, "novel": 0}, "source": "upload", "receivedAt": "2026-05-02T10:00:00"},
+    {"id": "site-05", "siteNumber": "05", "siteName": "Marrowstone Clinical Partners", "city": "Tacoma, WA", "status": "sent_to_site", "daysOpen": 58, "changes": 11, "stuckClauses": ["confidentiality"], "outcomeMix": {"accept": 6, "fallback": 3, "escalate": 2, "human_review": 0, "novel": 0}, "source": "upload", "receivedAt": "2026-08-19T09:30:00"},
+    {"id": "site-13", "siteNumber": "13", "siteName": "Saltmarsh Cancer Alliance", "city": "Savannah, GA", "status": "awaiting_approval", "daysOpen": 96, "changes": 15, "stuckClauses": ["subject_injury", "data_privacy"], "outcomeMix": {"accept": 6, "fallback": 4, "escalate": 3, "human_review": 2, "novel": 0}, "source": "email", "receivedAt": "2026-07-12T13:10:00"},
+    {"id": "site-01", "siteNumber": "01", "siteName": "Northgate Regional Oncology", "city": "Duluth, MN", "status": "executed", "daysOpen": 88, "changes": 8, "stuckClauses": [], "outcomeMix": {"accept": 5, "fallback": 3, "escalate": 0, "human_review": 0, "novel": 0}, "source": "upload", "receivedAt": "2026-07-20T15:00:00"}
+  ],
+  "emails": [
+    {"id": "em-1", "from": "contracts@riverbend.example", "siteName": "Riverbend Cancer Care", "siteNumber": "12", "city": "Dayton, OH", "subject": "NSO-417 CTA – our redline v2", "attachment": "NSO-417_CTA_Site12_v2.docx", "receivedAt": "2026-10-15T19:41:00", "triaged": false},
+    {"id": "em-2", "from": "osp@tidewater.example", "siteName": "Tidewater Research Hospital", "siteNumber": "15", "city": "Norfolk, VA", "subject": "Re: CTA for NSO-417", "attachment": "Tidewater_CTA_markup.docx", "receivedAt": "2026-10-13T16:20:00", "triaged": false}
+  ]
+}
