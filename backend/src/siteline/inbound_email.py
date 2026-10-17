@@ -27,6 +27,14 @@ def attachment_path(email_id: str):
     return INBOX_DIR / f"{email_id}.docx"
 
 
+def enrollment_sentence(fig: dict) -> str:
+    return f"Enrollment: Institution will use reasonable efforts to enroll {fig['targetSubjects']} subjects over an enrollment period of {fig['months']} months."
+
+
+def payment_sentence(fig: dict) -> str:
+    return f"Per-patient payment: Sponsor will pay Institution USD {fig['perPatientUsd']:,} per enrolled subject, as set out in Exhibit B."
+
+
 def seed_attachment(e: dict) -> bytes:
     """A fictional redline for a seeded email, built from labeled eval changes."""
     from siteline.evals.dataset import load_dataset
@@ -42,6 +50,9 @@ def seed_attachment(e: dict) -> bytes:
         ("", text(f"Site Number: {e.get('siteNumber', '')}"), None, None),
         ("", text("This document is fictional and was generated for the Siteline demo."), None, None),
     ]
+    if fig := e.get("enrollment"):
+        blocks.append(("", text(enrollment_sentence(fig)), None, None))
+        blocks.append(("", text(payment_sentence(fig)), None, None))
     for it in sorted(items, key=lambda x: x["section"]):
         blocks.append(("Heading2", text(it["section"]), None, None))
         comment = (e["siteName"], it["comment"]) if it.get("comment") else None
@@ -121,7 +132,7 @@ async def triage_email(email_id: str) -> dict:
     path = attachment_path(email_id)
     if not path.exists():
         ensure_seed_attachments()
-    agreement = await triage(path.read_bytes(), e["attachment"], TriageOptions(use_cache=True), source="email")
+    agreement = await triage(path.read_bytes(), e["attachment"], TriageOptions(use_cache=True), source="email", received_at=e.get("receivedAt"))
     store.update_email(email_id, triaged=True, agreementId=agreement["id"])
     events.publish("email.updated", {"email": {**e, "triaged": True, "agreementId": agreement["id"]}})
     return agreement

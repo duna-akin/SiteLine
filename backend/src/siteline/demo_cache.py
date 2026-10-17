@@ -8,9 +8,11 @@ verification and human review. Replace them with real Claude output any time wit
 
 from __future__ import annotations
 
+import json
+
 from siteline.demo import demo_bytes
 from siteline.docx_redline import parse_docx
-from siteline.extraction import cache_key, store_cache
+from siteline.extraction import cache_key, doc_cache_key, store_cache
 
 
 def _v(field: str, value: str, quote: str) -> dict:
@@ -70,11 +72,37 @@ SEED: dict[int, dict] = {
 }
 
 
+def _figures(target: str, months: str, usd: str, enroll_quote: str, pay_quote: str) -> dict:
+    return {"confidence": 0.97, "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+            "figures": [_v("enrollment_target_subjects", target, enroll_quote),
+                        _v("enrollment_period_months", months, enroll_quote),
+                        _v("per_patient_amount_usd", usd, pay_quote)],
+            "model": "seed (hand-written)", "latencyMs": 0}
+
+
+def seed_figures() -> dict[str, dict]:
+    """Whole-agreement readings (priority figures) for the demo file and the seeded emails'
+    attachments, keyed like extract_document's cache, so priority works without Claude."""
+    from siteline.inbound_email import enrollment_sentence, payment_sentence, seed_attachment
+    from siteline.priority import document_text
+    from siteline.store import SEED_PATH
+
+    out = {doc_cache_key(document_text(parse_docx(demo_bytes()))): _figures(
+        "48", "18", "18200", "enroll 48 subjects over an enrollment period of 18 months", "USD 18,200 per enrolled subject")}
+    for e in json.loads(SEED_PATH.read_text())["emails"]:
+        if fig := e.get("enrollment"):
+            text = document_text(parse_docx(seed_attachment(e)))
+            out[doc_cache_key(text)] = _figures(str(fig["targetSubjects"]), str(fig["months"]), str(fig["perPatientUsd"]),
+                                                enrollment_sentence(fig), payment_sentence(fig))
+    return out
+
+
 def write_seed() -> int:
     parsed = parse_docx(demo_bytes())
     entries = {}
     for change in parsed["changes"]:
         seed = SEED[change["index"]]
         entries[cache_key(change)] = {**seed, "model": "seed (hand-written)", "latencyMs": 0}
+    entries.update(seed_figures())
     store_cache(entries, seed=True)
     return len(entries)

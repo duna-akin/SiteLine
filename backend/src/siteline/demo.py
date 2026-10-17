@@ -62,6 +62,8 @@ def blocks() -> list[Block]:
     p("Sponsor: Northstar Oncology, Inc., Princeton, New Jersey")
     p("Institution: Larkspur Cancer Institute, Madison, WI")
     p("Site Number: 07")
+    p("Enrollment: Institution will use reasonable efforts to enroll 48 subjects over an enrollment period of 18 months.")
+    p("Per-patient payment: Sponsor will pay Institution USD 18,200 per enrolled subject, as set out in Exhibit B.")
     p(
         "This Clinical Trial Agreement is entered into by Northstar Oncology, Inc. (“Sponsor”) and "
         "Larkspur Cancer Institute, a public institution of the State of Wisconsin (“Institution”). "
