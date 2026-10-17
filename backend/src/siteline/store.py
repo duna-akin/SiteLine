@@ -51,9 +51,21 @@ def load() -> None:
     with _lock:
         if STATE_PATH.exists():
             _state = json.loads(STATE_PATH.read_text())
+            seed = json.loads(SEED_PATH.read_text())
             # State saved before precedents existed: start from the seeded history
             if "precedents" not in _state:
-                _state["precedents"] = json.loads(SEED_PATH.read_text()).get("precedents", [])
+                _state["precedents"] = seed.get("precedents", [])
+            # State saved before site priority existed: take the seeded sites' study-plan figures
+            # and the seeded emails' enrollment, or every one of them reads as priority unknown
+            seeded = {a["id"]: a for a in seed["agreements"]}
+            for agreement_id, a in _state["agreements"].items():
+                if agreement_id in seeded and "priorityInputs" not in a:
+                    a["priorityInputs"] = seeded[agreement_id].get("priorityInputs")
+                    a.setdefault("redlineReceivedAt", seeded[agreement_id].get("redlineReceivedAt"))
+            seeded_emails = {e["id"]: e for e in seed["emails"]}
+            for e in _state["emails"]:
+                if "enrollment" not in e and "enrollment" in seeded_emails.get(e["id"], {}):
+                    e["enrollment"] = seeded_emails[e["id"]]["enrollment"]
         else:
             _state = _seed()
 
