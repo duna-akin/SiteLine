@@ -1,13 +1,13 @@
-import { ArrowLeftRight, CircleCheck, Eye, Siren, Sparkles, type LucideIcon } from 'lucide-react'
+import { ArrowLeftRight, CircleAlert, CircleCheck, Eye, FileQuestion, type LucideIcon } from 'lucide-react'
 
 import type { Outcome } from '@/types'
 
 export const outcomeIcon: Record<Outcome, LucideIcon> = {
   accept: CircleCheck,
   fallback: ArrowLeftRight,
-  escalate: Siren,
+  escalate: CircleAlert,
   human_review: Eye,
-  novel: Sparkles,
+  novel: FileQuestion,
 }
 
 /** Ink colour per outcome (see index.css): text, icons, edges. */
@@ -19,7 +19,7 @@ export const outcomeVar: Record<Outcome, string> = {
   novel: 'var(--outcome-novel)',
 }
 
-/** Pastel fill per outcome, paired with outcomeVar for text on it. */
+/** Muted fill per outcome, paired with outcomeVar for text on it. */
 export const outcomeBg: Record<Outcome, string> = {
   accept: 'var(--outcome-accept-bg)',
   fallback: 'var(--outcome-fallback-bg)',

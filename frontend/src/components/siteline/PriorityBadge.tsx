@@ -11,7 +11,7 @@ export function PriorityBadge({ priority, detail = false, className }: { priorit
       <div className="flex flex-wrap items-center gap-2">
         <span className={`pill ${priorityPill[priority.level]}`}>{priorityLabel[priority.level]}</span>
         {priority.moneyAtRiskPerWeek !== null && (
-          <span className="text-sm font-extrabold tabular">≈{usd(priority.moneyAtRiskPerWeek)}/week at risk</span>
+          <span className="text-sm font-semibold tabular">≈{usd(priority.moneyAtRiskPerWeek)}/week at risk</span>
         )}
       </div>
       {detail && (
@@ -19,7 +19,7 @@ export function PriorityBadge({ priority, detail = false, className }: { priorit
           <p className="text-sm text-muted">{priority.reason}</p>
           {quotes.map((q) => (
             <p key={q} className="text-xs text-muted">
-              <span className="font-extrabold text-ink">{priority.source === 'study plan' ? 'Study plan' : 'Contract'}:</span> “{q}”
+              <span className="font-semibold text-ink">{priority.source === 'study plan' ? 'Study plan' : 'Contract'}:</span> “{q}”
             </p>
           ))}
         </>
