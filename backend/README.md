@@ -73,11 +73,41 @@ database unless `SITELINE_TEST_DATABASE_URL` points at a throwaway local one.
 
 ## Photon setup notes
 
-- A shared Photon iMessage line only sends to someone who has messaged that line since
-  their assignment. Have each approver text the Siteline line once before the demo.
-- Create a webhook destination for `message.received` pointing at
-  `$PUBLIC_BASE_URL/api/webhooks/photon`, and put its signing secret in `PHOTON_WEBHOOK_SECRET`.
+Siteline uses **Photon 2.0** (dashboard at https://app.beta.photon.codes, REST API at
+`https://api.photon.codes/v1`). The Photon CLI (`@photon-ai/cli`) and `create-spectrum-project`
+only reach classic Photon, so they are not used. The API's schema is at
+https://api.photon.codes/openapi.json.
+
+- **Credentials:** `PHOTON_API_KEY` is the project key (`pho_sk_…`, valid only under its own
+  project); `PHOTON_PROJECT_ID` is `pho_prj_…`. A wrong project ID returns 403.
+- **Approvers:** add each phone under iMessage → "Add someone to the line". Photon assigns every
+  person one of the project's **shared lines**, and different people can land on different
+  lines. Siteline looks up each approver's line (`GET …/platforms/imessage/assignments`) and
+  sends from it. A shared line only sends to someone who has messaged it since their
+  assignment, so each approver texts **their own assigned line** once before the demo.
+- **Webhook:** one destination for `message.received` (API version `2026-07-01`) pointing at
+  `$PUBLIC_BASE_URL/api/webhooks/photon`. It can be created and updated with the project key
+  (`POST`/`PATCH …/webhooks/destinations`; writes need an `Idempotency-Key` header). The
+  `signingSecret` is returned once on create; it goes in `PHOTON_WEBHOOK_SECRET`.
+- **Voice:** calls run on the project's SMS number (`PHOTON_NUMBER`), not the iMessage line:
+  set up a voice profile on it with SIP to Twilio. Carrier campaign registration is only needed
+  for sending SMS texts, which Siteline does not do.
 - A reply of `1`, `2` or `3` answers that approver's oldest open escalation; `C04 2` picks one.
+- With all three approver phones set, **every upload texts real people**. Blank the
+  `APPROVER_*_PHONE` lines to rehearse on the on-screen phone.
+
+## Public URL (ngrok)
+
+Photon and Twilio callbacks need a public HTTPS URL. The team uses ngrok's free static dev
+domain, so the URL and the Photon webhook never change:
+
+```bash
+ngrok http --url=https://sudden-playlist-untimely.ngrok-free.dev 8000
+```
+
+Set `PUBLIC_BASE_URL` to that URL. A Cloudflare quick tunnel also works, but its URL changes on
+every restart (then update the webhook and `.env`); a named Cloudflare tunnel needs a domain on
+Cloudflare. ngrok's browser warning page does not affect server-to-server webhooks.
 
 ## Layout
 
