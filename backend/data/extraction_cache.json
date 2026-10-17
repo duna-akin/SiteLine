@@ -1,0 +1,242 @@
+{
+ "a9bae2d1d94a56837716fc71": {
+  "clause_type": "payment_terms",
+  "confidence": 0.97,
+  "novel_issue": null,
+  "rationale": "Raises the non-refundable start-up fee from 10% to 15% of the budget.",
+  "values": [
+   {
+    "field": "start_up_fee_pct",
+    "value": "15",
+    "quote": "fifteen percent (15%) of the study budget"
+   },
+   {
+    "field": "start_up_fee_refundable",
+    "value": "false",
+    "quote": "non-refundable start-up fee"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "ef7ffb862add3c2ed231f8d4": {
+  "clause_type": "confidentiality",
+  "confidence": 0.98,
+  "novel_issue": null,
+  "rationale": "Shortens confidentiality survival from 7 to 4 years.",
+  "values": [
+   {
+    "field": "survival_years",
+    "value": "4",
+    "quote": "survive for four (4) years after study close"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "f17824b3cca89036d911f127": {
+  "clause_type": "indemnification",
+  "confidence": 0.93,
+  "novel_issue": null,
+  "rationale": "Narrows the carve-out to gross negligence or willful misconduct and adds an adjudication requirement.",
+  "values": [
+   {
+    "field": "carve_out_standard",
+    "value": "gross_negligence_or_willful_misconduct",
+    "quote": "gross negligence or willful misconduct"
+   },
+   {
+    "field": "adjudication_required",
+    "value": "true",
+    "quote": "as finally adjudicated"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "ac6857b8b0773f2cfc792b97": {
+  "clause_type": "indemnification",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Adds a new section making indemnification obligations mutual.",
+  "values": [
+   {
+    "field": "mutual_indemnity",
+    "value": "true",
+    "quote": "the parties’ obligations under this Section 9 shall be mutual"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "4e377b3fa839cc0530b80b31": {
+  "clause_type": "subject_injury",
+  "confidence": 0.96,
+  "novel_issue": null,
+  "rationale": "Adds lost wages and travel costs to subject-injury reimbursement.",
+  "values": [
+   {
+    "field": "covers_lost_wages",
+    "value": "true",
+    "quote": "including lost wages and travel costs"
+   },
+   {
+    "field": "covers_travel",
+    "value": "true",
+    "quote": "including lost wages and travel costs"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "adb3bbcfa7a9012fba13c697": {
+  "clause_type": "subject_injury",
+  "confidence": 0.94,
+  "novel_issue": null,
+  "rationale": "Deletes coordination with the subject's insurance, so the sponsor pays first.",
+  "values": [
+   {
+    "field": "coordination_with_insurance",
+    "value": "sponsor_pays_first",
+    "quote": "Reimbursement is net of amounts paid by the subject’s insurance."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "a52465e1a3f471cdea4c3662": {
+  "clause_type": "data_privacy",
+  "confidence": 0.97,
+  "novel_issue": null,
+  "rationale": "Requires the sponsor to sign the institution's Business Associate Agreement.",
+  "values": [
+   {
+    "field": "requires_baa",
+    "value": "true",
+    "quote": "Sponsor shall execute Institution’s form Business Associate Agreement"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "689433ce59edb856134649cf": {
+  "clause_type": "data_privacy",
+  "confidence": 0.91,
+  "novel_issue": "Bars using coded study data to train or fine-tune machine learning models without consent; the playbook has no rule on model training.",
+  "rationale": "New restriction on machine-learning use of coded data.",
+  "values": [
+   {
+    "field": "ml_training_restriction",
+    "value": "true",
+    "quote": "shall not use coded study data to train or fine-tune machine learning models"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "eb4bfad763581fac9e88c3d2": {
+  "clause_type": "publication",
+  "confidence": 0.58,
+  "novel_issue": null,
+  "rationale": "The qualifier makes the review window open-ended.",
+  "values": [
+   {
+    "field": "review_days",
+    "value": "45",
+    "quote": "forty-five (45) days, or as otherwise agreed"
+   },
+   {
+    "field": "review_window_open_ended",
+    "value": "true",
+    "quote": "or as otherwise agreed"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "3519918a86bd1a66fdeca42b": {
+  "clause_type": "publication",
+  "confidence": 0.96,
+  "novel_issue": null,
+  "rationale": "Deletes the sponsor's right to delay publication for patent filings.",
+  "values": [
+   {
+    "field": "patent_delay",
+    "value": "removed",
+    "quote": "Institution shall delay publication up to an additional sixty (60) days to permit patent filings"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "b8f183004d686677ea43ac7d": {
+  "clause_type": "intellectual_property",
+  "confidence": 0.92,
+  "novel_issue": null,
+  "rationale": "Comment asks to confirm that existing software stays background IP; the text keeps background IP with its owner.",
+  "values": [
+   {
+    "field": "background_ip_retained",
+    "value": "true",
+    "quote": "Each party retains ownership of its background intellectual property."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "0487f92c80bb39b58f0580bd": {
+  "clause_type": "intellectual_property",
+  "confidence": 0.88,
+  "novel_issue": null,
+  "rationale": "Makes study inventions jointly owned.",
+  "values": [
+   {
+    "field": "invention_ownership",
+    "value": "joint",
+    "quote": "inventions arising from the Protocol or Study Drug shall be jointly owned"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "9624dff3e600498a7389b605": {
+  "clause_type": "termination",
+  "confidence": 0.99,
+  "novel_issue": null,
+  "rationale": "Extends the institution's termination notice from 30 to 60 days.",
+  "values": [
+   {
+    "field": "site_notice_days",
+    "value": "60",
+    "quote": "sixty (60) days’ written notice"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "c328959614fcd53b79b4fa2c": {
+  "clause_type": "governing_law",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Switches to Wisconsin law with exclusive venue in Dane County courts.",
+  "values": [
+   {
+    "field": "governing_law_state",
+    "value": "Wisconsin",
+    "quote": "governed by the laws of the State of Wisconsin"
+   },
+   {
+    "field": "venue",
+    "value": "site_courts_exclusive",
+    "quote": "exclusive venue in the courts of Dane County"
+   },
+   {
+    "field": "institution_is_public",
+    "value": "true",
+    "quote": "a public institution of the State of Wisconsin"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ }
+}
