@@ -235,16 +235,16 @@
           </table>
           <p class="cap">Each cell is capped at 75%. The bars fill toward that cap.</p>
 
-          <div class="gap" aria-label="Example: start-up fee. Standard 10,000 dollars, escalate floor 16,000 dollars. At 50 percent the site may ask up to 13,000 dollars.">
+          <div class="gap" aria-label="Example: start-up fee as a share of the study budget. Standard 10 percent, escalate floor 20 percent. At 50 percent of the gap the site may ask up to 15 percent.">
             <div class="track">
               <span class="band"></span>
-              <span class="tick" style="left:0"></span><span class="mark" style="left:0;transform:none">$10,000 standard</span>
-              <span class="tick" style="left:50%"></span><span class="mark" style="left:50%">$13,000 at 50%</span>
-              <span class="tick" style="left:100%;background:var(--orange)"></span><span class="mark floor" style="left:100%;transform:translateX(-100%)">$16,000 floor</span>
-              <span class="below" style="left:41.7%">Site 07 asks $12,500</span>
+              <span class="tick" style="left:0"></span><span class="mark" style="left:0;transform:none">10% standard</span>
+              <span class="tick" style="left:50%"></span><span class="mark" style="left:50%">15% at 50%</span>
+              <span class="tick" style="left:100%;background:var(--orange)"></span><span class="mark floor" style="left:100%;transform:translateX(-100%)">20% floor</span>
+              <span class="below" style="left:50%">Site 07 asks 15%</span>
             </div>
           </div>
-          <p class="cap" style="margin-top:0">Example: start-up fee (PAY-A3P). Anything past the floor still escalates, whatever the priority.</p>
+          <p class="cap" style="margin-top:0">Example: start-up fee as a share of the study budget (PAY-A3P). It escalates only past 20% and non-refundable, whatever the priority. For confidentiality and publication review shorter is worse, so the band widens downward: 5 → 4 years, 60 → 45 days at 50%.</p>
         </section>
       </div>
 
@@ -253,14 +253,14 @@
           <h2 id="pv-h">3 open decisions across 2 sites would change</h2>
           <p class="sub">Raising High to $12,000 moves Sites 07 and 03 to Elevated, which halves their leeway for the first 30 days.</p>
           <ul class="chg">
-            <li><b>Site 07 · Start-up fee</b><span class="muted">$12,500 asked · band $13,000 → $11,500</span>
-              <div class="arrow"><span class="rule">PAY-A3P</span><span class="chip c-teal">Accept</span><svg class="icon sm"><use href="#i-arrow"/></svg><span class="chip c-amber">Fallback</span></div></li>
-            <li><b>Site 03 · Confidentiality</b><span class="muted">7 years asked · band 7 → 6 years</span>
-              <div class="arrow"><span class="rule">CONF-A2P</span><span class="chip c-teal">Accept</span><svg class="icon sm"><use href="#i-arrow"/></svg><span class="chip c-amber">Fallback</span></div></li>
-            <li><b>Site 03 · Publication review</b><span class="muted">75 days asked · band 75 → 67 days</span>
-              <div class="arrow"><span class="rule">PUB-A2P</span><span class="chip c-teal">Accept</span><svg class="icon sm"><use href="#i-arrow"/></svg><span class="chip c-amber">Fallback</span></div></li>
+            <li><b>Site 07 · Start-up fee</b><span class="muted">15% asked · accepts up to 15% → 12.5%</span>
+              <div class="arrow"><span class="rule">PAY-A3P</span><span class="chip c-teal">Accept</span><svg class="icon sm"><use href="#i-arrow"/></svg><span class="rule">PAY-F2</span><span class="chip c-amber">Counter at 10%</span></div></li>
+            <li><b>Site 03 · Confidentiality</b><span class="muted">4 years asked · accepts down to 4 → 4.5 years</span>
+              <div class="arrow"><span class="rule">CONF-A2P</span><span class="chip c-teal">Accept</span><svg class="icon sm"><use href="#i-arrow"/></svg><span class="rule">CONF-F1</span><span class="chip c-amber">Counter at 5 years</span></div></li>
+            <li><b>Site 03 · Publication review</b><span class="muted">45 days asked · accepts down to 45 → 52.5 days</span>
+              <div class="arrow"><span class="rule">PUB-A2P</span><span class="chip c-teal">Accept</span><svg class="icon sm"><use href="#i-arrow"/></svg><span class="rule">PUB-F1</span><span class="chip c-amber">Counter at 60 days</span></div></li>
           </ul>
-          <p class="sub" style="margin:12px 0 0">Changed decisions go back to unconfirmed.</p>
+          <p class="sub" style="margin:12px 0 0">Only unconfirmed suggestions change; confirmed ones stay as they are. Site 07's confidentiality (CONF-A2P) is already confirmed, so it is not listed.</p>
           <div class="actions"><button class="btn" type="button">Discard</button><button class="btn btn-primary" type="button">Save changes</button></div>
         </section>
 
