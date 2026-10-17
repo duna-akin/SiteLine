@@ -127,17 +127,25 @@ def effective_outcome(d: dict) -> str:
     return (d.get("override") or {}).get("outcome") or d["outcome"]
 
 
+UNRESOLVED = ("human_review", "novel")
+
+
 def is_waiting(d: dict) -> bool:
-    """Blocked on an approver's reply or a reviewer's decision."""
+    """Blocked on an approver's reply or a reviewer's decision. A change whose outcome (after any
+    override) is human review or novel still needs that decision: export holds it as pending."""
     o = effective_outcome(d)
-    return (o == "escalate" and d["approval"]["state"] != "answered") or (o in ("human_review", "novel") and not d.get("override"))
+    return (o == "escalate" and d["approval"]["state"] != "answered") or o in UNRESOLVED
 
 
 def is_confirmed(d: dict) -> bool:
-    """A person has signed off: confirmed the suggestion, overridden it, or answered its escalation."""
+    """A person has signed off: confirmed the suggestion, overridden it to an outcome export can
+    act on, or answered its escalation."""
+    o = effective_outcome(d)
+    if o in UNRESOLVED:
+        return False
     if d.get("confirmation") or d.get("override"):
         return True
-    return effective_outcome(d) == "escalate" and d["approval"]["state"] == "answered"
+    return o == "escalate" and d["approval"]["state"] == "answered"
 
 
 def unconfirmed(agreement_id: str) -> int:

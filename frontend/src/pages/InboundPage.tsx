@@ -112,7 +112,7 @@ export function InboundPage() {
           )}
           <div className="mt-4 flex flex-wrap gap-2">
             <SponsorChip sponsor="Daytona" label="Parsed in Daytona" />
-            <SponsorChip sponsor="Anthropic Claude" label="Extracted by OpenAI" />
+            <SponsorChip sponsor="OpenAI" label="Extracted by OpenAI" />
           </div>
         </section>
 

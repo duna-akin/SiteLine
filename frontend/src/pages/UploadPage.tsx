@@ -257,7 +257,7 @@ export function UploadPage() {
             <h2 id="pipeline-heading">Parse pipeline</h2>
             <div className="flex flex-wrap gap-2">
               {daytonaLive && <SponsorChip sponsor="Daytona" />}
-              <SponsorChip sponsor="Anthropic Claude" label="OpenAI" />
+              <SponsorChip sponsor="OpenAI" />
             </div>
           </div>
 

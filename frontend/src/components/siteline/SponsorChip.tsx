@@ -1,12 +1,12 @@
 import { cn } from '@/lib/utils'
 
-export type Sponsor = 'Photon' | 'Daytona' | 'Chalk' | 'Anthropic Claude'
+export type Sponsor = 'Photon' | 'Daytona' | 'Chalk' | 'OpenAI'
 
 const sponsorDot: Record<Sponsor, string> = {
   Photon: 'var(--radar-ok)',
   Daytona: 'var(--blue)',
   Chalk: 'var(--radar-warn)',
-  'Anthropic Claude': 'var(--tangerine)',
+  OpenAI: 'var(--tangerine)',
 }
 
 /** Small "powered by" attribution shown wherever a sponsor integration is used. */

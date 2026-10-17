@@ -246,8 +246,7 @@ async def triage(data: bytes, file_name: str, options: TriageOptions, source: st
     meta = site_meta(parsed, file_name)
     job.agreement_id = meta["agreementId"]
 
-    # "Anthropic Claude" stays the step's sponsor key until the frontend's sponsor chips are redone
-    job.step("extract", "active", f"{len(parsed['changes'])} changes in parallel", "Anthropic Claude")
+    job.step("extract", "active", f"{len(parsed['changes'])} changes in parallel", "OpenAI")
     text = priority.document_text(parsed)
     extractions, figures = await asyncio.gather(
         extract_all(parsed["changes"], preamble(parsed), options.use_cache),
@@ -260,7 +259,7 @@ async def triage(data: bytes, file_name: str, options: TriageOptions, source: st
         detail += f" · {cached} from cache"
     if failed:
         detail += f" · {failed} failed → human review"
-    job.step("extract", "done", detail, "Anthropic Claude")
+    job.step("extract", "done", detail, "OpenAI")
 
     existing = store.state()["agreements"].get(meta["agreementId"], {})
     previous = existing.get("previousRounds", [])

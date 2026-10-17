@@ -8,14 +8,20 @@ export function effectiveOutcome(d: Decision): Outcome {
   return d.override?.outcome ?? d.outcome
 }
 
-/** Blocked on an approver's reply or a reviewer's decision (mirrors store.is_waiting). */
+const unresolved = (o: Outcome) => o === 'human_review' || o === 'novel'
+
+/** Blocked on an approver's reply or a reviewer's decision (mirrors store.is_waiting). Human review
+ * and novel stay waiting even when an override chose them: export can't act on either. */
 export function isWaiting(d: Decision): boolean {
   const o = effectiveOutcome(d)
-  return (o === 'escalate' && d.approval.state !== 'answered') || ((o === 'human_review' || o === 'novel') && !d.override)
+  return (o === 'escalate' && d.approval.state !== 'answered') || unresolved(o)
 }
 
-/** A person signed off: confirmed it, overrode it, or answered its escalation (mirrors store.is_confirmed). */
+/** A person signed off: confirmed it, overrode it to an outcome export can act on, or answered its
+ * escalation (mirrors store.is_confirmed). */
 export function isConfirmed(d: Decision): boolean {
+  const o = effectiveOutcome(d)
+  if (unresolved(o)) return false
   if (d.confirmation || d.override) return true
-  return effectiveOutcome(d) === 'escalate' && d.approval.state === 'answered'
+  return o === 'escalate' && d.approval.state === 'answered'
 }

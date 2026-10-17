@@ -145,7 +145,7 @@ export function AppShell() {
             <SponsorChip sponsor="Photon" label="Photon 2.0 · approvals" />
             <SponsorChip sponsor="Daytona" label="Daytona · sandboxes" />
             <SponsorChip sponsor="Chalk" label="Chalk · Agent Evals" />
-            <SponsorChip sponsor="Anthropic Claude" label="OpenAI · extraction" />
+            <SponsorChip sponsor="OpenAI" label="OpenAI · extraction" />
           </div>
         </div>
       </footer>

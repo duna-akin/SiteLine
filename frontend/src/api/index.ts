@@ -67,7 +67,7 @@ export const getHealth = () => request<Health>('/health')
 export interface UploadOptions {
   /** Skip the Daytona sandbox and parse locally (PRD fallback flag). */
   localParser: boolean
-  /** Use the cached Claude extraction when one exists (the demo file ships with one). */
+  /** Use the cached extraction when one exists (the demo file ships with one). */
   useCache: boolean
 }
 
