@@ -250,12 +250,19 @@ def precedents_for_site(site_name: str) -> list[dict]:
     return [r for r in _state.get("precedents", []) if db.normalize_site(r["siteName"]) == key]
 
 
+class PrecedentStoreError(Exception):
+    pass
+
+
 def post_completed(records: list[dict]) -> None:
+    """Save a confirmed agreement's precedents. Raises PrecedentStoreError when the database
+    write fails, so the agreement is not reported as saved."""
     if db.enabled():
         try:
             db.post_completed(records)
         except psycopg.Error as e:
             log.error("Could not save %d precedents: %s", len(records), e)
+            raise PrecedentStoreError(str(e)) from e
         return
     with _lock:
         known = {r["id"] for r in _state.setdefault("precedents", [])}

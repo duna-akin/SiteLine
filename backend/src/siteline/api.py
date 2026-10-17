@@ -351,6 +351,8 @@ async def complete_agreement(agreement_id: str) -> dict:
     if n := store.unconfirmed(agreement_id):
         raise HTTPException(409, f"{n} suggestion(s) not yet confirmed by a person. Confirm them before completing.")
     file_name = re.sub(r"[^\w.-]", "_", meta["fileName"].replace("_counter-proposal", "_final"))
+    if (rnd := store.state()["agreements"][agreement_id].get("round", 1)) > 1:
+        file_name = file_name.removesuffix(".docx") + f"_r{rnd}.docx"  # never overwrite an earlier round's document
     key = f"{agreement_id}/{file_name}"
     try:
         storage.put(key, data)  # first, so no precedent ever cites a missing document
@@ -358,7 +360,10 @@ async def complete_agreement(agreement_id: str) -> dict:
         log.warning("final document upload failed: %s", e)
         raise HTTPException(502, "Could not store the final document. Nothing was saved; try again.") from None
     records = precedent.completed_records(agreement_id, key)
-    store.post_completed(records)
+    try:
+        store.post_completed(records)
+    except store.PrecedentStoreError:
+        raise HTTPException(503, "Could not save this agreement's precedents, so it was not marked executed. Try again.") from None
     a = store.state()["agreements"][agreement_id]
     store.put_agreement({**a, "status": "executed", "finalDocumentKey": key, "completedAt": store.iso_now()})
     summary = store.get_agreement(agreement_id)
