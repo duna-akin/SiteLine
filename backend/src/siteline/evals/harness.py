@@ -198,8 +198,9 @@ async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = 8) ->
         if it.get("precedents"):
             values = {v["field"]: v["value"] for v in ex.get("values", [])} if not ex.get("error") else {}
             clause = ex.get("clause_type") or it["clause_type"]
-            verdict, _ = precedent.review(verdict, clause, values, it["siteName"], it["agreementId"], records=it["precedents"])
-            high, _ = precedent.review(high, clause, values, it["siteName"], it["agreementId"], records=it["precedents"])
+            novel = ex.get("novel_issue")
+            verdict, _ = precedent.review(verdict, clause, values, it["siteName"], it["agreementId"], it["precedents"], novel)
+            high, _ = precedent.review(high, clause, values, it["siteName"], it["agreementId"], it["precedents"], novel)
         b_out = b.get("outcome") if not b.get("error") else "human_review"
         done += 1
         events.publish("eval.progress", {"runId": run_id, "done": done, "total": len(items)})

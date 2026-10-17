@@ -108,7 +108,8 @@ def _verdict(change: dict, ex: dict, values: list[dict], clause: str, site_name:
     verdict = decide(change, ex, quotes_ok, lenient)
     # After the rules and their fail-safes: has this site been granted this before? Always checked,
     # including widened accepts, so the reviewer sees the precedent next to the suggestion.
-    return precedent.review(verdict, clause, {v["field"]: v["value"] for v in values}, site_name, agreement_id, history)
+    return precedent.review(verdict, clause, {v["field"]: v["value"] for v in values}, site_name, agreement_id, history,
+                            ex.get("novel_issue"))
 
 
 def build_decisions(agreement_id: str, parsed: dict, extractions: list[dict], site_name: str = "",

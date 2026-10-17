@@ -195,3 +195,23 @@ def test_precedent_eval_cases_hold_and_never_accept_unsafely():
     for it in cases:
         v, _ = precedent.review(Verdict("escalate", "X", "rule"), it["clause_type"], it["ask"], it["siteName"], it["agreementId"], it["precedents"])
         assert v.outcome == it["gold"], it["note"]
+
+
+def test_partial_precedent_never_covers_a_broader_ask():
+    pay = Verdict("escalate", "PAY-E2", "Non-refundable start-up fee of 25% is above 20% → escalate to Finance.")
+    granted = rec({"start_up_fee_pct": "30", "start_up_fee_refundable": "true"}, clause="payment_terms")
+    assert precedent.review(pay, "payment_terms", {"start_up_fee_pct": "25"}, SITE, "site-07", [granted]) == (pay, None)
+    term = Verdict("escalate", "TERM-E1", "Termination for convenience without non-cancellable costs → escalate to Legal.")
+    granted = rec({"termination_for_convenience": "true", "pays_noncancellable_costs": "true"}, clause="termination")
+    assert precedent.review(term, "termination", {"termination_for_convenience": "true"}, SITE, "site-07", [granted]) == (term, None)
+    # The same fields, each no worse for the sponsor, still count
+    v, _ = precedent.review(pay, "payment_terms", {"start_up_fee_pct": "25", "start_up_fee_refundable": "true"}, SITE, "site-07",
+                            [rec({"start_up_fee_pct": "30", "start_up_fee_refundable": "true"}, clause="payment_terms")])
+    assert v.rule_id == "PREC-A1"
+
+
+def test_precedent_never_downgrades_an_escalation_with_a_novel_issue():
+    ind = Verdict("escalate", "IND-E2", "Site adds mutual indemnity → escalate to Legal.")
+    v, p = precedent.review(ind, "indemnification", {"mutual_indemnity": "true"}, SITE, "site-07",
+                            [rec({"mutual_indemnity": "true"}, clause="indemnification")], novel_issue="Bans AI training on study data")
+    assert (v.outcome, v.rule_id) == ("escalate", "IND-E2") and not p["downgraded"]

@@ -40,10 +40,13 @@ def _value_ok(field: str, ask: str, past: str) -> bool:
 
 
 def _covers(values: dict, record: dict, clause_type: str) -> bool:
-    """The record accepted an ask no better for the sponsor than `values`, on every field."""
-    fields = [f for f in values if f != "no_substantive_change"]
-    past = record["values"]
-    return bool(fields) and record["clauseType"] == clause_type and all(f in past and _value_ok(f, values[f], past[f]) for f in fields)
+    """The record accepted an ask no better for the sponsor than `values`, on every field. Both must
+    cover the same fields: a past acceptance that also had, say, a refundable fee says nothing about
+    an ask that leaves refundability out."""
+    fields = {f for f in values if f != "no_substantive_change"}
+    past = {f: v for f, v in record["values"].items() if f != "no_substantive_change"}
+    return (bool(fields) and record["clauseType"] == clause_type and fields == set(past)
+            and all(_value_ok(f, values[f], past[f]) for f in fields))
 
 
 def find(clause_type: str, values: dict, site_name: str, agreement_id: str, records: list[dict] | None = None) -> list[dict]:
@@ -63,14 +66,15 @@ def _describe(m: dict) -> str:
 
 
 def review(verdict: Verdict, clause_type: str, values: dict, site_name: str, agreement_id: str,
-           records: list[dict] | None = None) -> tuple[Verdict, dict | None]:
-    """Return the (possibly downgraded) verdict and the precedent shown with it."""
+           records: list[dict] | None = None, novel_issue: str | None = None) -> tuple[Verdict, dict | None]:
+    """Return the (possibly downgraded) verdict and the precedent shown with it. An escalation that
+    also carries a novel issue is never downgraded: the precedent covers the term, not the new issue."""
     if verdict.outcome not in ("accept", "fallback", "escalate"):
         return verdict, None
     matches = find(clause_type, values, site_name, agreement_id, records)
     if not matches:
         return verdict, None
-    downgrade = verdict.outcome == "escalate"
+    downgrade = verdict.outcome == "escalate" and not novel_issue
     precedent = {
         "sameSite": matches,
         "downgraded": downgrade,
