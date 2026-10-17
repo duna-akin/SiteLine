@@ -13,7 +13,7 @@ import json
 import time
 from typing import Any
 
-import anthropic
+import openai
 
 from siteline.config import DATA_DIR, RUNTIME_DIR, settings
 from siteline.playbook import CLAUSE_TYPES, playbook_text
@@ -156,46 +156,50 @@ class ExtractionError(Exception):
     pass
 
 
-_client: anthropic.AsyncAnthropic | None = None
+_client: openai.AsyncOpenAI | None = None
 
 
-def client() -> anthropic.AsyncAnthropic:
+def client() -> openai.AsyncOpenAI:
     global _client
     if _client is None:
-        _client = anthropic.AsyncAnthropic(max_retries=3, timeout=90.0)
+        _client = openai.AsyncOpenAI(max_retries=3, timeout=90.0)
     return _client
+
+
+async def complete_json(system: str, user: str, schema: dict, name: str, max_tokens: int) -> Any:
+    """One structured-output chat completion. Returns the response; raises the SDK's errors."""
+    return await client().chat.completions.create(
+        model=settings.claude_model,
+        max_completion_tokens=max_tokens,
+        reasoning_effort=settings.claude_effort,
+        response_format={"type": "json_schema", "json_schema": {"name": name, "schema": schema, "strict": True}},
+        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+    )
 
 
 async def extract_live(change: dict, context: str = "") -> dict:
     started = time.perf_counter()
     try:
-        response = await client().beta.messages.create(
-            model=settings.claude_model,
-            max_tokens=4000,
-            betas=["server-side-fallback-2026-07-01"],
-            fallbacks="default",
-            output_config={"effort": settings.claude_effort, "format": {"type": "json_schema", "schema": SCHEMA}},
-            system=[{"type": "text", "text": _system_prompt(), "cache_control": {"type": "ephemeral"}}],
-            messages=[{"role": "user", "content": _user_prompt(change, context)}],
-        )
-    except anthropic.AuthenticationError as e:
-        raise ExtractionError("Claude rejected the API key") from e
-    except anthropic.RateLimitError as e:
-        raise ExtractionError("Claude rate limit reached") from e
-    except anthropic.APIStatusError as e:
-        raise ExtractionError(f"Claude API error {e.status_code}: {e.message}") from e
-    except anthropic.APIConnectionError as e:
-        raise ExtractionError("Could not reach the Claude API") from e
+        response = await complete_json(_system_prompt(), _user_prompt(change, context), SCHEMA, "extraction", 16000)
+    except openai.AuthenticationError as e:
+        raise ExtractionError("OpenAI rejected the API key") from e
+    except openai.RateLimitError as e:
+        raise ExtractionError("OpenAI rate limit reached") from e
+    except openai.APIStatusError as e:
+        raise ExtractionError(f"OpenAI API error {e.status_code}: {e.message}") from e
+    except openai.APIConnectionError as e:
+        raise ExtractionError("Could not reach the OpenAI API") from e
 
-    if response.stop_reason == "refusal":
-        raise ExtractionError("Claude declined to extract this change")
-    if response.stop_reason == "max_tokens":
-        raise ExtractionError("Claude's answer was cut off")
-    text = next((b.text for b in response.content if b.type == "text"), "")
+    choice = response.choices[0]
+    if choice.message.refusal:
+        raise ExtractionError("The model declined to extract this change")
+    if choice.finish_reason == "length":
+        raise ExtractionError("The model's answer was cut off")
+    text = choice.message.content or ""
     try:
         data = json.loads(text)
     except json.JSONDecodeError as e:
-        raise ExtractionError("Claude returned invalid JSON") from e
+        raise ExtractionError("The model returned invalid JSON") from e
     data["model"] = response.model
     data["latencyMs"] = round((time.perf_counter() - started) * 1000)
     return data

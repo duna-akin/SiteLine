@@ -168,8 +168,8 @@ export function EvalsPage() {
       </button>
       <p className="mt-2 text-xs text-muted">
         {integrations?.claude
-          ? 'Runs Siteline and the LLM-only baseline on every labeled change (about 300 Claude calls).'
-          : 'Needs a Claude API key on the server (ANTHROPIC_API_KEY).'}
+          ? 'Runs Siteline and the LLM-only baseline on every labeled change (about 300 OpenAI calls).'
+          : 'Needs an OpenAI API key on the server (OPENAI_API_KEY).'}
       </p>
       {(runError || latest.status.error) && <p role="alert" className="mt-2 text-sm font-bold text-butter">{runError ?? latest.status.error}</p>}
     </section>
