@@ -157,6 +157,16 @@ async def get_decisions(agreement_id: str) -> list[dict]:
     return store.get_decisions(agreement_id)
 
 
+@app.get("/api/agreements/{agreement_id}/document")
+async def get_document(agreement_id: str) -> dict:
+    """The whole redline as parsed: every paragraph, changed or not, so a change is read in context."""
+    _agreement_or_404(agreement_id)
+    doc = store.get_document(agreement_id)
+    if not doc:
+        raise HTTPException(404, "No document stored for this agreement")
+    return {"paragraphs": doc["paragraphs"]}
+
+
 class OverrideBody(BaseModel):
     outcome: Literal["accept", "fallback", "escalate", "human_review", "novel"]
     reason: str = Field(min_length=8, max_length=1000)

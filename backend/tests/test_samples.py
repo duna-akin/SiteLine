@@ -185,6 +185,19 @@ def test_only_high_priority_widens_the_site21_fee(upload):
     assert (v.outcome, v.rule_id) == ("fallback", "PAY-F2")
 
 
+def test_whole_document_holds_every_paragraph_and_change(upload):
+    s = SAMPLES[0]
+    client = upload(s)
+    r = client.get(f"/api/agreements/{s.agreement_id}/document")
+    assert r.status_code == 200
+    paragraphs = r.json()["paragraphs"]
+    assert paragraphs == parse_docx(sample_bytes(s))["paragraphs"]
+    # Unchanged clauses come along too, and every decision points at a paragraph in it
+    assert any(not p["heading"] and all(seg["type"] == "text" for seg in p["segments"]) for p in paragraphs)
+    assert {d["paragraph"] for d in store.get_decisions(s.agreement_id)} <= {p["index"] for p in paragraphs}
+    assert client.get("/api/agreements/no-such-site/document").status_code == 404
+
+
 def test_all_samples_share_one_portfolio(upload):
     for s in SAMPLES:
         upload(s)
