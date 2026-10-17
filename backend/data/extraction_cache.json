@@ -307,5 +307,1211 @@
   ],
   "model": "seed (hand-written)",
   "latencyMs": 0
+ },
+ "0d3f33f65aa26e266f9b5a81": {
+  "clause_type": "payment_terms",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Shortens invoice payment from Net 45 to Net 20.",
+  "values": [
+   {
+    "field": "net_days",
+    "value": "20",
+    "quote": "twenty (20) days of receipt"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "f69e9afbbcfe6d6efd84d8ab": {
+  "clause_type": "payment_terms",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Raises the non-refundable start-up fee from 10% to 14% of the budget.",
+  "values": [
+   {
+    "field": "start_up_fee_pct",
+    "value": "14",
+    "quote": "fourteen percent (14%)"
+   },
+   {
+    "field": "start_up_fee_refundable",
+    "value": "false",
+    "quote": "non-refundable start-up fee"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "545bfc1dc8fb966ede4d61bf": {
+  "clause_type": "payment_terms",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Shortens pass-through reimbursement from 45 to 35 days.",
+  "values": [
+   {
+    "field": "net_days",
+    "value": "35",
+    "quote": "thirty-five (35) days of receipt"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "a7044dc33ffca85ca8161c99": {
+  "clause_type": "payment_terms",
+  "confidence": 0.9,
+  "novel_issue": null,
+  "rationale": "Deletes the sponsor's holdback; the playbook has no holdback term.",
+  "values": [],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "eef05b1b99ef8a9fe188a5a7": {
+  "clause_type": "payment_terms",
+  "confidence": 0.92,
+  "novel_issue": "Adds a monthly administration fee owed whether or not anyone enrolls; the playbook has no rule on recurring fees.",
+  "rationale": "Adds a fixed monthly fee owed regardless of enrollment.",
+  "values": [],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "1fa4322900c1ab45515f27f3": {
+  "clause_type": "payment_terms",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Capitalization fix only.",
+  "values": [
+   {
+    "field": "no_substantive_change",
+    "value": "true",
+    "quote": "United States dollars"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "1bd558466e082f76c042d3ac": {
+  "clause_type": "termination",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Extends the institution's termination notice from 30 to 45 days.",
+  "values": [
+   {
+    "field": "site_notice_days",
+    "value": "45",
+    "quote": "forty-five (45) days’ written notice"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-94c6e467b8fc2dd37acbc13a": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "60",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 60 subjects over an enrollment period of 12 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "12",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 60 subjects over an enrollment period of 12 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "22000",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 22,000 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "4359bfffe097ee86d841811a": {
+  "clause_type": "payment_terms",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Lengthens invoice payment from Net 45 to Net 60.",
+  "values": [
+   {
+    "field": "net_days",
+    "value": "60",
+    "quote": "sixty (60) days of receipt"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "4a42bb14271e4f2c643b70e7": {
+  "clause_type": "confidentiality",
+  "confidence": 0.9,
+  "novel_issue": null,
+  "rationale": "Comment asks a question about unchanged text.",
+  "values": [],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "def4984dd820034ddafec446": {
+  "clause_type": "confidentiality",
+  "confidence": 0.62,
+  "novel_issue": null,
+  "rationale": "Unclear whether research collaborators are bound by Section 8.",
+  "values": [],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "0c1c706cc6375d37a4c8e74d": {
+  "clause_type": "confidentiality",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Shortens confidentiality survival from 7 to 2 years.",
+  "values": [
+   {
+    "field": "survival_years",
+    "value": "2",
+    "quote": "survive for two (2) years after study close"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "fb3f5ead6673337d8f69ce94": {
+  "clause_type": "confidentiality",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Ends perpetual protection for trade secrets.",
+  "values": [
+   {
+    "field": "trade_secrets_perpetual",
+    "value": "false",
+    "quote": "only for the term stated in Section 8.4"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "681e2b090f65b5edbed012ad": {
+  "clause_type": "confidentiality",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Shortens survival for third-party information from 7 to 4 years.",
+  "values": [
+   {
+    "field": "survival_years",
+    "value": "4",
+    "quote": "survive for four (4) years after study close"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "02e010f895b18466671488e9": {
+  "clause_type": "publication",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Lengthens the publication review to 70 days.",
+  "values": [
+   {
+    "field": "review_days",
+    "value": "70",
+    "quote": "seventy (70) days to review"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-4986f0b3eeb0d6dff998d2c1": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "20",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 20 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "24",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 20 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "15000",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 15,000 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "343cf8d92825fbd5cff0b803": {
+  "clause_type": "indemnification",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Deletes the negligence carve-out from the sponsor's indemnity.",
+  "values": [
+   {
+    "field": "carve_out_standard",
+    "value": "none",
+    "quote": "except to the extent caused by the negligence of Institution"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "5826bc9609faecfb7d509834": {
+  "clause_type": "indemnification",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Narrows the investigators' carve-out to gross negligence and requires final adjudication.",
+  "values": [
+   {
+    "field": "carve_out_standard",
+    "value": "gross_negligence_or_willful_misconduct",
+    "quote": "gross negligence or willful misconduct"
+   },
+   {
+    "field": "adjudication_required",
+    "value": "true",
+    "quote": "as finally adjudicated"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "f68d9614ae01ff0313f7cf48": {
+  "clause_type": "indemnification",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Adds a reciprocal indemnity from the institution.",
+  "values": [
+   {
+    "field": "mutual_indemnity",
+    "value": "true",
+    "quote": "the obligations in this Section 9 are mutual"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "6ab48235d82d84bb5a7ff803": {
+  "clause_type": "indemnification",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Narrows the comparator carve-out to gross negligence or willful misconduct.",
+  "values": [
+   {
+    "field": "carve_out_standard",
+    "value": "gross_negligence_or_willful_misconduct",
+    "quote": "gross negligence or willful misconduct"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "0d6846843e8314bdc9c1513c": {
+  "clause_type": "indemnification",
+  "confidence": 0.88,
+  "novel_issue": null,
+  "rationale": "Extends the time to notify Sponsor of a claim; the playbook has no notice-of-claim term.",
+  "values": [],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "9caf557e216515e36fadfce3": {
+  "clause_type": "indemnification",
+  "confidence": 0.9,
+  "novel_issue": "Requires Sponsor to name Institution as an additional insured; the playbook has no insurance term.",
+  "rationale": "Adds an additional-insured requirement.",
+  "values": [],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "b83ec3061b44716957bd4204": {
+  "clause_type": "subject_injury",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Clarifies that reimbursement stays net of any third-party payer.",
+  "values": [
+   {
+    "field": "coordination_with_insurance",
+    "value": "net_of_insurance",
+    "quote": "net of amounts paid by the subject’s health insurance"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "936e55c47b61a319833139c5": {
+  "clause_type": "governing_law",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Keeps New Jersey law and names a New Jersey venue.",
+  "values": [
+   {
+    "field": "governing_law_state",
+    "value": "New Jersey",
+    "quote": "governed by the laws of the State of New Jersey"
+   },
+   {
+    "field": "venue",
+    "value": "sponsor_courts",
+    "quote": "the state or federal courts located in Mercer County, New Jersey"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-b5eb61b4c0a9ef603b6b1f04": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "30",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 30 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "24",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 30 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "12000",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 12,000 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "65f4716c84a613e75bb43897": {
+  "clause_type": "payment_terms",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Lowers the start-up fee from 10% to 8% of the budget.",
+  "values": [
+   {
+    "field": "start_up_fee_pct",
+    "value": "8",
+    "quote": "eight percent (8%)"
+   },
+   {
+    "field": "start_up_fee_refundable",
+    "value": "false",
+    "quote": "non-refundable start-up fee"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "ab85e082846af0557df92c3a": {
+  "clause_type": "confidentiality",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Shortens confidentiality survival from 7 to 5 years.",
+  "values": [
+   {
+    "field": "survival_years",
+    "value": "5",
+    "quote": "survive for five (5) years after study close"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "1bb078744df20d67abcc16cb": {
+  "clause_type": "subject_injury",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Adds pain and suffering to subject-injury reimbursement.",
+  "values": [
+   {
+    "field": "covers_pain_and_suffering",
+    "value": "true",
+    "quote": "compensation for pain and suffering"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "4860475e84726ff3edcebcb7": {
+  "clause_type": "subject_injury",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Removes the cap on subject-injury reimbursement.",
+  "values": [
+   {
+    "field": "reimbursement_cap",
+    "value": "uncapped",
+    "quote": "is not subject to any cap or limit"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "2bdc1b88a8ea9e4488f50e18": {
+  "clause_type": "subject_injury",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Sponsor pays first instead of coordinating with the subject's insurance.",
+  "values": [
+   {
+    "field": "coordination_with_insurance",
+    "value": "sponsor_pays_first",
+    "quote": "paid by Sponsor first, without first billing the subject’s insurance"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "fb23cf6a996153db3c0efa63": {
+  "clause_type": "subject_injury",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Adds travel costs to subject-injury reimbursement.",
+  "values": [
+   {
+    "field": "covers_travel",
+    "value": "true",
+    "quote": "reimburse reasonable travel costs"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "18ce40d12c881480a6fc7389": {
+  "clause_type": "subject_injury",
+  "confidence": 0.9,
+  "novel_issue": "Adds five years of sponsor-funded medical monitoring after a Study Injury; the playbook has no follow-up care term.",
+  "rationale": "Adds sponsor-funded follow-up care.",
+  "values": [],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "5ef18ccf8030cb65371f8a1d": {
+  "clause_type": "termination",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Extends the institution's termination notice from 30 to 90 days.",
+  "values": [
+   {
+    "field": "site_notice_days",
+    "value": "90",
+    "quote": "ninety (90) days’ written notice"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-288fb0ef147235ac8b6cc1aa": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "16",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 16 subjects over an enrollment period of 18 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "18",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 16 subjects over an enrollment period of 18 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "13500",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 13,500 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "d0a99f32959717880d5aaac0": {
+  "clause_type": "publication",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Shortens the sponsor's publication review from 60 to 21 days.",
+  "values": [
+   {
+    "field": "review_days",
+    "value": "21",
+    "quote": "twenty-one (21) days to review any proposed publication"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "39b861d2f08ea2dfb1938ddb": {
+  "clause_type": "publication",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Shortens the review of abstracts from 60 to 40 days.",
+  "values": [
+   {
+    "field": "review_days",
+    "value": "40",
+    "quote": "forty (40) days to review abstracts"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "a39da47e40901eb610b7a3b0": {
+  "clause_type": "publication",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Replaces the sponsor's patent delay with a good-faith consideration.",
+  "values": [
+   {
+    "field": "patent_delay",
+    "value": "removed",
+    "quote": "delay publication up to an additional sixty (60) days to permit patent filings"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "3f1f834f0fc6ebc88debecf8": {
+  "clause_type": "publication",
+  "confidence": 0.86,
+  "novel_issue": null,
+  "rationale": "Shortens the wait before independent publication from 18 to 12 months; no rule field covers it.",
+  "values": [],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "2362e6bcb577a197df890c36": {
+  "clause_type": "publication",
+  "confidence": 0.86,
+  "novel_issue": null,
+  "rationale": "Shortens thesis review to 30 days and leaves it open-ended.",
+  "values": [
+   {
+    "field": "review_days",
+    "value": "30",
+    "quote": "thirty (30) days, or as otherwise agreed"
+   },
+   {
+    "field": "review_window_open_ended",
+    "value": "true",
+    "quote": "or as otherwise agreed"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "b6f34381363a1d69d5479342": {
+  "clause_type": "governing_law",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Switches to Kentucky law for a public institution and drops the venue clause.",
+  "values": [
+   {
+    "field": "governing_law_state",
+    "value": "Kentucky",
+    "quote": "governed by the laws of the Commonwealth of Kentucky"
+   },
+   {
+    "field": "venue",
+    "value": "silent",
+    "quote": "with venue in its state courts"
+   },
+   {
+    "field": "institution_is_public",
+    "value": "true",
+    "quote": "a public institution of the Commonwealth of Kentucky"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-478aa7229ecdc4ffc7d2f1a7": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "18",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 18 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "24",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 18 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "16000",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 16,000 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "fe32175a6171c33b0003d81d": {
+  "clause_type": "payment_terms",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Raises the non-refundable start-up fee from 10% to 12% of the budget.",
+  "values": [
+   {
+    "field": "start_up_fee_pct",
+    "value": "12",
+    "quote": "twelve percent (12%)"
+   },
+   {
+    "field": "start_up_fee_refundable",
+    "value": "false",
+    "quote": "non-refundable start-up fee"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "fc1fd9b01187802fc68685d6": {
+  "clause_type": "confidentiality",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Lengthens confidentiality survival from 7 to 10 years.",
+  "values": [
+   {
+    "field": "survival_years",
+    "value": "10",
+    "quote": "survive for ten (10) years after study close"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "e9f5a9d1efda7b7aeae1403b": {
+  "clause_type": "intellectual_property",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Spells out that pre-existing software and know-how stay background IP.",
+  "values": [
+   {
+    "field": "background_ip_retained",
+    "value": "true",
+    "quote": "Each party retains ownership of its background intellectual property"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "7a9a1560ab4bef355758f64b": {
+  "clause_type": "intellectual_property",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Gives the institution ownership of inventions its own staff conceive.",
+  "values": [
+   {
+    "field": "invention_ownership",
+    "value": "institution",
+    "quote": "belong to Institution where conceived solely by Institution personnel"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "613247be7d384e43471f99f1": {
+  "clause_type": "intellectual_property",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Adds a non-exclusive research license for the institution.",
+  "values": [
+   {
+    "field": "site_research_license",
+    "value": "true",
+    "quote": "a non-exclusive, royalty-free license to use Study Inventions for internal, non-commercial research"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "35993f6ed058d2a227703e8b": {
+  "clause_type": "intellectual_property",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Makes jointly conceived inventions jointly owned.",
+  "values": [
+   {
+    "field": "invention_ownership",
+    "value": "joint",
+    "quote": "be jointly owned by Sponsor and Institution"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "2255467807f97e5519c36225": {
+  "clause_type": "intellectual_property",
+  "confidence": 0.9,
+  "novel_issue": "Lets Institution file patents in its own name if Sponsor declines; the playbook has no patent-prosecution term.",
+  "rationale": "Adds a step-in right to file patents.",
+  "values": [],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "a5967d76eabec6a696dd2e92": {
+  "clause_type": "intellectual_property",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Spelling fix only.",
+  "values": [
+   {
+    "field": "no_substantive_change",
+    "value": "true",
+    "quote": "receive prompt written disclosure"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-b9d59359b834962dc33a5711": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "12",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 12 subjects over an enrollment period of 18 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "18",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 12 subjects over an enrollment period of 18 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "19000",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 19,000 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "215f240fc1e738f45d8283ea": {
+  "clause_type": "payment_terms",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Raises the non-refundable start-up fee from 10% to 25% of the budget.",
+  "values": [
+   {
+    "field": "start_up_fee_pct",
+    "value": "25",
+    "quote": "twenty-five percent (25%)"
+   },
+   {
+    "field": "start_up_fee_refundable",
+    "value": "false",
+    "quote": "non-refundable start-up fee"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "cea019c3e259b649dfbd5bce": {
+  "clause_type": "data_privacy",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Requires the sponsor to sign a Business Associate Agreement.",
+  "values": [
+   {
+    "field": "requires_baa",
+    "value": "true",
+    "quote": "Sponsor shall sign Institution’s form Business Associate Agreement"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "827c1ed3a733341ab5ce71ce": {
+  "clause_type": "data_privacy",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Requires a limited data-use addendum.",
+  "values": [
+   {
+    "field": "data_use_addendum",
+    "value": "true",
+    "quote": "Sponsor shall execute Institution’s limited data use addendum"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "e1481366d2790256665023bd": {
+  "clause_type": "data_privacy",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Makes every secondary research use subject to the institution's approval.",
+  "values": [
+   {
+    "field": "blocks_secondary_research",
+    "value": "true",
+    "quote": "only with Institution’s written approval of each project"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "30cfaba02ec54070045a00cb": {
+  "clause_type": "data_privacy",
+  "confidence": 0.91,
+  "novel_issue": "Bars training AI models on coded data or sharing it with AI services; the playbook has no rule on model training.",
+  "rationale": "Restricts AI training on coded data.",
+  "values": [
+   {
+    "field": "ml_training_restriction",
+    "value": "true",
+    "quote": "shall not use coded Study data to train artificial intelligence models"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "147e873078f9f555bc7e7211": {
+  "clause_type": "data_privacy",
+  "confidence": 0.87,
+  "novel_issue": null,
+  "rationale": "Shortens the sponsor's breach notice from 10 to 2 business days; the playbook has no breach-notice term.",
+  "values": [],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "a31c706f1fd683bfd61902c0": {
+  "clause_type": "publication",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Lengthens the publication review to 90 days.",
+  "values": [
+   {
+    "field": "review_days",
+    "value": "90",
+    "quote": "ninety (90) days to review"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-12dc9895820a1b660fd8de37": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "22",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 22 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "24",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 22 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "14500",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 14,500 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "147954aecc12c043142c5f6c": {
+  "clause_type": "publication",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Lengthens the patent delay from 60 to 90 days.",
+  "values": [
+   {
+    "field": "patent_delay",
+    "value": "retained",
+    "quote": "Institution shall delay publication"
+   },
+   {
+    "field": "patent_delay_days",
+    "value": "90",
+    "quote": "ninety (90) days to permit patent filings"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "6587cc8c9d25a67bde877d95": {
+  "clause_type": "intellectual_property",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Keeps sponsor ownership and adds its sole right to patent.",
+  "values": [
+   {
+    "field": "invention_ownership",
+    "value": "sponsor",
+    "quote": "shall belong to Sponsor"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "497e258e2d8ebd53855947df": {
+  "clause_type": "termination",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Shortens the institution's termination notice from 30 to 10 days.",
+  "values": [
+   {
+    "field": "site_notice_days",
+    "value": "10",
+    "quote": "ten (10) days’ written notice"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "ba06e3ea0e7ea1fd88c41011": {
+  "clause_type": "termination",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Adds termination for convenience with no payment for non-cancellable costs.",
+  "values": [
+   {
+    "field": "termination_for_convenience",
+    "value": "true",
+    "quote": "terminate this Agreement for convenience"
+   },
+   {
+    "field": "pays_noncancellable_costs",
+    "value": "false",
+    "quote": "Sponsor’s payment obligations end on the termination date"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "5c9b26deae6336993476250b": {
+  "clause_type": "termination",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Replaces immediate termination with 30 days' notice.",
+  "values": [
+   {
+    "field": "site_notice_days",
+    "value": "30",
+    "quote": "on thirty (30) days’ written notice"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "52fad30ea70b0766fe91acee": {
+  "clause_type": "termination",
+  "confidence": 0.84,
+  "novel_issue": null,
+  "rationale": "The words and the digits give different notice periods.",
+  "values": [
+   {
+    "field": "site_notice_days",
+    "value": "30",
+    "quote": "thirty (60) days’ written notice"
+   },
+   {
+    "field": "site_notice_days",
+    "value": "60",
+    "quote": "thirty (60) days’ written notice"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "28babe2139824f7a1d16dae4": {
+  "clause_type": "termination",
+  "confidence": 0.9,
+  "novel_issue": null,
+  "rationale": "Extends the notice before follow-up ends from 30 to 45 days.",
+  "values": [
+   {
+    "field": "site_notice_days",
+    "value": "45",
+    "quote": "forty five days of notice"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "a0563d7068b984f0bcad431b": {
+  "clause_type": "governing_law",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Switches to Oklahoma law for a private institution.",
+  "values": [
+   {
+    "field": "governing_law_state",
+    "value": "Oklahoma",
+    "quote": "governed by the laws of the State of Oklahoma"
+   },
+   {
+    "field": "institution_is_public",
+    "value": "false",
+    "quote": "a private, non-profit corporation"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-a7efea3b697b05e50b39aea1": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "26",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 26 subjects over an enrollment period of 30 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "30",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 26 subjects over an enrollment period of 30 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "11000",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 11,000 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "64dbcd72355d227ef5ac2f9e": {
+  "clause_type": "indemnification",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Keeps the negligence carve-out and adds willful misconduct.",
+  "values": [
+   {
+    "field": "carve_out_standard",
+    "value": "negligence",
+    "quote": "negligence or willful misconduct of Institution"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "90f222e988e8b4942f693c01": {
+  "clause_type": "termination",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Extends the institution's termination notice from 30 to 50 days.",
+  "values": [
+   {
+    "field": "site_notice_days",
+    "value": "50",
+    "quote": "fifty (50) days’ written notice"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "fe56359d78745abdd8eb969b": {
+  "clause_type": "governing_law",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Switches to Nebraska law with exclusive venue in the institution's county courts.",
+  "values": [
+   {
+    "field": "governing_law_state",
+    "value": "Nebraska",
+    "quote": "governed by the laws of the State of Nebraska"
+   },
+   {
+    "field": "venue",
+    "value": "site_courts_exclusive",
+    "quote": "exclusive venue in the district courts of Lancaster County"
+   },
+   {
+    "field": "institution_is_public",
+    "value": "true",
+    "quote": "a public institution of the State of Nebraska"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "f84eae9f559561351e99242f": {
+  "clause_type": "governing_law",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Makes the sponsor accept the institution's sovereign immunity terms.",
+  "values": [
+   {
+    "field": "sovereign_immunity_waiver_required",
+    "value": "true",
+    "quote": "Sponsor shall accept Institution’s statutory limits on liability"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "8a51bc11d458307ec538db9a": {
+  "clause_type": "governing_law",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Adds mandatory arbitration abroad.",
+  "values": [
+   {
+    "field": "arbitration_abroad",
+    "value": "true",
+    "quote": "binding arbitration seated in Geneva, Switzerland"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "e6db286937c2c59c767a23a6": {
+  "clause_type": "governing_law",
+  "confidence": 0.9,
+  "novel_issue": "Lets Institution disclose the agreement and budget as public records; the playbook has no public-records term.",
+  "rationale": "Adds a public-records disclosure right.",
+  "values": [],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "eca64b3b4e7b7780b16ab8d1": {
+  "clause_type": "governing_law",
+  "confidence": 0.95,
+  "novel_issue": null,
+  "rationale": "Punctuation fix only.",
+  "values": [
+   {
+    "field": "no_substantive_change",
+    "value": "true",
+    "quote": "headings are for convenience only"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-6950edc12efe0b9725e878ee": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "40",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 40 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "24",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 40 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "12000",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 12,000 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
  }
 }
