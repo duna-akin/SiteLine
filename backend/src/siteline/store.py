@@ -1,14 +1,21 @@
-"""Agreements, decisions, approvals and inbound email, kept in memory and saved to var/state.json."""
+"""Agreements, decisions, approvals and inbound email, kept in memory and saved to var/state.json.
+Precedents go to Postgres instead when DATABASE_URL is set."""
 
 from __future__ import annotations
 
 import json
+import logging
 import threading
 import time
 from datetime import UTC, datetime
 from typing import Any
 
+import psycopg
+
+from siteline import db
 from siteline.config import DATA_DIR, RUNTIME_DIR
+
+log = logging.getLogger("siteline.store")
 
 STATE_PATH = RUNTIME_DIR / "state.json"
 SEED_PATH = DATA_DIR / "seed_portfolio.json"
@@ -33,6 +40,7 @@ def _seed() -> dict[str, Any]:
         "decisions": {},
         "documents": {},
         "emails": seed["emails"],
+        "precedents": seed.get("precedents", []),
         "photon": {"users": {}, "spaces": {}},
         "calls": {},
     }
@@ -43,6 +51,9 @@ def load() -> None:
     with _lock:
         if STATE_PATH.exists():
             _state = json.loads(STATE_PATH.read_text())
+            # State saved before precedents existed: start from the seeded history
+            if "precedents" not in _state:
+                _state["precedents"] = json.loads(SEED_PATH.read_text()).get("precedents", [])
         else:
             _state = _seed()
 
@@ -171,6 +182,35 @@ def pending_escalations(owner: str | None = None) -> list[dict]:
                 if owner is None or d["owner"] == owner:
                     out.append(d)
     return sorted(out, key=lambda d: d["approval"].get("sentAt", 0))
+
+
+# ---- precedent ----------------------------------------------------------------------
+# Postgres when DATABASE_URL is set (db.py), otherwise this state file. Reset never touches
+# Postgres, so learned precedent survives demo resets.
+
+
+def precedents_for_site(site_name: str) -> list[dict]:
+    if db.enabled():
+        try:
+            return db.precedents_for_site(site_name)
+        except psycopg.Error as e:  # no precedent is the safe answer: escalations stay escalated
+            log.warning("Precedent lookup failed, continuing without precedent: %s", e)
+            return []
+    key = db.normalize_site(site_name)
+    return [r for r in _state.get("precedents", []) if db.normalize_site(r["siteName"]) == key]
+
+
+def post_completed(records: list[dict]) -> None:
+    if db.enabled():
+        try:
+            db.post_completed(records)
+        except psycopg.Error as e:
+            log.error("Could not save %d precedents: %s", len(records), e)
+        return
+    with _lock:
+        known = {r["id"] for r in _state.setdefault("precedents", [])}
+        _state["precedents"].extend(r for r in records if r["id"] not in known)
+        save()
 
 
 # ---- inbound email ------------------------------------------------------------------

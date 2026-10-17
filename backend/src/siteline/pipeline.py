@@ -7,7 +7,7 @@ import time
 import uuid
 from dataclasses import dataclass
 
-from siteline import events, store
+from siteline import events, precedent, store
 from siteline.config import settings
 from siteline.extraction import extract_all
 from siteline.playbook import load_playbook, owner_for
@@ -101,10 +101,11 @@ class Job:
         events.publish("triage.log", {"jobId": self.id, "line": line})
 
 
-def build_decisions(agreement_id: str, parsed: dict, extractions: list[dict]) -> list[dict]:
+def build_decisions(agreement_id: str, parsed: dict, extractions: list[dict], site_name: str = "") -> list[dict]:
     rules = load_playbook()
     context = preamble(parsed)
     prefix = agreement_id.replace("site-", "s")
+    history = store.precedents_for_site(site_name)  # one lookup per upload, not one per change
     out = []
     for change, ex in zip(parsed["changes"], extractions, strict=True):
         values = []
@@ -113,6 +114,8 @@ def build_decisions(agreement_id: str, parsed: dict, extractions: list[dict]) ->
         quotes_ok = all(v["verified"] for v in values)
         verdict = decide(change, ex, quotes_ok)
         clause = ex.get("clause_type") or guess_clause(change["section"])
+        # After the rules and their fail-safes: has this site been granted this before?
+        verdict, prec = precedent.review(verdict, clause, {v["field"]: v["value"] for v in values}, site_name, agreement_id, history)
         primary = next((v for v in values if not v["verified"]), values[0] if values else None)
         out.append(
             {
@@ -142,6 +145,7 @@ def build_decisions(agreement_id: str, parsed: dict, extractions: list[dict]) ->
                 "owner": owner_for(clause, rules),
                 "counterText": verdict.counter_text,
                 "fallbackText": verdict.fallback_text,
+                "precedent": prec,
                 "approval": {"state": "none"},
             }
         )
@@ -194,13 +198,16 @@ async def triage(data: bytes, file_name: str, options: TriageOptions, source: st
         detail += f" · {failed} failed → human review"
     job.step("extract", "done", detail, "Anthropic Claude")
 
-    decisions = build_decisions(meta["agreementId"], parsed, extractions)
+    decisions = build_decisions(meta["agreementId"], parsed, extractions, meta["siteName"])
     bad = sum(1 for d in decisions if not d["quoteVerified"] and not d["extractionError"])
     total_q = sum(len(d["extracted"]) for d in decisions)
     ok_q = sum(1 for d in decisions for v in d["extracted"] if v["verified"])
     job.step("verify", "done", f"{ok_q} of {total_q} quotes found verbatim" + (f"; {bad} change(s) sent to human review" if bad else ""))
     mix = {o: sum(1 for d in decisions if d["outcome"] == o) for o in store.OUTCOMES}
     job.step("rules", "done", "One outcome per change, rule logged · " + ", ".join(f"{n} {o.replace('_', ' ')}" for o, n in mix.items() if n))
+    by_prec = sum(1 for d in decisions if d["precedent"] and d["precedent"]["downgraded"])
+    if by_prec:
+        job.log(f"Precedent: {by_prec} escalation(s) accepted because {meta['siteName']} was granted the same terms before")
     job.step("teardown", "done" if use_daytona else "skipped", "Only JSON left the sandbox" if use_daytona else "No sandbox to delete", "Daytona" if use_daytona else None)
 
     seconds = round(time.perf_counter() - job.started, 1)

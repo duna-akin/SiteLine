@@ -75,6 +75,11 @@ def _comment(d: dict, status: str) -> str:
     who = approvers()[d["owner"]]
     lines = [f"Siteline · C{d['index']:02d} · {OUTCOME_LABEL[o]} · owner {who['name']} ({d['owner'].title()})"]
     lines.append(f"Rule {d['ruleId']}: {d['ruleText']}")
+    prec = d.get("precedent")
+    if prec:
+        if prec["downgraded"]:
+            lines.append(f"Downgraded from {prec['originalRuleId']}: {prec['originalRuleText']}")
+        lines.append(f"Precedent: {prec['summary']}")
     if d.get("quote"):
         lines.append(f"Quote{'' if d.get('quoteVerified') else ' (failed verification)'}: “{d['quote']}”")
     ov = d.get("override")
