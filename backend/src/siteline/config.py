@@ -21,7 +21,8 @@ load_dotenv(BACKEND_DIR / ".env")
 
 
 def _env(name: str, default: str = "") -> str:
-    return os.environ.get(name, default).strip()
+    # A blank line in .env (e.g. `APPROVER_FINANCE_PHONE=`) means "unset", not "".
+    return os.environ.get(name, "").strip() or default
 
 
 def _float(name: str, default: float) -> float:
@@ -120,4 +121,4 @@ settings = Settings()
 def is_fictional_phone(phone: str) -> bool:
     """555-01xx numbers are reserved for fiction; never text or call them."""
     digits = "".join(ch for ch in phone if ch.isdigit())
-    return digits[-7:-4] == "555" or digits.startswith("1555") or digits.startswith("555")
+    return not digits or digits[-7:-4] == "555" or digits.startswith("1555") or digits.startswith("555")
