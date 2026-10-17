@@ -17,6 +17,7 @@ import anthropic
 
 from siteline.config import DATA_DIR, RUNTIME_DIR, settings
 from siteline.playbook import CLAUSE_TYPES, playbook_text
+from siteline.priority import FIGURES
 
 # field name -> (clause type, value format the model must use)
 FIELDS: dict[str, tuple[str, str]] = {
@@ -219,3 +220,75 @@ async def extract_all(changes: list[dict], context: str, use_cache: bool) -> lis
         return {**result, "cached": False}
 
     return await asyncio.gather(*(one(c) for c in changes))
+
+
+# ---- whole-agreement figures for site priority (priority.py does the arithmetic) -------
+
+DOC_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "figures": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "field": {"type": "string", "enum": list(FIGURES)},
+                    "value": {"type": "string"},
+                    "quote": {"type": "string"},
+                },
+                "required": ["field", "value", "quote"],
+                "additionalProperties": False,
+            },
+        },
+        "confidence": {"type": "number"},
+        "rationale": {"type": "string"},
+    },
+    "required": ["figures", "confidence", "rationale"],
+    "additionalProperties": False,
+}
+
+DOC_SYSTEM = (
+    "You read a clinical trial agreement as it stands after the site's edits and record three figures about "
+    "this institution, as structured data. Code computes the site's priority from your values, so report facts "
+    "the text states, never estimates.\n\nFields (value formats):\n"
+    + "\n".join(f"- {name}: {fmt}" for name, fmt in FIGURES.items())
+    + "\n\nHow to answer:\n"
+    "- figures: include a field only when the agreement states it. Never compute, convert or infer a missing figure.\n"
+    "- quote: copy the exact words that state the value, character for character. Keep it short.\n"
+    "- confidence: 0 to 1. Use below 0.8 when a figure is ambiguous or stated more than once with different values.\n"
+    "- rationale: one sentence."
+)
+
+
+def doc_cache_key(text: str) -> str:
+    return "doc-" + hashlib.sha256(text.encode()).hexdigest()[:24]
+
+
+async def extract_document(text: str, use_cache: bool) -> dict:
+    """Enrollment target, enrollment period and per-patient amount, each with a quote.
+    Failures come back as {"error": ...}, which priority.assess treats as unknown."""
+    key = doc_cache_key(text)
+    if use_cache and (hit := _load_cache().get(key)):
+        return {**hit, "cached": True}
+    if not settings.claude_enabled:
+        return {"error": "No Claude credentials and no cached reading of this agreement's figures"}
+    started = time.perf_counter()
+    try:
+        response = await client().beta.messages.create(
+            model=settings.claude_model,
+            max_tokens=2000,
+            betas=["server-side-fallback-2026-07-01"],
+            fallbacks="default",
+            output_config={"effort": settings.claude_effort, "format": {"type": "json_schema", "schema": DOC_SCHEMA}},
+            system=DOC_SYSTEM,
+            messages=[{"role": "user", "content": f"Agreement text:\n\n{text[:60000]}"}],
+        )
+        if response.stop_reason != "end_turn":
+            raise ExtractionError(f"Claude stopped early ({response.stop_reason})")
+        data = json.loads(next((b.text for b in response.content if b.type == "text"), ""))
+    except (anthropic.APIError, ExtractionError, json.JSONDecodeError) as e:
+        return {"error": f"Could not read the agreement's figures: {e}"}
+    data["model"] = response.model
+    data["latencyMs"] = round((time.perf_counter() - started) * 1000)
+    store_cache({key: data})
+    return {**data, "cached": False}
