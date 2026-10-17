@@ -130,6 +130,7 @@ def test_confirm_keeps_the_final_document_and_posts_accepted_terms(fresh_state, 
             asyncio.run(approvals.record_reply(d["id"], 1, "imessage"))
         elif d["outcome"] in ("human_review", "novel"):
             store.update_decision(d["id"], override={"outcome": "accept", "reason": "resolved in the test", "at": 0})
+    asyncio.run(api.confirm_all("site-07"))  # a person signs off on every remaining suggestion
     res = asyncio.run(api.complete_agreement("site-07"))
     assert res["agreement"]["status"] == "executed"
     assert (tmp_path / "documents" / res["finalDocumentKey"]).exists()
