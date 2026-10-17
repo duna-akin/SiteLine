@@ -175,17 +175,20 @@ def client() -> openai.AsyncOpenAI:
     return _client
 
 
-async def complete_json(system: str, user: str, schema: dict, name: str, max_tokens: int) -> tuple[dict, str]:
+async def complete_json(system: str, user: str, schema: dict, name: str, max_tokens: int,
+                        model: str | None = None, effort: str | None = None) -> tuple[dict, str]:
     """One structured-output chat completion, checked. Returns the parsed answer and the model name;
-    any failure, from the API or in the answer, raises ExtractionError with the reason."""
-    effort = {} if settings.claude_effort.lower() == "off" else {"reasoning_effort": settings.claude_effort}
+    any failure, from the API or in the answer, raises ExtractionError with the reason.
+    `model` and `effort` default to the configured extraction model and effort."""
+    effort = effort or settings.claude_effort
+    reasoning = {} if effort.lower() == "off" else {"reasoning_effort": effort}
     try:
         response = await client().chat.completions.create(
-            model=settings.claude_model,
+            model=model or settings.claude_model,
             max_completion_tokens=max_tokens,
             response_format={"type": "json_schema", "json_schema": {"name": name, "schema": schema, "strict": True}},
             messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-            **effort,
+            **reasoning,
         )
     except openai.AuthenticationError as e:
         raise ExtractionError("OpenAI rejected the API key") from e
@@ -218,9 +221,9 @@ async def complete_json(system: str, user: str, schema: dict, name: str, max_tok
     return data, response.model
 
 
-async def extract_live(change: dict, context: str = "") -> dict:
+async def extract_live(change: dict, context: str = "", model: str | None = None, effort: str | None = None) -> dict:
     started = time.perf_counter()
-    data, model = await complete_json(_system_prompt(), _user_prompt(change, context), SCHEMA, "extraction", 16000)
+    data, model = await complete_json(_system_prompt(), _user_prompt(change, context), SCHEMA, "extraction", 16000, model, effort)
     data["model"] = model
     data["latencyMs"] = round((time.perf_counter() - started) * 1000)
     return data

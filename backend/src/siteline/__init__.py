@@ -22,7 +22,7 @@ def main() -> None:
     ev = sub.add_parser("eval", help="Run Siteline vs the LLM-only baseline on the labeled set")
     ev.add_argument("--limit", type=int, default=0, help="Only the first N labeled changes")
     ev.add_argument("--sandboxes", type=int, default=12, help="Parallel Daytona sandboxes for parsing (0 = local)")
-    ev.add_argument("--concurrency", type=int, default=16)
+    ev.add_argument("--concurrency", type=int, default=0, help="changes in flight at once (0 = all)")
     sub.add_parser("make-dataset", help="Write the labeled eval set (data/evals/labeled_changes.jsonl)")
     args = parser.parse_args()
 

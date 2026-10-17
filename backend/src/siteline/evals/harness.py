@@ -33,8 +33,8 @@ OUTCOMES = ["accept", "fallback", "escalate", "human_review", "novel"]
 HIGH_TIER = {"level": "high", "share": MAX_SHARE, "days": 120, "bucket": "eval", "moneyAtRiskPerWeek": 25000}
 RESULTS_DIR = DATA_DIR / "evals"
 LATEST = RESULTS_DIR / "latest.json"
-# Changes in flight at once; each one makes its extraction and baseline calls together
-CONCURRENCY = 16
+# Changes in flight at once (0 = all of them); each makes its extraction and baseline calls together
+CONCURRENCY = 0
 
 BASELINE_SCHEMA = {
     "type": "object",
@@ -68,7 +68,8 @@ async def baseline(change: dict, context: str) -> dict:
 
     started = time.perf_counter()
     try:
-        data, _ = await complete_json(_baseline_system(), _user_prompt(change, context), BASELINE_SCHEMA, "baseline", 8000)
+        data, _ = await complete_json(_baseline_system(), _user_prompt(change, context), BASELINE_SCHEMA, "baseline", 8000,
+                                      settings.eval_model, settings.eval_effort)
     except ExtractionError as e:
         return {"error": str(e), "latencyMs": round((time.perf_counter() - started) * 1000)}
     data["latencyMs"] = round((time.perf_counter() - started) * 1000)
@@ -189,14 +190,14 @@ async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = CONCU
     changes, used_sandboxes = await parse_shards(items, sandboxes, log)
     log(f"parsed {len(changes)} labeled changes" + (f" in {used_sandboxes} parallel Daytona sandboxes" if used_sandboxes else " locally"))
 
-    sem = asyncio.Semaphore(concurrency)
+    sem = asyncio.Semaphore(concurrency or len(items) or 1)
     done = 0
 
     async def one(it: dict, change: dict) -> dict:
         nonlocal done
         async def extract() -> dict:
             try:
-                return await extract_live(change, it["context"])
+                return await extract_live(change, it["context"], settings.eval_model, settings.eval_effort)
             except ExtractionError as e:
                 return {"error": str(e), "latencyMs": 0}
 
@@ -222,7 +223,8 @@ async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = CONCU
     result = {
         "runId": run_id,
         "harness": "Siteline eval harness",
-        "model": settings.claude_model,
+        "model": settings.eval_model,
+        "effort": settings.eval_effort,
         "datasetName": "cta-redlines-labeled-v1",
         "labeledChanges": len(rows),
         "shouldEscalate": scored["shouldEscalate"],

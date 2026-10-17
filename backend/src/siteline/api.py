@@ -508,7 +508,7 @@ async def eval_latest() -> dict:
 
 
 @app.post("/api/evals/run")
-async def eval_run(limit: int = 0, sandboxes: int = 12, concurrency: int = 16) -> dict:
+async def eval_run(limit: int = 0, sandboxes: int = 12, concurrency: int = 0) -> dict:
     from siteline.evals.harness import run_eval
 
     if _eval_state["running"]:
