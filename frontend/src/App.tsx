@@ -12,9 +12,8 @@ const UploadPage = lazy(() => import('@/pages/UploadPage').then((m) => ({ defaul
 const ReviewPage = lazy(() => import('@/pages/ReviewPage').then((m) => ({ default: m.ReviewPage })))
 const ExportPage = lazy(() => import('@/pages/ExportPage').then((m) => ({ default: m.ExportPage })))
 const SitesPage = lazy(() => import('@/pages/SitesPage').then((m) => ({ default: m.SitesPage })))
-const EvalsPage = lazy(() => import('@/pages/EvalsPage').then((m) => ({ default: m.EvalsPage })))
+const DataPage = lazy(() => import('@/pages/DataPage').then((m) => ({ default: m.DataPage })))
 const PlaybookPage = lazy(() => import('@/pages/PlaybookPage').then((m) => ({ default: m.PlaybookPage })))
-const PriorityPage = lazy(() => import('@/pages/PriorityPage').then((m) => ({ default: m.PriorityPage })))
 
 export default function App() {
   return (
@@ -29,11 +28,11 @@ export default function App() {
               <Route path="sites" element={<SitesPage />} />
               <Route path="review/:agreementId" element={<ReviewPage />} />
               <Route path="review/:agreementId/export" element={<ExportPage />} />
-              <Route path="data" element={<EvalsPage />} />
+              <Route path="data" element={<DataPage />} />
               <Route path="playbook" element={<PlaybookPage />} />
-              <Route path="priority" element={<PriorityPage />} />
+              <Route path="priority" element={<Navigate to={{ pathname: '/playbook', hash: '#priority' }} replace />} />
               <Route path="portfolio" element={<Navigate to="/sites" replace />} />
-              <Route path="evals" element={<Navigate to="/data" replace />} />
+              <Route path="evals" element={<Navigate to={{ pathname: '/data', hash: '#evals' }} replace />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>
