@@ -17,11 +17,11 @@ const radiusFor = (days: number) => 18 + (Math.min(Math.max(days, 0), MAX_DAYS) 
 const unknownFigures = (a: Agreement) => a.priority?.moneyAtRiskPerWeek == null
 
 function blip(a: Agreement, maxMoney: number) {
-  if (notTriaged(a)) return { r: 6, fill: 'var(--card)', stroke: 'var(--blue)', dashed: true }
-  if (unknownFigures(a)) return { r: 6, fill: 'var(--card)', stroke: 'var(--muted)', dashed: true }
+  if (notTriaged(a)) return { r: 6, fill: 'var(--surface)', stroke: 'var(--accent)', dashed: true }
+  if (unknownFigures(a)) return { r: 6, fill: 'var(--surface)', stroke: 'var(--muted)', dashed: true }
   const money = a.priority!.moneyAtRiskPerWeek!
   const fill = a.stuckClauses.length >= 3 ? 'var(--radar-bad)' : a.stuckClauses.length > 0 ? 'var(--radar-warn)' : 'var(--radar-ok)'
-  return { r: 4 + 12 * Math.sqrt(maxMoney ? money / maxMoney : 0), fill, stroke: 'var(--card)', dashed: false }
+  return { r: 4 + 12 * Math.sqrt(maxMoney ? money / maxMoney : 0), fill, stroke: 'var(--surface)', dashed: false }
 }
 
 function blipLabel(a: Agreement) {
@@ -62,19 +62,19 @@ export function SiteRadar({ sites, selected, onSelect, className }: {
           : 'Radar of open sites. Farther out means open longer. Bigger means more money at risk. A ranked list follows.'
       }
     >
-      <circle cx={C} cy={C} r={150} fill="var(--bg)" />
-      <g fill="none" stroke="var(--line)" strokeWidth={1.5}>
+      <circle cx={C} cy={C} r={150} fill="var(--subtle)" stroke="var(--line)" />
+      <g fill="none" stroke="var(--line)" strokeWidth={1}>
         {RINGS.filter((d) => d !== TARGET_DAYS).map((d) => <circle key={d} cx={C} cy={C} r={radiusFor(d)} />)}
       </g>
-      <circle cx={C} cy={C} r={radiusFor(TARGET_DAYS)} fill="none" stroke="var(--tangerine-ink)" strokeWidth={1.5} strokeDasharray="5 5" />
-      <g fontFamily="var(--body)" fontSize={10} fontWeight={700} fill="var(--muted)" aria-hidden>
+      <circle cx={C} cy={C} r={radiusFor(TARGET_DAYS)} fill="none" stroke="var(--elevated)" strokeWidth={1} strokeDasharray="4 4" />
+      <g fontFamily="var(--sans)" fontSize={10} fontWeight={500} fill="var(--muted)" aria-hidden>
         {RINGS.map((d) => (
-          <text key={d} x={C + 3} y={Math.max(9, C - radiusFor(d) - 3)} fill={d === TARGET_DAYS ? 'var(--tangerine-ink)' : undefined}>
+          <text key={d} x={C + 3} y={Math.max(9, C - radiusFor(d) - 3)} fill={d === TARGET_DAYS ? 'var(--elevated)' : undefined}>
             {d} d
           </text>
         ))}
       </g>
-      <g fontFamily="var(--display)" fontSize={13} fontWeight={600} fill="var(--ink)">
+      <g fontFamily="var(--sans)" fontSize={11.5} fontWeight={500} fill="var(--ink-2)">
         {sites.map((s, i) => {
           const angle = ((START_DEG + (i * 360) / Math.max(sites.length, 1)) * Math.PI) / 180
           const dist = radiusFor(s.daysOpen)
@@ -86,16 +86,14 @@ export function SiteRadar({ sites, selected, onSelect, className }: {
           const body = (
             <>
               {interactive && <circle cx={x} cy={y} r={Math.max(b.r, 14)} fill="transparent" />}
-              {isSel && <circle cx={x} cy={y} r={b.r + 5} fill="none" stroke="var(--ink)" strokeWidth={2} />}
+              {isSel && <circle cx={x} cy={y} r={b.r + 5} fill="none" stroke="var(--ink)" strokeWidth={1.5} />}
               <circle
-                className="blip"
-                style={{ animationDelay: `${i * 0.05}s` }}
                 cx={x}
                 cy={y}
                 r={b.r}
                 fill={b.fill}
                 stroke={b.stroke}
-                strokeWidth={b.dashed ? 1.5 : 2}
+                strokeWidth={b.dashed ? 1.25 : 1.5}
                 strokeDasharray={b.dashed ? '3 2' : undefined}
               />
               <text x={right ? x + b.r + 4 : x - b.r - 4} y={y + 5} textAnchor={right ? 'start' : 'end'} aria-hidden>
@@ -134,8 +132,8 @@ export function RadarLegend() {
       <li><i style={{ background: 'var(--radar-warn)' }} />1–2 stuck</li>
       <li><i style={{ background: 'var(--radar-bad)' }} />3+ stuck</li>
       <li><i style={{ border: '1.5px dashed var(--muted)' }} />No figures yet</li>
-      <li><i style={{ border: '1.5px dashed var(--blue)' }} />Not triaged</li>
-      <li><i style={{ border: '1.5px dashed var(--tangerine-ink)', borderRadius: 0, height: 0, width: 14 }} />90-day target</li>
+      <li><i style={{ border: '1.5px dashed var(--accent)' }} />Not triaged</li>
+      <li><i style={{ border: '1.5px dashed var(--elevated)', borderRadius: 0, height: 0, width: 14 }} />90-day target</li>
     </ul>
   )
 }

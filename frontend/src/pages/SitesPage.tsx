@@ -14,9 +14,9 @@ const TARGET_DAYS = 90
 
 function Stat({ value, label, tone }: { value: string; label: string; tone?: string }) {
   return (
-    <div className="tile py-5">
-      <p className={cn('font-display text-4xl font-semibold tabular', tone)}>{value}</p>
-      <p className="mt-1 text-sm font-bold text-muted">{label}</p>
+    <div>
+      <dt>{label}</dt>
+      <dd className={tone}>{value}</dd>
     </div>
   )
 }
@@ -29,9 +29,9 @@ export function SitesPage() {
     return (
       <div className="wrap py-16">
         <div className="tile mx-auto max-w-xl text-center" role="alert">
-          <h1 className="text-3xl">Can’t reach the Siteline API</h1>
+          <h1 className="text-[26px]">Can’t reach the Siteline API</h1>
           <p className="mt-3 text-muted">{error}</p>
-          <button type="button" className="btn btn-orange mt-5" onClick={refresh}><RotateCw aria-hidden className="size-4" /> Try again</button>
+          <button type="button" className="btn btn-primary mt-5" onClick={refresh}><RotateCw aria-hidden className="size-4" /> Try again</button>
         </div>
       </div>
     )
@@ -40,7 +40,7 @@ export function SitesPage() {
   if (!agreements) {
     return (
       <div className="wrap pb-12" role="status" aria-label="Loading sites">
-        <div className="hello pt-7 pb-6"><div className="h-12 w-1/3 animate-pulse rounded-2xl bg-card" /></div>
+        <div className="hello pt-9 pb-6"><div className="h-12 w-1/3 animate-pulse rounded-[6px] bg-sunken" /></div>
         <div className="tile h-96 animate-pulse" />
       </div>
     )
@@ -57,22 +57,22 @@ export function SitesPage() {
 
   return (
     <div className="wrap pb-12">
-      <section className="hello pt-7 pb-6">
+      <section className="hello pt-9">
+        <span className="eyebrow">Portfolio</span>
         <h1>Sites</h1>
         <p>
           Every site still negotiating. On the radar, farther out means open longer, bigger means more money at risk per week of delay,
           and colour shows how many clauses are stuck. Past the dashed ring is over the {TARGET_DAYS}-day start-up target.
         </p>
+        <dl className="stats">
+          <Stat value={String(sites.length)} label="Open sites" />
+          <Stat value={String(overTarget)} label={`Over ${TARGET_DAYS} days`} tone={overTarget ? '!text-elevated' : undefined} />
+          <Stat value={String(blocked)} label="Blocked by stuck clauses" />
+          <Stat value={`≈${usd(atRisk)}`} label="At risk per week" tone="!text-high" />
+        </dl>
       </section>
 
-      <div className="grid grid-cols-2 gap-[18px] lg:grid-cols-4">
-        <Stat value={String(sites.length)} label="open sites" />
-        <Stat value={String(overTarget)} label={`over ${TARGET_DAYS} days`} tone={overTarget ? 'text-tangerine-ink' : undefined} />
-        <Stat value={String(blocked)} label="blocked by stuck clauses" />
-        <Stat value={`≈${usd(atRisk)}`} label="at risk per week" tone="text-rose-ink" />
-      </div>
-
-      <div className="mt-[18px] grid grid-cols-1 gap-[18px] min-[1081px]:grid-cols-12">
+      <div className="grid grid-cols-1 gap-6 min-[1081px]:grid-cols-12">
         <section aria-labelledby="radar-h" className="tile min-[1081px]:col-span-7">
           <div className="tile-head"><h2 id="radar-h">Open sites <span className="badge tabular">{sites.length}</span></h2></div>
           <p className="tile-sub">Choose a blip to see that site.</p>
@@ -80,34 +80,34 @@ export function SitesPage() {
           <RadarLegend />
         </section>
 
-        <aside aria-live="polite" aria-labelledby="pick-h" className="tile bg-butter min-[1081px]:col-span-5">
+        <aside aria-live="polite" aria-labelledby="pick-h" className="tile min-[1081px]:col-span-5">
           {pick ? (
             <>
               <p className="eyebrow">Selected site</p>
-              <h2 id="pick-h" className="mt-1 text-3xl">Site {pick.siteNumber}</h2>
-              <p className="font-extrabold">{pick.siteName}</p>
+              <h2 id="pick-h" className="mt-1 text-[26px]">Site {pick.siteNumber}</h2>
+              <p className="font-medium">{pick.siteName}</p>
               <p className="text-sm text-muted">{[pick.city, statusLabel[pick.status]].filter(Boolean).join(' · ')}</p>
-              <div className="mt-4 rounded-[20px] bg-card p-4">
+              <div className="well mt-4 p-4">
                 <PriorityBadge priority={pick.priority} detail />
               </div>
-              <p className="mt-4 font-display text-5xl font-semibold tabular">
-                {pick.daysOpen}<span className="font-body text-xl font-bold text-muted"> days open</span>
+              <p className="mt-5 font-serif text-4xl font-medium tabular">
+                {pick.daysOpen}<span className="font-sans text-base font-normal text-muted"> days open</span>
               </p>
-              <p className={cn('text-sm', pick.daysOpen > TARGET_DAYS ? 'font-extrabold text-tangerine-ink' : 'text-muted')}>
+              <p className={cn('text-sm', pick.daysOpen > TARGET_DAYS ? 'font-medium text-elevated' : 'text-muted')}>
                 {pick.daysOpen > TARGET_DAYS ? `${pick.daysOpen - TARGET_DAYS} days over target` : `${TARGET_DAYS - pick.daysOpen} days left before target`}
               </p>
-              <h3 className="mt-5 font-body text-sm font-extrabold">Stuck clauses</h3>
+              <h3 className="eyebrow mt-5 font-sans">Stuck clauses</h3>
               {pick.stuckClauses.length ? (
                 <ul className="mt-2 flex flex-wrap gap-1.5">
-                  {pick.stuckClauses.map((c) => <li key={c} className="pill p-rose">{clauseLabel[c]}</li>)}
+                  {pick.stuckClauses.map((c) => <li key={c} className="pill s-high">{clauseLabel[c]}</li>)}
                 </ul>
               ) : (
                 <p className="mt-1 text-sm text-muted">Nothing blocking activation.</p>
               )}
               {pick.fileName ? (
-                <Link to={`/review/${pick.id}`} className="btn btn-orange mt-5">Open Site {pick.siteNumber} review <ArrowRight aria-hidden className="size-4" /></Link>
+                <Link to={`/review/${pick.id}`} className="btn btn-primary mt-5">Open Site {pick.siteNumber} review <ArrowRight aria-hidden className="size-4" /></Link>
               ) : (
-                <p className="mt-5 rounded-[20px] bg-card px-4 py-3 text-sm text-muted">
+                <p className="empty mt-5">
                   {notTriaged(pick) ? 'This site’s redline hasn’t been triaged in Siteline yet.' : 'Tracked from the study plan; its redline wasn’t triaged in Siteline.'}
                 </p>
               )}
@@ -120,33 +120,33 @@ export function SitesPage() {
         <section aria-labelledby="table-h" className="tile min-[1081px]:col-span-12">
           <div className="tile-head"><h2 id="table-h">All agreements <span className="badge tabular">{agreements.length}</span></h2></div>
           <p className="tile-sub">Waiting on us first, by money at risk, then days open.</p>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead className="text-muted">
-                <tr className="border-b-2 border-line">
-                  <th scope="col" className="px-3 py-3 font-extrabold">Site</th>
-                  <th scope="col" className="px-3 py-3 font-extrabold">Status</th>
-                  <th scope="col" className="px-3 py-3 text-right font-extrabold">At risk / week</th>
-                  <th scope="col" className="px-3 py-3 text-right font-extrabold">Days open</th>
-                  <th scope="col" className="px-3 py-3 font-extrabold">Stuck clauses</th>
+          <div className="overflow-x-auto rounded-[6px] border border-line">
+            <table className="data-table min-w-[640px]">
+              <thead>
+                <tr>
+                  <th scope="col">Site</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" className="!text-right">At risk / week</th>
+                  <th scope="col" className="!text-right">Days open</th>
+                  <th scope="col">Stuck clauses</th>
                 </tr>
               </thead>
               <tbody>
                 {byPriority(agreements).map((s) => (
-                  <tr key={s.id} className={cn('border-b border-line last:border-0', s.id === selectedId && 'bg-bg')}>
-                    <td className="px-3 py-3">
-                      <Link to={agreementPath(s)} className="font-extrabold hover:underline">Site {s.siteNumber}</Link>{' '}
+                  <tr key={s.id} className={cn(s.id === selectedId && '[&>td]:bg-subtle')} aria-current={s.id === selectedId ? 'true' : undefined}>
+                    <td>
+                      <Link to={agreementPath(s)} className="font-semibold text-ink hover:text-accent hover:underline">Site {s.siteNumber}</Link>{' '}
                       <span className="text-muted">{s.siteName}</span>
                     </td>
-                    <td className="px-3 py-3">{statusLabel[s.status]}</td>
-                    <td className="px-3 py-3 text-right tabular">
+                    <td>{statusLabel[s.status]}</td>
+                    <td className="text-right tabular">
                       <span className="inline-flex items-center gap-2">
                         {s.priority?.moneyAtRiskPerWeek != null ? `≈${usd(s.priority.moneyAtRiskPerWeek)}` : '—'}
                         {s.priority && <span className={`pill ${priorityPill[s.priority.level]}`}>{priorityShort[s.priority.level]}</span>}
                       </span>
                     </td>
-                    <td className={cn('px-3 py-3 text-right tabular', s.daysOpen > TARGET_DAYS && 'font-extrabold text-tangerine-ink')}>{s.daysOpen}</td>
-                    <td className="px-3 py-3 text-muted">{s.stuckClauses.map((c) => clauseLabel[c]).join(', ') || '—'}</td>
+                    <td className={cn('text-right tabular', s.daysOpen > TARGET_DAYS && 'font-semibold text-elevated')}>{s.daysOpen}</td>
+                    <td className="text-muted">{s.stuckClauses.map((c) => clauseLabel[c]).join(', ') || '—'}</td>
                   </tr>
                 ))}
               </tbody>

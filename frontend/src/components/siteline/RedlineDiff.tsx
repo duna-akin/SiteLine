@@ -19,30 +19,31 @@ function wordDiff(a: string, b: string) {
   }
 }
 
-const del = 'rounded bg-rose px-0.5 text-rose-ink line-through decoration-rose-ink decoration-2'
-const ins = 'rounded bg-mint px-0.5 text-mint-ink underline decoration-mint-ink decoration-2 underline-offset-4'
+// Redline convention: struck-through deletions, underlined insertions
+const del = 'text-high line-through decoration-high'
+const ins = 'text-accent underline decoration-accent underline-offset-[3px]'
 
 export function RedlineDiff({ change }: { change: Change }) {
   if (change.kind === 'insertion' && !change.original) {
     return (
-      <p className="leading-relaxed">
+      <p className="font-serif text-[15.5px] leading-relaxed">
         <ins className={ins}>{change.revised}</ins>
       </p>
     )
   }
   if (change.kind === 'deletion') {
     return (
-      <p className="leading-relaxed">
+      <p className="font-serif text-[15.5px] leading-relaxed">
         <del className={del}>{change.original}</del>
       </p>
     )
   }
   if (change.kind === 'comment') {
-    return <p className="leading-relaxed text-ink">{change.original}</p>
+    return <p className="font-serif text-[15.5px] leading-relaxed text-ink">{change.original}</p>
   }
   const d = wordDiff(change.original, change.revised)
   return (
-    <p className="leading-relaxed text-ink">
+    <p className="font-serif text-[15.5px] leading-relaxed text-ink">
       {d.prefix}
       {d.removed && <del className={del}>{d.removed}</del>}
       {d.added && <ins className={d.removed ? `${ins} ml-1` : ins}>{d.added}</ins>}

@@ -20,26 +20,26 @@ const unit = (m: EvalMetric) => (m.unit === '%' ? '%' : ' s')
 function MetricCard({ m }: { m: EvalMetric }) {
   const max = m.unit === '%' ? 100 : Math.max(m.siteline, m.baseline, 30)
   const rows = [
-    { name: 'Siteline', value: m.siteline, color: 'var(--tangerine)' },
-    { name: 'LLM-only baseline', value: m.baseline, color: 'var(--blue)' },
+    { name: 'Siteline', value: m.siteline, color: 'var(--ink-2)' },
+    { name: 'LLM-only baseline', value: m.baseline, color: 'var(--accent)' },
   ]
   return (
     <article className="tile flex flex-col">
       <p className="eyebrow">{m.label}</p>
       <p className="mt-1 text-sm text-muted">{m.description}</p>
-      <p className="mt-3 font-display text-5xl font-semibold tabular">
-        {m.siteline.toFixed(m.siteline % 1 ? 1 : 0)}<span className="text-2xl text-muted">{unit(m)}</span>
+      <p className="mt-3 font-serif text-[34px] leading-tight font-medium tabular">
+        {m.siteline.toFixed(m.siteline % 1 ? 1 : 0)}<span className="text-lg text-muted">{unit(m)}</span>
       </p>
       <div className="mt-4 flex flex-col gap-2">
         {rows.map((r) => (
           <div key={r.name}>
             <div className="flex justify-between text-xs">
-              <span className="font-extrabold">{r.name}</span>
+              <span className="font-medium">{r.name}</span>
               <span className="text-muted tabular">{r.value.toFixed(1)}{unit(m)}</span>
             </div>
-            <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-bg">
+            <div className="mt-1 h-1.5 overflow-hidden rounded-[2px] bg-sunken">
               <motion.div
-                className="h-full rounded-full"
+                className="h-full"
                 style={{ background: r.color }}
                 initial={{ width: 0 }}
                 whileInView={{ width: `${Math.max(1.5, (r.value / max) * 100)}%` }}
@@ -52,7 +52,7 @@ function MetricCard({ m }: { m: EvalMetric }) {
       </div>
       <p className="mt-auto flex items-center justify-between pt-3 text-xs text-muted">
         <span>Target: {m.target}</span>
-        <span className={cn('pill', better(m) ? 'p-mint' : 'p-butter')}>{better(m) ? 'Siteline ahead' : 'Baseline ahead'}</span>
+        <span className={cn('pill', better(m) ? 's-ok' : 's-elevated')}>{better(m) ? 'Siteline ahead' : 'Baseline ahead'}</span>
       </p>
     </article>
   )
@@ -68,7 +68,7 @@ function Confusion({ results }: { results: EvalResult }) {
           <thead>
             <tr>
               <th scope="col" className="p-2 text-left text-xs text-muted">Label ↓ / Siteline →</th>
-              {outcomeOrder.map((o) => <th key={o} scope="col" className="p-2 text-xs font-extrabold">{outcomeLabel[o]}</th>)}
+              {outcomeOrder.map((o) => <th key={o} scope="col" className="p-2 text-xs font-semibold">{outcomeLabel[o]}</th>)}
             </tr>
           </thead>
           <tbody>
@@ -83,11 +83,11 @@ function Confusion({ results }: { results: EvalResult }) {
                     return (
                       <td key={col} className="p-1">
                         <span
-                          className={cn('flex h-11 items-center justify-center rounded-[12px] font-extrabold tabular', unsafe && n > 0 && 'shadow-[inset_0_0_0_2px_var(--rose-ink)]')}
+                          className={cn('flex h-11 items-center justify-center rounded-[6px] font-semibold tabular', unsafe && n > 0 && 'shadow-[inset_0_0_0_1px_var(--high)]')}
                           style={{
                             background: row === col
-                              ? `color-mix(in oklab, var(--radar-ok) ${20 + (total ? n / total : 0) * 50}%, var(--card))`
-                              : n > 0 ? 'var(--butter)' : 'var(--bg)',
+                              ? `color-mix(in oklab, var(--radar-ok) ${20 + (total ? n / total : 0) * 50}%, var(--surface))`
+                              : n > 0 ? 'var(--elevated-bg)' : 'var(--page)',
                           }}
                         >
                           {n}
@@ -169,9 +169,9 @@ export function EvalResults() {
   if (loadError) {
     return (
       <div className="tile text-center" role="alert">
-        <p className="font-extrabold">Couldn’t load the eval results.</p>
+        <p className="font-semibold">Couldn’t load the eval results.</p>
         <p className="mt-1 text-sm text-muted">{loadError}</p>
-        <button type="button" className="btn btn-orange mt-4" onClick={load}><RotateCw aria-hidden className="size-4" /> Try again</button>
+        <button type="button" className="btn btn-primary mt-4" onClick={load}><RotateCw aria-hidden className="size-4" /> Try again</button>
       </div>
     )
   }
@@ -186,15 +186,15 @@ export function EvalResults() {
   const error = runError ?? latest.status.error
   const sandboxCount = latest.available && latest.result.parallelSandboxes > 0 ? latest.result.parallelSandboxes : PLANNED_SANDBOXES
   const runPanel = (
-    <section aria-labelledby="run-heading" className="tile h-fit bg-butter">
-      <div className="tile-head"><h2 id="run-heading"><FlaskConical aria-hidden className="size-5 text-tangerine-ink" /> Eval run</h2></div>
+    <section aria-labelledby="run-heading" className="tile h-fit">
+      <div className="tile-head"><h2 id="run-heading"><FlaskConical aria-hidden className="size-5 text-faint" /> Eval run</h2></div>
       <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-sm">
-        <dt className="text-muted">Harness</dt><dd className="font-extrabold">{latest.available ? latest.result.harness : 'Siteline eval harness'}</dd>
-        <dt className="text-muted">Dataset</dt><dd className="font-extrabold break-all">{latest.available ? latest.result.datasetName : latest.dataset.name}</dd>
-        {latest.available && <><dt className="text-muted">Run</dt><dd className="font-extrabold break-all">{latest.result.runId}</dd></>}
-        {latest.available && latest.result.model && <><dt className="text-muted">Model</dt><dd className="font-extrabold break-all">{latest.result.model}</dd></>}
+        <dt className="text-muted">Harness</dt><dd className="font-semibold">{latest.available ? latest.result.harness : 'Siteline eval harness'}</dd>
+        <dt className="text-muted">Dataset</dt><dd className="font-semibold break-all">{latest.available ? latest.result.datasetName : latest.dataset.name}</dd>
+        {latest.available && <><dt className="text-muted">Run</dt><dd className="font-semibold break-all">{latest.result.runId}</dd></>}
+        {latest.available && latest.result.model && <><dt className="text-muted">Model</dt><dd className="font-semibold break-all">{latest.result.model}</dd></>}
         <dt className="text-muted">Parsing</dt>
-        <dd className="font-extrabold">{integrations?.daytona ? `${sandboxCount} Daytona sandboxes in parallel` : 'Local parser (no Daytona key)'}</dd>
+        <dd className="font-semibold">{integrations?.daytona ? `${sandboxCount} Daytona sandboxes in parallel` : 'Local parser (no Daytona key)'}</dd>
       </dl>
       {integrations?.daytona && (
         <div className="mt-4 grid grid-cols-6 gap-2" aria-label={running ? (parsed ? 'Sandboxes finished parsing' : 'Sandboxes parsing') : 'Sandboxes idle'} role="img">
@@ -203,7 +203,7 @@ export function EvalResults() {
               key={i}
               animate={running && !parsed ? { opacity: [0.35, 1, 0.35] } : { opacity: 1 }}
               transition={running && !parsed ? { repeat: Infinity, duration: 1.2, delay: i * 0.05 } : { duration: 0.2 }}
-              className={cn('flex aspect-square items-center justify-center rounded-[12px]', parsed || !running ? 'bg-mint text-mint-ink' : 'bg-card text-muted')}
+              className={cn('flex aspect-square items-center justify-center rounded-[6px]', parsed || !running ? 'border border-line bg-surface text-ok' : 'border border-line bg-surface text-faint')}
             >
               <Box aria-hidden className="size-4" />
             </motion.span>
@@ -213,12 +213,12 @@ export function EvalResults() {
       {running && progress.total > 0 && (
         <div className="mt-4">
           <div className="flex justify-between text-xs text-muted"><span>Model calls</span><span className="tabular">{progress.done}/{progress.total}</span></div>
-          <div className="mt-1 h-2.5 overflow-hidden rounded-full bg-card">
-            <div className="h-full rounded-full bg-tangerine transition-[width]" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+          <div className="mt-1 h-1.5 overflow-hidden rounded-[2px] bg-sunken">
+            <div className="h-full bg-ink-2 transition-[width]" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
           </div>
         </div>
       )}
-      <button type="button" className="btn btn-orange mt-5 w-full" onClick={run} disabled={running || !integrations?.claude}>
+      <button type="button" className="btn btn-primary mt-5 w-full" onClick={run} disabled={running || !integrations?.claude}>
         {running ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Play aria-hidden className="size-4" />}
         {running ? 'Running…' : latest.available ? 'Re-run eval' : 'Run eval'}
       </button>
@@ -227,15 +227,15 @@ export function EvalResults() {
           ? 'Runs Siteline and the LLM-only baseline on every labeled change (about 300 OpenAI calls).'
           : 'Needs an OpenAI API key on the server (OPENAI_API_KEY).'}
       </p>
-      {error && <p role="alert" className="mt-2 rounded-[14px] bg-rose px-3 py-2 text-sm font-extrabold text-rose-ink">{error}</p>}
+      {error && <p role="alert" className="alert mt-2">{error}</p>}
     </section>
   )
 
   if (!latest.available) {
     return (
-      <div className="grid gap-[18px] min-[1081px]:grid-cols-12">
+      <div className="grid gap-6 min-[1081px]:grid-cols-12">
         <div className="tile min-[1081px]:col-span-7">
-          <h3 className="text-2xl">No run yet</h3>
+          <h3 className="text-[20px]">No run yet</h3>
           <p className="mt-2 text-muted">
             {latest.dataset.labeledChanges} labeled changes, {latest.dataset.shouldEscalate} of which should escalate. Start a run to get real numbers.
           </p>
@@ -250,7 +250,7 @@ export function EvalResults() {
   const unsafe = metric('unsafe')
 
   return (
-    <div className="flex flex-col gap-[18px]">
+    <div className="flex flex-col gap-6">
       <p className="text-sm text-muted">
         {results.labeledChanges} labeled changes, {results.shouldEscalate} of which should escalate · run {results.runId} · finished {new Date(results.finishedAt).toLocaleString()}
         <span className="ml-2 inline-flex flex-wrap gap-2 align-middle">
@@ -259,19 +259,19 @@ export function EvalResults() {
         </span>
       </p>
 
-      <div className="grid grid-cols-1 gap-[18px] min-[1081px]:grid-cols-12">
-        <section aria-labelledby="unsafe-heading" className="tile bg-mint min-[1081px]:col-span-7">
-          <h3 id="unsafe-heading" className="eyebrow text-mint-ink">Unsafe accept rate</h3>
+      <div className="grid grid-cols-1 gap-6 min-[1081px]:grid-cols-12">
+        <section aria-labelledby="unsafe-heading" className="tile min-[1081px]:col-span-7">
+          <h3 id="unsafe-heading" className="eyebrow">Unsafe accept rate</h3>
           <p className="mt-1 text-sm text-ink">How often a change that needed an approver slipped through.</p>
           <div className="mt-4 flex flex-wrap items-end gap-x-10 gap-y-4">
             <div>
-              <p className={cn('font-display text-8xl leading-none font-semibold tabular', unsafe.siteline === 0 ? 'text-mint-ink' : 'text-tangerine-ink')}>
-                {unsafe.siteline.toFixed(unsafe.siteline % 1 ? 1 : 0)}<span className="text-4xl">%</span>
+              <p className={cn('font-serif text-[64px] leading-none font-medium tabular', unsafe.siteline === 0 ? 'text-ok' : 'text-elevated')}>
+                {unsafe.siteline.toFixed(unsafe.siteline % 1 ? 1 : 0)}<span className="text-[28px]">%</span>
               </p>
-              <p className="mt-2 flex items-center gap-1.5 font-extrabold"><ShieldCheck aria-hidden className="size-4 text-mint-ink" /> Siteline · target 0</p>
+              <p className="mt-2 flex items-center gap-1.5 font-medium"><ShieldCheck aria-hidden className="size-4 text-ok" /> Siteline · target 0</p>
             </div>
             <div>
-              <p className="font-display text-5xl leading-none font-semibold text-blue tabular">{unsafe.baseline.toFixed(1)}%</p>
+              <p className="font-serif text-[34px] leading-none font-medium text-accent tabular">{unsafe.baseline.toFixed(1)}%</p>
               <p className="mt-2 text-sm text-ink">LLM-only baseline: {Math.round((unsafe.baseline / 100) * results.shouldEscalate)} of {results.shouldEscalate} escalations accepted or countered</p>
             </div>
           </div>
@@ -282,8 +282,8 @@ export function EvalResults() {
           <div className="mt-4 grid grid-cols-2 gap-4">
             {[metric('recall'), metric('accuracy')].map((m) => (
               <div key={m.key} className="flex flex-col items-center text-center">
-                <AnimatedCircularProgressBar value={m.siteline} gaugePrimaryColor="var(--tangerine)" gaugeSecondaryColor="var(--line)" className="size-28 text-xl text-ink sm:size-32" />
-                <p className="mt-2 text-sm font-extrabold">{m.label}</p>
+                <AnimatedCircularProgressBar value={m.siteline} gaugePrimaryColor="var(--ink-2)" gaugeSecondaryColor="var(--line)" className="size-28 text-xl text-ink sm:size-32" />
+                <p className="mt-2 text-sm font-medium">{m.label}</p>
                 <p className="text-xs text-muted">baseline {m.baseline.toFixed(1)}%</p>
               </div>
             ))}
@@ -291,11 +291,11 @@ export function EvalResults() {
         </section>
       </div>
 
-      <div className="grid gap-[18px] sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
         {['recall', 'accuracy', 'quotes', 'latency'].map((k) => <MetricCard key={k} m={metric(k)} />)}
       </div>
 
-      <div className="grid grid-cols-1 gap-[18px] min-[1081px]:grid-cols-[minmax(0,1fr)_380px]">
+      <div className="grid grid-cols-1 gap-6 min-[1081px]:grid-cols-[minmax(0,1fr)_380px]">
         <Confusion results={results} />
         {runPanel}
       </div>
