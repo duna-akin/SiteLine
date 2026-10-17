@@ -67,6 +67,31 @@ export interface Override {
   at: number
 }
 
+export interface PrecedentMatch {
+  siteName: string
+  agreementId: string
+  siteNumber: string
+  protocol: string
+  label: string
+  via: 'executed' | 'approver_reply'
+  reply: ApprovalReply | null
+  decidedAt: string
+  /** Key of the final agreed document (S3 later) and where in it the term sits. */
+  sourceKey?: string | null
+  sourceSection?: string | null
+  sourceQuote?: string | null
+}
+
+export interface Precedent {
+  /** This institution's accepted terms that cover the site's ask, newest first. */
+  sameSite: PrecedentMatch[]
+  /** True when same-site precedent turned an escalation into an accept (rule PREC-A1). */
+  downgraded: boolean
+  originalRuleId: string | null
+  originalRuleText: string | null
+  summary: string
+}
+
 export interface Change {
   id: string
   index: number
@@ -93,6 +118,8 @@ export interface Change {
   counterText?: string | null
   /** What an approver's reply 2 ("counter with the fallback") sends back. */
   fallbackText?: string | null
+  /** Past sponsor decisions on this clause, checked after the rules. */
+  precedent?: Precedent | null
   rationale?: string | null
   novelIssue?: string | null
   /** Set when Claude extraction failed; the change goes to human review. */
@@ -123,6 +150,8 @@ export interface Agreement {
   triageSeconds?: number
   parser?: 'daytona' | 'local'
   sandboxId?: string | null
+  /** Set once the agreement is confirmed: the stored final document (see api.sourceUrl). */
+  finalDocumentKey?: string
 }
 
 export interface InboundEmail {

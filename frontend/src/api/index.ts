@@ -113,6 +113,16 @@ export async function exportCounterProposal(agreementId: string) {
   return { fileName: name }
 }
 
+/** Download link for a final agreed document, as cited by a precedent's sourceKey. */
+export const sourceUrl = (key: string) => `/api/sources?key=${encodeURIComponent(key)}`
+
+/** Confirm the agreement: the backend keeps the final document and saves its accepted terms as precedent. */
+export const completeAgreement = (agreementId: string) =>
+  request<{ agreement: Agreement; finalDocumentKey: string; precedentsSaved: number }>(
+    `/agreements/${encodeURIComponent(agreementId)}/complete`,
+    { method: 'POST' },
+  )
+
 export const listAgreements = () => request<Agreement[]>('/agreements')
 
 export const getPortfolio = () => request<Agreement[]>('/portfolio')

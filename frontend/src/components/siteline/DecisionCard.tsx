@@ -1,7 +1,8 @@
 import { useId, useState, type FormEvent } from 'react'
-import { MessageSquare, MessageSquareText, Phone, ShieldAlert, ShieldCheck, Undo2, UserRound } from 'lucide-react'
+import { FileText, History, MessageSquare, MessageSquareText, Phone, ShieldAlert, ShieldCheck, Undo2, UserRound } from 'lucide-react'
 import { motion } from 'motion/react'
 
+import * as api from '@/api'
 import { OutcomeBadge } from '@/components/siteline/outcome'
 import { outcomeIcon, outcomeVar } from '@/components/siteline/outcome-style'
 import { RedlineDiff } from '@/components/siteline/RedlineDiff'
@@ -197,6 +198,11 @@ export function DecisionCard({ d }: { d: Decision }) {
             <code className="rounded bg-space-2 px-1.5 py-0.5 text-xs font-bold text-cream">{d.ruleId}</code>{' '}
             {d.ruleText}
           </dd>
+          {d.precedent?.downgraded && (
+            <dd className="mt-1 text-xs text-muted">
+              Playbook rule <code className="rounded bg-space-2 px-1 py-0.5 font-bold">{d.precedent.originalRuleId}</code> would escalate: {d.precedent.originalRuleText}
+            </dd>
+          )}
         </div>
         <div>
           <dt className="eyebrow">Extracted values</dt>
@@ -234,6 +240,25 @@ export function DecisionCard({ d }: { d: Decision }) {
             {d.cached && <p className="mt-1 text-xs text-muted">From the cached extraction.</p>}
           </dd>
         </div>
+        {d.precedent && (
+          <div className="md:col-span-2">
+            <dt className="eyebrow flex items-center gap-1.5">
+              <History aria-hidden className="size-3.5 text-blue-l" /> Precedent
+            </dt>
+            <dd className="mt-1">{d.precedent.summary}</dd>
+            {d.precedent.sameSite
+              .filter((m) => m.sourceKey)
+              .map((m) => (
+                <dd key={m.sourceKey} className="mt-2 border-l-2 border-line pl-3 text-xs">
+                  <span className="text-muted">Source: {m.siteName}, {m.sourceSection ?? 'final agreement'}</span>
+                  {m.sourceQuote && <span className="block italic">“{m.sourceQuote}”</span>}
+                  <a href={api.sourceUrl(m.sourceKey!)} className="mt-1 inline-flex items-center gap-1 font-bold text-blue-l hover:underline">
+                    <FileText aria-hidden className="size-3.5" /> Open source document
+                  </a>
+                </dd>
+              ))}
+          </div>
+        )}
         {d.counterText != null && (outcome === 'fallback' || outcome === 'escalate') && (
           <div className="md:col-span-2">
             <dt className="eyebrow">{outcome === 'fallback' ? 'Counter sent back' : 'If rejected, sponsor holds'}</dt>
