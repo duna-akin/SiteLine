@@ -60,6 +60,28 @@ def test_rules_escalate_and_fail_safe():
     assert decide(ch, {"error": "no key"}, True).outcome == "human_review"
 
 
+def test_payment_checks_the_fee_even_when_net_days_are_fine():
+    ch = {"kind": "replacement", "original": "Net forty-five (45) days; 10% start-up fee",
+          "revised": "Net forty-five (45) days; a non-refundable 25% start-up fee"}
+    vals = [{"field": "net_days", "value": "45", "quote": "forty-five (45)"},
+            {"field": "start_up_fee_pct", "value": "25", "quote": "25%"},
+            {"field": "start_up_fee_refundable", "value": "false", "quote": "non-refundable"}]
+    v = decide(ch, {"clause_type": "payment_terms", "confidence": 0.95, "values": vals}, True)
+    assert (v.outcome, v.rule_id) == ("escalate", "PAY-E2")
+    v = decide(ch, {"clause_type": "payment_terms", "confidence": 0.95, "values": vals[:1]}, True)
+    assert (v.outcome, v.rule_id) == ("accept", "PAY-A1")
+
+
+def test_governing_law_needs_a_governing_law_fact():
+    ch = {"kind": "replacement", "original": "New Jersey law governs.", "revised": "New Jersey law governs this Agreement."}
+    ex = {"clause_type": "governing_law", "confidence": 0.9, "values": []}
+    assert decide(ch, ex, True).rule_id == "SYS-NORULE"
+    public_only = {**ex, "values": [{"field": "institution_is_public", "value": "false", "quote": "Institution"}]}
+    assert decide(ch, public_only, True).rule_id == "SYS-NORULE"
+    home = {**ex, "values": [{"field": "governing_law_state", "value": "New Jersey", "quote": "New Jersey"}]}
+    assert decide(ch, home, True).rule_id == "GOV-A1"
+
+
 def test_export_diff_tracks_only_the_changed_words():
     segs = diff_segments("survive for four (4) years", "survive for five (5) years", "S", "2026-01-01T00:00:00Z")
     assert [s["type"] for s in segs] == ["text", "del", "ins", "text"]
