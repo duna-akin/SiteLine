@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, type ReactNode } from 'react'
 
 import * as api from '@/api'
-import { approvers } from '@/mocks/playbook'
+import { useServerEvent } from '@/api/events'
+import { approvers, replyMeaning } from '@/mocks/playbook'
 import { NO_REPLY_MS } from '@/state/decision'
-import type { ApprovalChannel, ApprovalReply, Change, Decision, Outcome } from '@/types'
+import type { Agreement, ApprovalChannel, ApprovalReply, Decision, Integrations, Outcome } from '@/types'
 
 interface Toast {
   id: number
@@ -11,8 +12,12 @@ interface Toast {
 }
 
 interface DemoState {
+  agreement: Agreement | null
   decisions: Decision[]
-  triageSeconds: number | null
+  loading: boolean
+  loadError: string | null
+  integrations: Integrations | null
+  inboundAddress: string
   localParser: boolean
   useCache: boolean
   activeEscalationId: string | null
@@ -20,12 +25,12 @@ interface DemoState {
 }
 
 type Action =
-  | { type: 'loaded'; changes: Change[]; triageSeconds: number }
-  | { type: 'override'; id: string; outcome: Outcome; reason: string; at: number }
-  | { type: 'clearOverride'; id: string }
-  | { type: 'sent'; id: string; at: number }
-  | { type: 'calling'; id: string; at: number }
-  | { type: 'answered'; id: string; reply: ApprovalReply; channel: ApprovalChannel; at: number }
+  | { type: 'loading' }
+  | { type: 'loaded'; agreement: Agreement; decisions: Decision[] }
+  | { type: 'loadFailed'; error: string }
+  | { type: 'decision'; decision: Decision }
+  | { type: 'agreement'; agreement: Agreement }
+  | { type: 'health'; integrations: Integrations; inboundAddress: string }
   | { type: 'setFlag'; flag: 'localParser' | 'useCache'; value: boolean }
   | { type: 'focusEscalation'; id: string | null }
   | { type: 'toast'; toast: Toast }
@@ -33,61 +38,43 @@ type Action =
   | { type: 'reset' }
 
 const initialState: DemoState = {
+  agreement: null,
   decisions: [],
-  triageSeconds: null,
+  loading: false,
+  loadError: null,
+  integrations: null,
+  inboundAddress: 'redlines@siteline.demo',
   localParser: false,
   useCache: true,
   activeEscalationId: null,
   toasts: [],
 }
 
-function update(state: DemoState, id: string, fn: (d: Decision) => Decision): DemoState {
-  return { ...state, decisions: state.decisions.map((d) => (d.id === id ? fn(d) : d)) }
-}
-
 function reducer(state: DemoState, action: Action): DemoState {
   switch (action.type) {
-    case 'loaded': {
-      const decisions = action.changes.map<Decision>((c) => ({ ...c, approval: { state: 'none' } }))
+    case 'loading':
+      return { ...state, loading: true, loadError: null }
+    case 'loaded':
       return {
         ...state,
-        decisions,
-        triageSeconds: action.triageSeconds,
-        activeEscalationId: decisions.find((d) => d.outcome === 'escalate')?.id ?? null,
+        loading: false,
+        agreement: action.agreement,
+        decisions: action.decisions,
+        activeEscalationId:
+          action.decisions.find((d) => d.outcome === 'escalate' && d.approval.state !== 'answered')?.id ??
+          action.decisions.find((d) => d.outcome === 'escalate')?.id ??
+          null,
       }
+    case 'loadFailed':
+      return { ...state, loading: false, loadError: action.error, agreement: null, decisions: [] }
+    case 'decision': {
+      if (!state.decisions.some((d) => d.id === action.decision.id)) return state
+      return { ...state, decisions: state.decisions.map((d) => (d.id === action.decision.id ? action.decision : d)) }
     }
-    case 'override':
-      return update(state, action.id, (d) => ({
-        ...d,
-        override: { outcome: action.outcome, reason: action.reason, at: action.at },
-      }))
-    case 'clearOverride':
-      return update(state, action.id, (d) => ({ ...d, override: undefined }))
-    case 'sent':
-      return update(state, action.id, (d) =>
-        d.approval.state === 'none' ? { ...d, approval: { state: 'sent', sentAt: action.at } } : d,
-      )
-    case 'calling':
-      return update(state, action.id, (d) =>
-        d.approval.state === 'sent'
-          ? { ...d, approval: { state: 'calling', sentAt: d.approval.sentAt, callStartedAt: action.at } }
-          : d,
-      )
-    case 'answered':
-      return update(state, action.id, (d) =>
-        d.approval.state === 'sent' || d.approval.state === 'calling'
-          ? {
-              ...d,
-              approval: {
-                state: 'answered',
-                sentAt: d.approval.sentAt,
-                reply: action.reply,
-                channel: action.channel,
-                answeredAt: action.at,
-              },
-            }
-          : d,
-      )
+    case 'agreement':
+      return state.agreement?.id === action.agreement.id ? { ...state, agreement: { ...state.agreement, ...action.agreement } } : state
+    case 'health':
+      return { ...state, integrations: action.integrations, inboundAddress: action.inboundAddress }
     case 'setFlag':
       return { ...state, [action.flag]: action.value }
     case 'focusEscalation':
@@ -97,14 +84,15 @@ function reducer(state: DemoState, action: Action): DemoState {
     case 'dismissToast':
       return { ...state, toasts: state.toasts.filter((t) => t.id !== action.id) }
     case 'reset':
-      return { ...initialState, localParser: state.localParser, useCache: state.useCache }
+      return { ...initialState, integrations: state.integrations, inboundAddress: state.inboundAddress, localParser: state.localParser, useCache: state.useCache }
   }
 }
 
 interface DemoApi extends DemoState {
-  loadSite07: (triageSeconds: number) => Promise<void>
+  noReplyMs: number
+  loadAgreement: (id: string) => Promise<void>
   override: (id: string, outcome: Outcome, reason: string) => Promise<void>
-  clearOverride: (id: string) => void
+  clearOverride: (id: string) => Promise<void>
   reply: (id: string, reply: ApprovalReply, channel: ApprovalChannel) => Promise<void>
   callNow: (id: string) => Promise<void>
   setFlag: (flag: 'localParser' | 'useCache', value: boolean) => void
@@ -116,86 +104,93 @@ interface DemoApi extends DemoState {
 
 const DemoContext = createContext<DemoApi | null>(null)
 
+const message = (e: unknown) => (e instanceof Error ? e.message : 'Something went wrong')
+
 export function DemoProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(reducer, initialState)
   const toastId = useRef(0)
-  const callTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>())
+  const agreementId = useRef<string | null>(null)
 
   const notify = useCallback((text: string) => {
     const id = ++toastId.current
     dispatch({ type: 'toast', toast: { id, text } })
-    setTimeout(() => dispatch({ type: 'dismissToast', id }), 4000)
+    setTimeout(() => dispatch({ type: 'dismissToast', id }), 4500)
   }, [])
 
-  const callNow = useCallback(async (id: string) => {
-    const decision = state.decisions.find((d) => d.id === id)
-    if (!decision || decision.approval.state !== 'sent') return
-    clearTimeout(callTimers.current.get(id))
-    callTimers.current.delete(id)
-    const res = await api.placeApprovalCall(id, approvers[decision.owner].phone)
-    dispatch({ type: 'calling', id, at: res.startedAt })
-    dispatch({ type: 'focusEscalation', id })
-  }, [state.decisions])
-
-  // Arm a no-reply timer for each text that is waiting; the voice agent calls when it fires.
-  const callNowRef = useRef(callNow)
   useEffect(() => {
-    callNowRef.current = callNow
-  }, [callNow])
-  useEffect(() => {
-    for (const d of state.decisions) {
-      if (d.approval.state === 'sent' && !callTimers.current.has(d.id)) {
-        const remaining = Math.max(0, d.approval.sentAt + NO_REPLY_MS - Date.now())
-        callTimers.current.set(d.id, setTimeout(() => void callNowRef.current(d.id), remaining))
-      }
-    }
-  }, [state.decisions])
-  useEffect(() => {
-    const timers = callTimers.current
-    return () => timers.forEach((t) => clearTimeout(t))
-  }, [])
-
-  const loadSite07 = useCallback(async (triageSeconds: number) => {
-    const changes = await api.getDecisions('site-07')
-    dispatch({ type: 'loaded', changes, triageSeconds })
-    // One Photon text per escalation, sent as soon as triage finishes.
-    for (const c of changes.filter((c) => c.outcome === 'escalate')) {
-      const res = await api.sendApprovalText(c.id, approvers[c.owner].phone)
-      dispatch({ type: 'sent', id: c.id, at: res.sentAt })
-    }
-  }, [])
-
-  const override = useCallback(async (id: string, outcome: Outcome, reason: string) => {
-    const res = await api.overrideDecision(id, outcome, reason)
-    dispatch({ type: 'override', id, outcome: res.outcome, reason: res.reason, at: res.at })
-    notify('Override saved with reason')
+    api
+      .getHealth()
+      .then((h) => dispatch({ type: 'health', integrations: h.integrations, inboundAddress: h.inboundAddress }))
+      .catch((e: unknown) => notify(message(e)))
   }, [notify])
 
-  const reply = useCallback(async (id: string, value: ApprovalReply, channel: ApprovalChannel) => {
-    clearTimeout(callTimers.current.get(id))
-    const res = await api.recordApprovalReply(id, value, channel)
-    dispatch({ type: 'answered', id, reply: res.reply, channel: res.channel, at: res.answeredAt })
+  const loadAgreement = useCallback(async (id: string) => {
+    agreementId.current = id
+    dispatch({ type: 'loading' })
+    try {
+      const res = await api.getAgreement(id)
+      if (agreementId.current === id) dispatch({ type: 'loaded', agreement: res.agreement, decisions: res.decisions })
+    } catch (e) {
+      if (agreementId.current === id) dispatch({ type: 'loadFailed', error: message(e) })
+    }
   }, [])
+
+  // Live updates: approver replies (Photon webhook or on-screen phone), calls, overrides.
+  const decisionsRef = useRef(state.decisions)
+  useEffect(() => {
+    decisionsRef.current = state.decisions
+  })
+  useServerEvent<{ agreementId: string; decision: Decision }>('decision.updated', ({ agreementId: aid, decision }) => {
+    if (aid !== agreementId.current) return
+    const before = decisionsRef.current.find((d) => d.id === decision.id)
+    if (decision.approval.state === 'answered' && before && before.approval.state !== 'answered') {
+      const who = approvers[decision.owner].name
+      notify(`${who} replied ${decision.approval.reply} by ${decision.approval.channel === 'voice' ? 'phone' : 'text'}: ${replyMeaning[decision.approval.reply]}`)
+    }
+    if (decision.approval.state === 'calling' && before?.approval.state === 'sent') {
+      dispatch({ type: 'focusEscalation', id: decision.id })
+    }
+    dispatch({ type: 'decision', decision })
+  })
+  useServerEvent<{ agreement: Agreement }>('agreement.updated', ({ agreement }) => {
+    if (agreement) dispatch({ type: 'agreement', agreement })
+  })
+  useServerEvent('demo.reset', () => {
+    agreementId.current = null
+    dispatch({ type: 'reset' })
+  })
+
+  const run = useCallback(
+    async (fn: () => Promise<Decision>, done?: string) => {
+      try {
+        dispatch({ type: 'decision', decision: await fn() })
+        if (done) notify(done)
+      } catch (e) {
+        notify(message(e))
+      }
+    },
+    [notify],
+  )
 
   const value = useMemo<DemoApi>(
     () => ({
       ...state,
-      loadSite07,
-      override,
-      clearOverride: (id) => dispatch({ type: 'clearOverride', id }),
-      reply,
-      callNow,
+      noReplyMs: state.integrations ? state.integrations.noReplySeconds * 1000 : NO_REPLY_MS,
+      loadAgreement,
+      override: (id, outcome, reason) => run(() => api.overrideDecision(id, outcome, reason), 'Override saved with reason'),
+      clearOverride: (id) => run(() => api.clearOverride(id), 'Override removed'),
+      reply: (id, r, channel) => run(() => api.recordApprovalReply(id, r, channel)),
+      callNow: (id) => run(() => api.placeApprovalCall(id)),
       setFlag: (flag, v) => dispatch({ type: 'setFlag', flag, value: v }),
       focusEscalation: (id) => dispatch({ type: 'focusEscalation', id }),
       notify,
       dismissToast: (id) => dispatch({ type: 'dismissToast', id }),
       reset: () => {
-        callTimers.current.forEach((t) => clearTimeout(t))
-        callTimers.current.clear()
+        agreementId.current = null
         dispatch({ type: 'reset' })
       },
     }),
-    [state, loadSite07, override, reply, callNow, notify],
+    [state, loadAgreement, run, notify],
   )
 
   return <DemoContext.Provider value={value}>{children}</DemoContext.Provider>

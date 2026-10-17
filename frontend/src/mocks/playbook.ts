@@ -1,6 +1,7 @@
 import type { Approver, ClauseType, Outcome, Owner, PlaybookRule } from '@/types'
 
 // Fictional sponsor playbook written for the demo. Not real contract language.
+// The server copy (backend/data/playbook.json) is the source of truth; this one backs the editor's Reset.
 export const SPONSOR = {
   name: 'Northstar Oncology',
   protocol: 'NSO-417',
@@ -61,9 +62,9 @@ export const playbook: PlaybookRule[] = [
     clauseType: 'payment_terms',
     label: 'Payment Terms',
     owner: 'finance',
-    standard: 'Net 45 from invoice; quarterly reconciliation.',
-    fallback: 'Net 30.',
-    escalateWhen: 'Net under 30, or an upfront non-refundable start-up fee above 10% of budget.',
+    standard: 'Net 45 from invoice; quarterly reconciliation; start-up fee up to 10% of budget.',
+    fallback: 'Net 30; a start-up fee above 10% is countered at 10%, refundable pro rata if no subject enrolls.',
+    escalateWhen: 'Net under 30, or a non-refundable start-up fee above 20% of budget.',
   },
   {
     clauseType: 'termination',
