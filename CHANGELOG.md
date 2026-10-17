@@ -3,6 +3,21 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · Sunday Morning frontend
+
+### Changed
+
+- **New design** (`mockups/b-sunday-morning.html`): cream, tangerine and trust-blue palette, Fredoka and Nunito, pastel bento tiles. Top bar with Home, Inbound, Sites, Data and Playbook tabs, a search over sites and files, and the Upload button.
+- **Home** shows the escalation queue, the text the top approver received (with its priority line), an open-sites radar and ranked list, the inbound feed and where each agreement's data lives, all from the live API.
+- **Pages moved:** the inbox became Inbound (mailbox, upload, full escalation queue), the portfolio became Sites, evals moved under Data, and priority settings moved under Playbook. `/portfolio`, `/evals` and `/priority` redirect.
+- The extraction step and sponsor chips credit OpenAI.
+
+### Fixed
+
+- The live event stream reconnects (with backoff) after the API restarts, goes quiet, or is unreachable at page load, then refetches what it missed; a triage fails with a message instead of hanging on "Triaging…". The stream closes when the page is hidden, so cached pages no longer use up the browser's connections.
+- An override to Human review or Novel no longer looks finished: it stays waiting (backend and UI agree), and the override form offers only Accept, Fallback and Escalate.
+- "Escalations waiting" counts only unanswered escalations; queue links scroll to their change; Review and Sites show load errors with a retry; a failed override keeps the form and the typed reason; a successful eval run clears the old error; Export never shows the previous agreement; precedent source rows have unique keys.
+
 ## [Unreleased] · Backend fixes from the full code review
 
 ### Fixed
