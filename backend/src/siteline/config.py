@@ -7,6 +7,7 @@ on-screen phone, own eval harness.
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -35,7 +36,9 @@ class Settings:
     # OpenAI (clause extraction). Effort is passed as the model's reasoning_effort.
     openai_api_key: str = field(default_factory=lambda: _env("OPENAI_API_KEY"))
     claude_model: str = field(default_factory=lambda: _env("SITELINE_OPENAI_MODEL", "gpt-5"))
+    # "off" leaves reasoning_effort out, for models without reasoning (gpt-4o, gpt-4.1, ...)
     claude_effort: str = field(default_factory=lambda: _env("SITELINE_OPENAI_EFFORT", "medium"))
+    openai_timeout: float = field(default_factory=lambda: _float("SITELINE_OPENAI_TIMEOUT", 180))
 
     # Daytona (one fresh sandbox per uploaded file)
     daytona_api_key: str = field(default_factory=lambda: _env("DAYTONA_API_KEY"))
@@ -116,6 +119,11 @@ class Settings:
 
 
 settings = Settings()
+
+if not settings.openai_api_key and _env("ANTHROPIC_API_KEY"):
+    logging.getLogger("siteline").warning(
+        "ANTHROPIC_API_KEY is set but extraction now uses OpenAI: set OPENAI_API_KEY in backend/.env for live extraction"
+    )
 
 
 def is_fictional_phone(phone: str) -> bool:

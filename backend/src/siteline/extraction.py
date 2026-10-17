@@ -1,6 +1,6 @@
-"""Clause extraction with Claude: clause type, typed values, one verbatim quote per value.
+"""Clause extraction with OpenAI: clause type, typed values, one verbatim quote per value.
 
-Claude only reads and labels. It never decides the outcome; the rules engine does that
+The model only reads and labels. It never decides the outcome; the rules engine does that
 from the extracted values (see rules.py). Results are cached per change text so the demo
 file can run without a network call ("Cached extraction" flag).
 """
@@ -158,50 +158,70 @@ class ExtractionError(Exception):
 
 
 _client: openai.AsyncOpenAI | None = None
+_client_loop: asyncio.AbstractEventLoop | None = None
 
 
 def client() -> openai.AsyncOpenAI:
-    global _client
-    if _client is None:
-        _client = openai.AsyncOpenAI(max_retries=3, timeout=90.0)
+    """One client per event loop: its connection pool belongs to the loop that made it, and
+    chalk_eval.py runs every call in a fresh asyncio.run loop."""
+    global _client, _client_loop
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        loop = None
+    if _client is None or _client_loop is not loop:
+        _client = openai.AsyncOpenAI(max_retries=2, timeout=settings.openai_timeout)
+        _client_loop = loop
     return _client
 
 
-async def complete_json(system: str, user: str, schema: dict, name: str, max_tokens: int) -> Any:
-    """One structured-output chat completion. Returns the response; raises the SDK's errors."""
-    return await client().chat.completions.create(
-        model=settings.claude_model,
-        max_completion_tokens=max_tokens,
-        reasoning_effort=settings.claude_effort,
-        response_format={"type": "json_schema", "json_schema": {"name": name, "schema": schema, "strict": True}},
-        messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
-    )
-
-
-async def extract_live(change: dict, context: str = "") -> dict:
-    started = time.perf_counter()
+async def complete_json(system: str, user: str, schema: dict, name: str, max_tokens: int) -> tuple[dict, str]:
+    """One structured-output chat completion, checked. Returns the parsed answer and the model name;
+    any failure, from the API or in the answer, raises ExtractionError with the reason."""
+    effort = {} if settings.claude_effort.lower() == "off" else {"reasoning_effort": settings.claude_effort}
     try:
-        response = await complete_json(_system_prompt(), _user_prompt(change, context), SCHEMA, "extraction", 16000)
+        response = await client().chat.completions.create(
+            model=settings.claude_model,
+            max_completion_tokens=max_tokens,
+            response_format={"type": "json_schema", "json_schema": {"name": name, "schema": schema, "strict": True}},
+            messages=[{"role": "system", "content": system}, {"role": "user", "content": user}],
+            **effort,
+        )
     except openai.AuthenticationError as e:
         raise ExtractionError("OpenAI rejected the API key") from e
     except openai.RateLimitError as e:
         raise ExtractionError("OpenAI rate limit reached") from e
     except openai.APIStatusError as e:
         raise ExtractionError(f"OpenAI API error {e.status_code}: {e.message}") from e
+    except openai.APITimeoutError as e:  # a subclass of APIConnectionError, so it comes first
+        raise ExtractionError("OpenAI request timed out") from e
     except openai.APIConnectionError as e:
         raise ExtractionError("Could not reach the OpenAI API") from e
 
     choice = response.choices[0]
     if choice.message.refusal:
-        raise ExtractionError("The model declined to extract this change")
+        raise ExtractionError("The model declined to answer")
     if choice.finish_reason == "length":
         raise ExtractionError("The model's answer was cut off")
-    text = choice.message.content or ""
+    if choice.finish_reason == "content_filter":
+        raise ExtractionError("OpenAI's content filter blocked the answer")
+    if choice.finish_reason != "stop":
+        raise ExtractionError(f"The model stopped early ({choice.finish_reason})")
+    if not choice.message.content:
+        raise ExtractionError("The model returned an empty answer")
     try:
-        data = json.loads(text)
+        data = json.loads(choice.message.content)
     except json.JSONDecodeError as e:
         raise ExtractionError("The model returned invalid JSON") from e
-    data["model"] = response.model
+    if not isinstance(data, dict):
+        raise ExtractionError("The model returned invalid JSON")
+    return data, response.model
+
+
+async def extract_live(change: dict, context: str = "") -> dict:
+    started = time.perf_counter()
+    data, model = await complete_json(_system_prompt(), _user_prompt(change, context), SCHEMA, "extraction", 16000)
+    data["model"] = model
     data["latencyMs"] = round((time.perf_counter() - started) * 1000)
     return data
 
@@ -215,7 +235,7 @@ async def extract_all(changes: list[dict], context: str, use_cache: bool) -> lis
             if hit:
                 return {**hit, "cached": True}
         if not settings.claude_enabled:
-            return {"error": "No Claude credentials and no cached extraction for this change"}
+            return {"error": "No OPENAI_API_KEY and no cached extraction for this change"}
         try:
             result = await extract_live(change, context)
         except ExtractionError as e:
@@ -275,24 +295,13 @@ async def extract_document(text: str, use_cache: bool) -> dict:
     if use_cache and (hit := _load_cache().get(key)):
         return {**hit, "cached": True}
     if not settings.claude_enabled:
-        return {"error": "No Claude credentials and no cached reading of this agreement's figures"}
+        return {"error": "No OPENAI_API_KEY and no cached reading of this agreement's figures"}
     started = time.perf_counter()
     try:
-        response = await client().beta.messages.create(
-            model=settings.claude_model,
-            max_tokens=2000,
-            betas=["server-side-fallback-2026-07-01"],
-            fallbacks="default",
-            output_config={"effort": settings.claude_effort, "format": {"type": "json_schema", "schema": DOC_SCHEMA}},
-            system=DOC_SYSTEM,
-            messages=[{"role": "user", "content": f"Agreement text:\n\n{text[:60000]}"}],
-        )
-        if response.stop_reason != "end_turn":
-            raise ExtractionError(f"Claude stopped early ({response.stop_reason})")
-        data = json.loads(next((b.text for b in response.content if b.type == "text"), ""))
-    except (anthropic.APIError, ExtractionError, json.JSONDecodeError) as e:
+        data, model = await complete_json(DOC_SYSTEM, f"Agreement text:\n\n{text[:60000]}", DOC_SCHEMA, "figures", 8000)
+    except Exception as e:  # noqa: BLE001 - a failed reading means unknown priority, never a failed upload
         return {"error": f"Could not read the agreement's figures: {e}"}
-    data["model"] = response.model
+    data["model"] = model
     data["latencyMs"] = round((time.perf_counter() - started) * 1000)
     store_cache({key: data})
     return {**data, "cached": False}

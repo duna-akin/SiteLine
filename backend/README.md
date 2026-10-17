@@ -1,7 +1,7 @@
 # Siteline backend
 
 FastAPI service behind the Siteline frontend. It parses a site's redlined Word file,
-extracts clause values with Claude, verifies every quote, applies the playbook rules,
+extracts clause values with OpenAI, verifies every quote, applies the playbook rules,
 texts approvers through Photon (with a voice-call fallback), and exports the
 counter-proposal as Word with tracked changes and comments.
 
@@ -20,7 +20,7 @@ Other commands:
 | Command | What it does |
 |---|---|
 | `uv run siteline make-demo` | Rewrite `data/demo/NSO-417_CTA_Site07_redline.docx` and its seed extraction cache |
-| `uv run siteline cache-demo` | Extract the demo file with Claude and save that as the demo cache (needs a key) |
+| `uv run siteline cache-demo` | Extract the demo file with OpenAI and save that as the demo cache (needs a key) |
 | `uv run siteline parse FILE.docx` | Print a redline's tracked changes as JSON |
 | `uv run siteline make-dataset` | Rewrite the labeled eval set (150 playbook changes + 12 precedent cases) |
 | `uv run siteline eval [--limit N]` | Siteline vs the LLM-only baseline; writes `data/evals/latest.json` |
@@ -32,7 +32,7 @@ Other commands:
 
 | Integration | Key | Without it |
 |---|---|---|
-| Claude extraction | `OPENAI_API_KEY` | Only cached changes are extracted (the demo file ships with a hand-written seed); anything else goes to human review |
+| OpenAI extraction | `OPENAI_API_KEY` (optional: `SITELINE_OPENAI_MODEL`, `SITELINE_OPENAI_EFFORT` (`off` for non-reasoning models), `SITELINE_OPENAI_TIMEOUT`) | Only cached changes are extracted (the demo file ships with a hand-written seed); anything else goes to human review |
 | Daytona parsing | `DAYTONA_API_KEY` | Local parser (same code) |
 | Photon texts | `PHOTON_*` + real `APPROVER_*_PHONE` | On-screen phone in the UI |
 | Voice call | `TWILIO_*` + `PUBLIC_BASE_URL` | On-screen call keypad |
@@ -112,7 +112,7 @@ Cloudflare. ngrok's browser warning page does not affect server-to-server webhoo
 ## Layout
 
 - `src/siteline/docx_redline.py`: stdlib-only parser (also uploaded into the Daytona sandbox)
-- `extraction.py` → `verify.py` → `rules.py`: Claude reads, quotes are checked, rules decide
+- `extraction.py` → `verify.py` → `rules.py`: the model reads, quotes are checked, rules decide
 - `pipeline.py`: the triage job and its live progress events
 - `precedent.py`: after the rules, checks what the sponsor already agreed with this institution; builds the precedents a confirmed agreement contributes
 - `db.py`: the `precedents` table and its two queries (read by site, write on confirmation) when `DATABASE_URL` is set

@@ -1,4 +1,4 @@
-"""Upload → parse (Daytona or local) → Claude extraction → quote check → rules → decisions."""
+"""Upload → parse (Daytona or local) → OpenAI extraction → quote check → rules → decisions."""
 
 from __future__ import annotations
 
@@ -245,6 +245,7 @@ async def triage(data: bytes, file_name: str, options: TriageOptions, source: st
     meta = site_meta(parsed, file_name)
     job.agreement_id = meta["agreementId"]
 
+    # "Anthropic Claude" stays the step's sponsor key until the frontend's sponsor chips are redone
     job.step("extract", "active", f"{len(parsed['changes'])} changes in parallel", "Anthropic Claude")
     text = priority.document_text(parsed)
     extractions, figures = await asyncio.gather(

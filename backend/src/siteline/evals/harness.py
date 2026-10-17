@@ -2,9 +2,9 @@
 
 1. Pack the labeled changes into Word redlines (one per shard) and parse every shard in its
    own Daytona sandbox, in parallel (local parser when Daytona is off).
-2. Siteline: Claude extraction → quote verification → rules engine → precedent (for items
+2. Siteline: OpenAI extraction → quote verification → rules engine → precedent (for items
    that carry a site history).
-   Baseline: the same Claude model reads the playbook and picks the outcome directly.
+   Baseline: the same OpenAI model reads the playbook and picks the outcome directly.
 3. Score: unsafe accept rate, escalation recall, triage accuracy, quote pass rate, latency.
 """
 
@@ -15,8 +15,6 @@ import json
 import time
 from datetime import UTC, datetime
 from typing import Any
-
-import openai
 
 from siteline import events, precedent
 from siteline.config import DATA_DIR, settings
@@ -68,13 +66,9 @@ async def baseline(change: dict, context: str) -> dict:
 
     started = time.perf_counter()
     try:
-        r = await complete_json(_baseline_system(), _user_prompt(change, context), BASELINE_SCHEMA, "baseline", 8000)
-    except openai.APIError as e:
+        data, _ = await complete_json(_baseline_system(), _user_prompt(change, context), BASELINE_SCHEMA, "baseline", 8000)
+    except ExtractionError as e:
         return {"error": str(e), "latencyMs": round((time.perf_counter() - started) * 1000)}
-    choice = r.choices[0]
-    if choice.message.refusal or choice.finish_reason == "length":
-        return {"error": "refusal" if choice.message.refusal else "max_tokens", "latencyMs": round((time.perf_counter() - started) * 1000)}
-    data = json.loads(choice.message.content or "")
     data["latencyMs"] = round((time.perf_counter() - started) * 1000)
     return data
 
@@ -152,7 +146,7 @@ def score(rows: list[dict]) -> dict[str, Any]:
          "siteline": acc("siteline"), "baseline": acc("baseline"), "unit": "%", "lowerIsBetter": False, "target": "Report both"},
         {"key": "quotes", "label": "Quote pass rate", "description": "Quotes found verbatim in the redline",
          "siteline": _rate(sum(s_q), len(s_q)), "baseline": _rate(sum(b_q), len(b_q)), "unit": "%", "lowerIsBetter": False, "target": "Near 100%"},
-        {"key": "latency", "label": "Latency per change", "description": "Mean Claude call time per change",
+        {"key": "latency", "label": "Latency per change", "description": "Mean model call time per change",
          "siteline": lat("siteline_ms"), "baseline": lat("baseline_ms"), "unit": "s", "lowerIsBetter": True},
     ]
     if rows and all("siteline_high" in r for r in rows):
@@ -167,7 +161,7 @@ def score(rows: list[dict]) -> dict[str, Any]:
 
 async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = 8) -> dict:
     if not settings.claude_enabled:
-        raise RuntimeError("The eval needs Claude: set OPENAI_API_KEY in backend/.env")
+        raise RuntimeError("The eval needs OPENAI_API_KEY in backend/.env")
     items = load_dataset()
     if limit:
         items = items[:limit]

@@ -1,8 +1,8 @@
 """Run the Siteline vs baseline comparison on Chalk Agent Evals (PRD P2).
 
 Two evaluations over the same pinned dataset revision, in one suite:
-  - task `siteline_triage`: Claude extraction → quote check → rules engine
-  - task `baseline_triage`: Claude picks the outcome directly from the playbook
+  - task `siteline_triage`: OpenAI extraction → quote check → rules engine
+  - task `baseline_triage`: the same model picks the outcome directly from the playbook
 Scorers: exact match on the outcome, and "safe" (0 when a labeled escalation was
 accepted or countered, so 1 - mean(safe) is the unsafe accept rate).
 

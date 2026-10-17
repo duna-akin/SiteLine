@@ -1,6 +1,6 @@
 """Site priority: money at risk per week of delay, and how much leniency it buys.
 
-Claude extracts three figures from the whole agreement (extraction.extract_document), each
+The model extracts three figures from the whole agreement (extraction.extract_document), each
 with a verbatim quote. Everything here is arithmetic on those figures and the editable
 config (data/priority_config.json; edits from the UI go to var/priority_config.json).
 Leniency is a share of the gap between a playbook standard and its escalate floor

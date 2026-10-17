@@ -2,8 +2,8 @@
 
 These 14 entries were written by hand to match the demo script, including one deliberately
 bad quote (change 12) and one low-confidence read (change 9), so the demo shows quote
-verification and human review. Replace them with real Claude output any time with
-`uv run siteline cache-demo`, which calls Claude on the demo file and overwrites the seed.
+verification and human review. Replace them with real model output any time with
+`uv run siteline cache-demo`, which calls OpenAI on the demo file and overwrites the seed.
 """
 
 from __future__ import annotations
@@ -82,7 +82,7 @@ def _figures(target: str, months: str, usd: str, enroll_quote: str, pay_quote: s
 
 def seed_figures() -> dict[str, dict]:
     """Whole-agreement readings (priority figures) for the demo file and the seeded emails'
-    attachments, keyed like extract_document's cache, so priority works without Claude."""
+    attachments, keyed like extract_document's cache, so priority works without an API key."""
     from siteline.inbound_email import enrollment_sentence, payment_sentence, seed_attachment
     from siteline.priority import document_text
     from siteline.store import SEED_PATH
