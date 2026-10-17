@@ -16,6 +16,7 @@ def main() -> None:
     serve.add_argument("--reload", action="store_true")
     sub.add_parser("make-demo", help="Write the Site 07 demo redline and its seed extraction cache")
     sub.add_parser("cache-demo", help="Extract the demo file with OpenAI and save it as the seed cache")
+    sub.add_parser("make-samples", help="Write the nine per-clause sample redlines and their seed extractions")
     parse = sub.add_parser("parse", help="Print the tracked changes in a .docx as JSON")
     parse.add_argument("file")
     sub.add_parser("reset", help="Clear agreements, decisions and approvals back to the seed portfolio")
@@ -36,6 +37,10 @@ def main() -> None:
 
         print(write_demo())
         print(f"seed cache: {write_seed()} entries")
+    elif args.cmd == "make-samples":
+        from siteline.samples import write_samples
+
+        print("\n".join(write_samples()))
     elif args.cmd == "cache-demo":
         from siteline.demo import demo_bytes
         from siteline.docx_redline import parse_docx

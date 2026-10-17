@@ -104,5 +104,8 @@ def write_seed() -> int:
         seed = SEED[change["index"]]
         entries[cache_key(change)] = {**seed, "model": "seed (hand-written)", "latencyMs": 0}
     entries.update(seed_figures())
+    from siteline.samples import seed_entries  # circular: samples reuses _figures
+
+    entries.update(seed_entries())
     store_cache(entries, seed=True)
     return len(entries)
