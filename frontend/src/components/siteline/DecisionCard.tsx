@@ -1,5 +1,5 @@
 import { useId, useState, type FormEvent } from 'react'
-import { FileText, History, MessageSquare, MessageSquareText, Phone, ShieldAlert, ShieldCheck, Undo2, UserRound } from 'lucide-react'
+import { Check, FileText, History, MessageSquare, MessageSquareText, Phone, ShieldAlert, ShieldCheck, Undo2, UserRound } from 'lucide-react'
 import { motion } from 'motion/react'
 
 import * as api from '@/api'
@@ -11,7 +11,7 @@ import { useNow } from '@/hooks/useNow'
 import { formatDuration } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { approvers, clauseLabel, outcomeLabel, outcomeOrder, ownerLabel, replyMeaning } from '@/mocks/playbook'
-import { effectiveOutcome } from '@/state/decision'
+import { effectiveOutcome, isConfirmed, isWaiting } from '@/state/decision'
 import { useDemo } from '@/state/demo'
 import type { Decision, Outcome } from '@/types'
 
@@ -150,9 +150,11 @@ function OverrideForm({ d, onDone }: { d: Decision; onDone: () => void }) {
 }
 
 export function DecisionCard({ d }: { d: Decision }) {
-  const { activeEscalationId, clearOverride } = useDemo()
+  const { activeEscalationId, clearOverride, confirm, unconfirm } = useDemo()
   const [editing, setEditing] = useState(false)
   const outcome = effectiveOutcome(d)
+  const canConfirm = !isWaiting(d) && !isConfirmed(d)
+  const widened = Boolean(d.leniency && d.ruleId.endsWith('P'))
   const person = approvers[d.owner]
   const isActive = activeEscalationId === d.id && d.approval.state !== 'answered'
 
@@ -196,6 +198,9 @@ export function DecisionCard({ d }: { d: Decision }) {
           <dt className="eyebrow">Rule fired</dt>
           <dd className="mt-1">
             <code className="rounded bg-space-2 px-1.5 py-0.5 text-xs font-bold text-cream">{d.ruleId}</code>{' '}
+            {widened && (
+              <span className="mr-1 rounded-full border border-red/60 px-2 py-0.5 text-xs font-bold">Widened for site priority</span>
+            )}
             {d.ruleText}
           </dd>
           {d.precedent?.downgraded && (
@@ -277,7 +282,17 @@ export function DecisionCard({ d }: { d: Decision }) {
             </span>
           </dd>
         </div>
-        <div className="flex items-end justify-start md:justify-end">
+        <div className="flex flex-wrap items-end justify-start gap-2 md:justify-end">
+          {canConfirm && (
+            <button type="button" className="btn btn-primary" onClick={() => void confirm(d.id)}>
+              <Check aria-hidden className="size-4" /> {d.precedent ? 'Confirm precedent' : 'Confirm suggestion'}
+            </button>
+          )}
+          {d.confirmation && !d.override && (
+            <button type="button" className="btn btn-ghost" onClick={() => void unconfirm(d.id)} aria-label="Undo confirmation">
+              <Undo2 aria-hidden className="size-4" /> Confirmed by {d.confirmation.by}
+            </button>
+          )}
           {d.override ? (
             <button type="button" className="btn btn-ghost" onClick={() => void clearOverride(d.id)}>
               <Undo2 aria-hidden className="size-4" /> Undo override

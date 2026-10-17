@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { FileDown, FileText, LoaderCircle, Timer } from 'lucide-react'
+import { CheckCheck, FileDown, FileText, LoaderCircle, Timer } from 'lucide-react'
 
 import { ApproverPhone } from '@/components/siteline/ApproverPhone'
 import { DecisionCard } from '@/components/siteline/DecisionCard'
+import { PriorityBadge } from '@/components/siteline/PriorityBadge'
 import { outcomeIcon, outcomeVar } from '@/components/siteline/outcome-style'
 import { BlurFade } from '@/components/ui/blur-fade'
 import { Confetti, type ConfettiRef } from '@/components/ui/confetti'
@@ -11,7 +12,7 @@ import { NumberTicker } from '@/components/ui/number-ticker'
 import { token } from '@/lib/tokens'
 import { cn } from '@/lib/utils'
 import { outcomeLabel, outcomeOrder } from '@/mocks/playbook'
-import { effectiveOutcome } from '@/state/decision'
+import { effectiveOutcome, isConfirmed, isWaiting } from '@/state/decision'
 import type { Decision } from '@/types'
 import { useDemo } from '@/state/demo'
 import type { Outcome } from '@/types'
@@ -20,7 +21,7 @@ const effectiveOutcomeIs = (d: Decision, o: Outcome) => effectiveOutcome(d) === 
 
 export function ReviewPage() {
   const { agreementId } = useParams()
-  const { decisions, agreement, loading, loadError, loadAgreement } = useDemo()
+  const { decisions, agreement, loading, loadError, loadAgreement, confirmAll } = useDemo()
   const [filter, setFilter] = useState<Outcome | 'all'>('all')
   const confetti = useRef<ConfettiRef>(null)
   const celebrated = useRef(false)
@@ -34,6 +35,9 @@ export function ReviewPage() {
   const needsHuman = decisions.filter((d) => (d.outcome === 'human_review' || d.outcome === 'novel') && !d.override).length
   const viaPhoton = escalations.some((d) => d.approval.state !== 'none' && d.approval.delivery === 'photon')
   const shown = filter === 'all' ? decisions : decisions.filter((d) => effectiveOutcome(d) === filter)
+  const confirmedCount = decisions.filter(isConfirmed).length
+  const toConfirm = decisions.filter((d) => !isWaiting(d) && !isConfirmed(d))
+  const bulk = toConfirm.filter((d) => !d.precedent).length
 
   useEffect(() => {
     if (escalations.length === 0 || answered < escalations.length || celebrated.current) return
@@ -94,11 +98,27 @@ export function ReviewPage() {
               <span>{decisions.length} changes</span>
               {agreement.parser && <span>Parsed {agreement.parser === 'daytona' ? 'in a Daytona sandbox' : 'locally'}</span>}
             </p>
+            <PriorityBadge priority={agreement.priority} detail className="mt-3 max-w-2xl" />
+            {agreement.daysWaiting !== undefined && (
+              <p className="mt-1 text-xs text-muted">
+                Redline waiting {agreement.daysWaiting} day{agreement.daysWaiting === 1 ? '' : 's'}.{' '}
+                <Link to="/priority" className="font-bold text-blue-l hover:underline">Priority settings</Link>
+              </p>
+            )}
           </div>
-          <div className="flex flex-wrap gap-3">
-            <Link to={`/review/${agreement.id}/export`} className="btn btn-primary">
-              <FileDown aria-hidden className="size-4" /> Export counter-proposal
-            </Link>
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="button" className="btn btn-ghost" disabled={bulk === 0} onClick={() => void confirmAll(agreement.id)}>
+              <CheckCheck aria-hidden className="size-4" /> Confirm all suggested ({bulk})
+            </button>
+            {toConfirm.length > 0 ? (
+              <span className="btn btn-primary cursor-not-allowed opacity-50" aria-disabled="true" title="Every suggestion needs a person’s confirmation first">
+                <FileDown aria-hidden className="size-4" /> Export counter-proposal
+              </span>
+            ) : (
+              <Link to={`/review/${agreement.id}/export`} className="btn btn-primary">
+                <FileDown aria-hidden className="size-4" /> Export counter-proposal
+              </Link>
+            )}
           </div>
         </div>
       </BlurFade>
@@ -141,6 +161,10 @@ export function ReviewPage() {
       <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted" aria-live="polite">
         <span><span className="font-bold text-text tabular">{answered}/{escalations.length}</span> escalations answered by phone{viaPhoton ? ' (live Photon texts)' : ''}</span>
         <span><span className="font-bold text-text tabular">{needsHuman}</span> need a human decision</span>
+        <span>
+          <span className="font-bold text-text tabular">{confirmedCount} of {decisions.length}</span> confirmed by a person
+          {toConfirm.length > 0 && ` · ${toConfirm.length} suggestion${toConfirm.length === 1 ? '' : 's'} to confirm before export`}
+        </span>
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
