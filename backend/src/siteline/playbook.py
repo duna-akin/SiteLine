@@ -33,7 +33,7 @@ SPONSOR = {
 }
 
 APPROVERS = {
-    "legal": {"owner": "legal", "name": "Priya Raman", "role": "Contracts counsel"},
+    "legal": {"owner": "legal", "name": "Tuna Akin", "role": "Contracts counsel"},
     "finance": {"owner": "finance", "name": "Marcus Lee", "role": "Clinical finance"},
     "privacy": {"owner": "privacy", "name": "Lena Okafor", "role": "Privacy officer"},
 }
