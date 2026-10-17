@@ -25,7 +25,7 @@ Other commands:
 | `uv run siteline parse FILE.docx` | Print a redline's tracked changes as JSON |
 | `uv run siteline make-dataset` | Rewrite the labeled eval set (150 playbook changes + 12 precedent cases) |
 | `uv run siteline eval [--limit N]` | Siteline vs the LLM-only baseline; writes `data/evals/latest.json` |
-| `uv run siteline reset` | Clear agreements and approvals back to the seed portfolio |
+| `uv run siteline reset` | Clear agreements and approvals back to the seeded inbound emails |
 | `uv run pytest` | Offline tests (parser, rules, quotes, export, eval set) |
 | `uv run --extra chalk python -m siteline.evals.chalk_eval` | Same comparison on Chalk Agent Evals |
 
@@ -141,4 +141,4 @@ needed, and each change lands on the rule ID listed in `samples.py`.
 - `export.py`, `docx_writer.py`: the Word counter-proposal
 - `samples.py`: the nine per-clause sample redlines, their seed extractions and expected rule IDs
 - `evals/`: labeled set, harness, Chalk runner
-- `data/`: playbook, demo redline, seed cache, seed portfolio (fictional). Runtime state goes to `var/` (git-ignored).
+- `data/`: playbook, demo redline, seed cache, seeded inbound emails (fictional). Runtime state goes to `var/` (git-ignored).
