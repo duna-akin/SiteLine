@@ -5,6 +5,7 @@ Three static HTML directions for a calmer Siteline UI. Open `index.html` in a br
 | File | Direction | Fonts | Palette |
 |---|---|---|---|
 | `a-clear-desk.html` | Inbox-first, sidebar plus site drawer | Plus Jakarta Sans, JetBrains Mono | Warm paper, teal, action orange |
+| `a-priority-settings.html` | Priority and leniency settings for direction A | Plus Jakarta Sans | Same as A |
 | `b-sunday-morning.html` | Overview bento | Fredoka, Nunito | Cream, tangerine, trust blue |
 | `c-night-shift.html` | Site-first, one page per site | Bricolage Grotesque, DM Sans | Warm dark, Siteline yellow |
 
