@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { FileDown, FileText, Timer } from 'lucide-react'
+import { FileDown, FileText, LoaderCircle, Timer } from 'lucide-react'
 
 import { ApproverPhone } from '@/components/siteline/ApproverPhone'
 import { DecisionCard } from '@/components/siteline/DecisionCard'
@@ -11,21 +11,28 @@ import { NumberTicker } from '@/components/ui/number-ticker'
 import { token } from '@/lib/tokens'
 import { cn } from '@/lib/utils'
 import { outcomeLabel, outcomeOrder } from '@/mocks/playbook'
-import { SITE07 } from '@/mocks/site07'
 import { effectiveOutcome } from '@/state/decision'
+import type { Decision } from '@/types'
 import { useDemo } from '@/state/demo'
 import type { Outcome } from '@/types'
 
+const effectiveOutcomeIs = (d: Decision, o: Outcome) => effectiveOutcome(d) === o
+
 export function ReviewPage() {
   const { agreementId } = useParams()
-  const { decisions, triageSeconds, loadSite07 } = useDemo()
+  const { decisions, agreement, loading, loadError, loadAgreement } = useDemo()
   const [filter, setFilter] = useState<Outcome | 'all'>('all')
   const confetti = useRef<ConfettiRef>(null)
   const celebrated = useRef(false)
 
-  const escalations = useMemo(() => decisions.filter((d) => d.outcome === 'escalate'), [decisions])
+  useEffect(() => {
+    if (agreementId && agreement?.id !== agreementId) void loadAgreement(agreementId)
+  }, [agreementId, agreement?.id, loadAgreement])
+
+  const escalations = useMemo(() => decisions.filter((d) => effectiveOutcomeIs(d, 'escalate')), [decisions])
   const answered = escalations.filter((d) => d.approval.state === 'answered').length
   const needsHuman = decisions.filter((d) => (d.outcome === 'human_review' || d.outcome === 'novel') && !d.override).length
+  const viaPhoton = escalations.some((d) => d.approval.state !== 'none' && d.approval.delivery === 'photon')
   const shown = filter === 'all' ? decisions : decisions.filter((d) => effectiveOutcome(d) === filter)
 
   useEffect(() => {
@@ -40,28 +47,28 @@ export function ReviewPage() {
     })
   }, [answered, escalations.length])
 
-  if (agreementId !== SITE07.agreementId) {
+  if (loading || (agreementId && !agreement && !loadError)) {
     return (
-      <div className="wrap py-16">
-        <h1 className="text-4xl">This agreement isn’t in the demo</h1>
-        <p className="mt-3 text-muted">Only Site 07 has a full decision list. Other sites show in the inbox and radar.</p>
-        <Link to="/review/site-07" className="btn btn-primary mt-6">Open Site 07</Link>
+      <div className="wrap py-16 text-muted" role="status">
+        <LoaderCircle aria-hidden className="mr-2 inline size-5 animate-spin" /> Loading decisions…
       </div>
     )
   }
 
-  if (decisions.length === 0) {
+  if (!agreement || decisions.length === 0) {
     return (
       <div className="wrap py-16">
         <BlurFade className="panel mx-auto max-w-2xl p-8 text-center">
           <FileText aria-hidden className="mx-auto size-10 text-butter" />
           <h1 className="mt-4 text-4xl">No decision list yet</h1>
-          <p className="mt-3 text-muted">Upload the Site 07 redline to triage it, or load the cached result to jump straight to review.</p>
+          <p className="mt-3 text-muted">
+            {agreement
+              ? `Site ${agreement.siteNumber} (${agreement.siteName}) is in the portfolio, but its redline hasn’t been triaged in Siteline.`
+              : 'Upload a redline to triage it. The Site 07 demo file takes a few seconds.'}
+          </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link to="/upload" className="btn btn-primary">Upload redline</Link>
-            <button type="button" className="btn btn-ghost" onClick={() => void loadSite07(SITE07.triageSeconds)}>
-              Load cached Site 07 result
-            </button>
+            <Link to="/" className="btn btn-ghost">Back to inbox</Link>
           </div>
         </BlurFade>
       </div>
@@ -77,16 +84,19 @@ export function ReviewPage() {
         <div className="mt-3 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="text-4xl sm:text-5xl">
-              Site {SITE07.siteNumber} <span className="text-muted">·</span> <span className="text-yellow">{SITE07.siteName}</span>
+              Site {agreement.siteNumber} <span className="text-muted">·</span> <span className="text-yellow">{agreement.siteName}</span>
             </h1>
             <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
-              <span><FileText aria-hidden className="mr-1 inline size-4" />{SITE07.fileName}</span>
-              <span className="tabular"><Timer aria-hidden className="mr-1 inline size-4" />Triaged in {triageSeconds ?? SITE07.triageSeconds} s</span>
+              {agreement.fileName && <span><FileText aria-hidden className="mr-1 inline size-4" />{agreement.fileName}</span>}
+              {agreement.triageSeconds !== undefined && (
+                <span className="tabular"><Timer aria-hidden className="mr-1 inline size-4" />Triaged in {agreement.triageSeconds} s</span>
+              )}
               <span>{decisions.length} changes</span>
+              {agreement.parser && <span>Parsed {agreement.parser === 'daytona' ? 'in a Daytona sandbox' : 'locally'}</span>}
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link to="/review/site-07/export" className="btn btn-primary">
+            <Link to={`/review/${agreement.id}/export`} className="btn btn-primary">
               <FileDown aria-hidden className="size-4" /> Export counter-proposal
             </Link>
           </div>
@@ -129,7 +139,7 @@ export function ReviewPage() {
       </div>
 
       <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted" aria-live="polite">
-        <span><span className="font-bold text-text tabular">{answered}/{escalations.length}</span> escalations approved by phone</span>
+        <span><span className="font-bold text-text tabular">{answered}/{escalations.length}</span> escalations answered by phone{viaPhoton ? ' (live Photon texts)' : ''}</span>
         <span><span className="font-bold text-text tabular">{needsHuman}</span> need a human decision</span>
       </div>
 

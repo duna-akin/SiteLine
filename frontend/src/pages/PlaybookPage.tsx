@@ -83,7 +83,7 @@ export function PlaybookPage() {
   const fileRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    void api.getPlaybook().then(setRules)
+    api.getPlaybook().then(setRules, (e: Error) => setImportError(e.message))
   }, [])
 
   function edit(i: number, r: PlaybookRule) {
@@ -94,10 +94,16 @@ export function PlaybookPage() {
   async function save() {
     if (!rules) return
     setSaving(true)
-    const res = await api.savePlaybook(rules)
-    setSaving(false)
-    setDirty(false)
-    notify(`Playbook saved (stub): ${res.saved} clause types`)
+    try {
+      const res = await api.savePlaybook(rules)
+      setDirty(false)
+      setImportError(null)
+      notify(`Playbook saved: ${res.saved} clause types. New uploads use it.`)
+    } catch (e) {
+      setImportError(e instanceof Error ? `Not saved. ${e.message}` : 'Not saved.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   function exportJson() {

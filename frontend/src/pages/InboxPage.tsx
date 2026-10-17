@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowRight, AtSign, Copy, FileUp, Mail, Paperclip } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowRight, AtSign, Copy, FileUp, LoaderCircle, Mail, Paperclip } from 'lucide-react'
 
 import * as api from '@/api'
+import { useServerEvent } from '@/api/events'
 import { outcomeVar } from '@/components/siteline/outcome-style'
 import { SponsorChip } from '@/components/siteline/SponsorChip'
 import { AnimatedList } from '@/components/ui/animated-list'
@@ -12,7 +13,7 @@ import { NumberTicker } from '@/components/ui/number-ticker'
 import { formatDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { outcomeLabel, outcomeOrder } from '@/mocks/playbook'
-import { INBOUND_ADDRESS, statusLabel } from '@/mocks/portfolio'
+import { statusLabel } from '@/mocks/portfolio'
 import { useDemo } from '@/state/demo'
 import type { Agreement, AgreementStatus, InboundEmail } from '@/types'
 
@@ -47,24 +48,45 @@ function OutcomeMix({ mix }: { mix: Agreement['outcomeMix'] }) {
 }
 
 export function InboxPage() {
-  const { notify } = useDemo()
+  const { notify, inboundAddress, integrations } = useDemo()
+  const navigate = useNavigate()
   const [agreements, setAgreements] = useState<Agreement[] | null>(null)
   const [emails, setEmails] = useState<InboundEmail[]>([])
+  const [triaging, setTriaging] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
-    void api.listAgreements().then(setAgreements)
-    void api.getInboundEmails().then(setEmails)
+  const refresh = useCallback(() => {
+    api.listAgreements().then(setAgreements, (e: Error) => setError(e.message))
+    api.getInboundEmails().then((r) => setEmails(r.emails), (e: Error) => setError(e.message))
   }, [])
+  useEffect(refresh, [refresh])
+  useServerEvent('triage.done', refresh)
+  useServerEvent('agreement.updated', refresh)
+  useServerEvent('email.received', refresh)
+  useServerEvent('demo.reset', refresh)
+
+  async function triageEmail(e: InboundEmail) {
+    setTriaging(e.id)
+    try {
+      const { agreement } = await api.triageEmail(e.id)
+      notify(`Triaged ${e.attachment}: ${agreement.changes} changes`)
+      refresh()
+    } catch (err) {
+      notify(err instanceof Error ? err.message : 'Triage failed')
+    } finally {
+      setTriaging(null)
+    }
+  }
 
   const open = agreements?.filter((a) => a.status !== 'executed') ?? []
   const waiting = open.reduce((n, a) => n + (a.status === 'awaiting_approval' ? a.outcomeMix.escalate : 0), 0)
 
   async function copyAddress() {
     try {
-      await navigator.clipboard.writeText(INBOUND_ADDRESS)
+      await navigator.clipboard.writeText(inboundAddress)
       notify('Inbound address copied')
     } catch {
-      notify(INBOUND_ADDRESS)
+      notify(inboundAddress)
     }
   }
 
@@ -114,11 +136,12 @@ export function InboxPage() {
         <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
           <section aria-labelledby="agreements-heading">
             <h2 id="agreements-heading" className="text-3xl">Agreements</h2>
+            {error && <p role="alert" className="mt-3 rounded-2xl border border-red/50 bg-red/10 px-4 py-3 text-sm">{error}</p>}
             <ul className="mt-4 flex flex-col gap-3">
               {!agreements &&
                 Array.from({ length: 4 }, (_, i) => <li key={i} className="panel h-24 animate-pulse" aria-hidden />)}
               {agreements?.map((a) => {
-                const isDemo = a.id === 'site-07'
+                const isLive = Boolean(a.fileName)
                 const body = (
                   <>
                     <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -150,9 +173,9 @@ export function InboxPage() {
                 )
                 return (
                   <li key={a.id}>
-                    {isDemo ? (
+                    {isLive ? (
                       <Link
-                        to="/review/site-07"
+                        to={`/review/${a.id}`}
                         className="panel flex flex-col gap-3 p-4 transition-colors duration-200 hover:border-yellow sm:flex-row sm:items-center sm:p-5"
                         aria-label={`Open Site ${a.siteNumber}, ${a.siteName}`}
                       >
@@ -173,10 +196,13 @@ export function InboxPage() {
               <h2 id="email-heading" className="text-2xl">Inbound email</h2>
               <span className="rounded-full bg-magenta/15 px-2.5 py-0.5 text-xs font-bold text-text">Agent mailbox</span>
             </div>
-            <p className="mt-2 text-sm text-muted">Sites can email a redline straight to the agent. It lands here and joins the inbox.</p>
+            <p className="mt-2 text-sm text-muted">
+              Sites can email a redline straight to the agent. It lands here and joins the inbox.
+              {integrations && (integrations.imap ? ' The mailbox is checked every 30 s.' : ' No mailbox is connected (IMAP), so this shows the seeded emails.')}
+            </p>
             <div className="mt-4 flex items-center gap-2 rounded-2xl border border-line bg-space px-3 py-2">
               <AtSign aria-hidden className="size-4 text-butter" />
-              <code className="flex-1 truncate text-sm">{INBOUND_ADDRESS}</code>
+              <code className="flex-1 truncate text-sm">{inboundAddress}</code>
               <button type="button" className="btn btn-ghost size-11 p-0" onClick={copyAddress} aria-label="Copy inbound address">
                 <Copy className="size-4" />
               </button>
@@ -196,8 +222,13 @@ export function InboxPage() {
                       {e.triaged ? 'Triaged' : 'Queued for triage'}
                     </span>
                     {!e.triaged && (
-                      <button type="button" className="btn btn-ghost min-h-9 px-3 py-1 text-xs" onClick={() => notify('Email triage is stubbed for the demo')}>
-                        Triage now
+                      <button type="button" className="btn btn-ghost min-h-9 px-3 py-1 text-xs" disabled={triaging !== null} onClick={() => void triageEmail(e)}>
+                        {triaging === e.id && <LoaderCircle aria-hidden className="size-3.5 animate-spin" />} Triage now
+                      </button>
+                    )}
+                    {e.triaged && e.agreementId && (
+                      <button type="button" className="btn btn-ghost min-h-9 px-3 py-1 text-xs" onClick={() => navigate(`/review/${e.agreementId}`)}>
+                        Open <ArrowRight aria-hidden className="size-3.5" />
                       </button>
                     )}
                   </div>

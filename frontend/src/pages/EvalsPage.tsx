@@ -3,6 +3,7 @@ import { Box, FlaskConical, LoaderCircle, Play, ShieldCheck } from 'lucide-react
 import { motion } from 'motion/react'
 
 import * as api from '@/api'
+import { useServerEvent } from '@/api/events'
 import { OutcomeBadge } from '@/components/siteline/outcome'
 import { SponsorChip } from '@/components/siteline/SponsorChip'
 import { AnimatedCircularProgressBar } from '@/components/ui/animated-circular-progress-bar'
@@ -11,7 +12,10 @@ import { BorderBeam } from '@/components/ui/border-beam'
 import { NumberTicker } from '@/components/ui/number-ticker'
 import { cn } from '@/lib/utils'
 import { outcomeLabel, outcomeOrder } from '@/mocks/playbook'
+import { useDemo } from '@/state/demo'
 import type { EvalMetric, EvalResults } from '@/types'
+
+const PLANNED_SANDBOXES = 12
 
 function better(m: EvalMetric) {
   return m.lowerIsBetter ? m.siteline <= m.baseline : m.siteline >= m.baseline
@@ -63,28 +67,57 @@ function MetricCard({ m, highlight }: { m: EvalMetric; highlight?: boolean }) {
 }
 
 export function EvalsPage() {
-  const [results, setResults] = useState<EvalResults | null>(null)
+  const { integrations } = useDemo()
+  const [latest, setLatest] = useState<api.EvalLatest | null>(null)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [running, setRunning] = useState(false)
-  const [finished, setFinished] = useState(0)
+  const [progress, setProgress] = useState({ done: 0, total: 0 })
+  const [parsed, setParsed] = useState(false)
+  const [runError, setRunError] = useState<string | null>(null)
 
   useEffect(() => {
-    void api.getEvalResults().then(setResults)
+    api.getEvalResults().then(
+      (r) => {
+        setLatest(r)
+        setRunning(r.status.running)
+      },
+      (e: Error) => setLoadError(e.message),
+    )
   }, [])
 
-  async function run() {
-    if (!results) return
+  useServerEvent<{ total: number }>('eval.started', ({ total }) => {
     setRunning(true)
-    setFinished(0)
-    await api.startEvalRun()
-    for (let i = 1; i <= results.parallelSandboxes; i++) {
-      await new Promise((r) => setTimeout(r, 180 + Math.random() * 220))
-      setFinished(i)
-    }
-    setResults(await api.getEvalResults())
+    setParsed(false)
+    setProgress({ done: 0, total })
+  })
+  useServerEvent<{ line: string }>('eval.log', ({ line }) => {
+    if (line.startsWith('parsed')) setParsed(true)
+  })
+  useServerEvent<{ done: number; total: number }>('eval.progress', (p) => setProgress(p))
+  useServerEvent<{ result: EvalResults }>('eval.done', ({ result }) => {
+    setLatest((l) => ({ available: true, result, status: l?.status ?? { running: false, runId: result.runId, error: null } }))
     setRunning(false)
+  })
+  useServerEvent<{ error: string }>('eval.failed', ({ error }) => {
+    setRunError(error)
+    setRunning(false)
+  })
+
+  async function run() {
+    setRunError(null)
+    setParsed(false)
+    try {
+      await api.startEvalRun()
+      setRunning(true)
+    } catch (e) {
+      setRunError(e instanceof Error ? e.message : 'Could not start the eval')
+    }
   }
 
-  if (!results) {
+  if (loadError) {
+    return <div className="wrap py-16"><p role="alert" className="panel p-6">{loadError}</p></div>
+  }
+  if (!latest) {
     return (
       <div className="wrap py-16 text-muted" role="status">
         <LoaderCircle aria-hidden className="mr-2 inline size-5 animate-spin" /> Loading eval results…
@@ -92,6 +125,77 @@ export function EvalsPage() {
     )
   }
 
+  const sandboxCount = latest.available && latest.result.parallelSandboxes > 0 ? latest.result.parallelSandboxes : PLANNED_SANDBOXES
+  const runPanel = (
+    <section aria-labelledby="run-heading" className="panel h-fit p-5 sm:p-6">
+      <h2 id="run-heading" className="flex items-center gap-2 text-2xl"><FlaskConical aria-hidden className="size-5 text-butter" /> Eval run</h2>
+      <dl className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
+        <dt className="text-muted">Harness</dt><dd className="font-bold">{latest.available ? latest.result.harness : 'Siteline eval harness'}</dd>
+        <dt className="text-muted">Dataset</dt><dd className="font-bold break-all">{latest.available ? latest.result.datasetName : latest.dataset.name}</dd>
+        {latest.available && <><dt className="text-muted">Run</dt><dd className="font-bold break-all">{latest.result.runId}</dd></>}
+        {latest.available && latest.result.model && <><dt className="text-muted">Model</dt><dd className="font-bold break-all">{latest.result.model}</dd></>}
+        <dt className="text-muted">Parsing</dt>
+        <dd className="font-bold">{integrations?.daytona ? `${sandboxCount} Daytona sandboxes in parallel` : 'Local parser (no Daytona key)'}</dd>
+      </dl>
+      {integrations?.daytona && (
+        <div className="mt-4 grid grid-cols-6 gap-2" aria-label={running ? (parsed ? 'Sandboxes finished parsing' : 'Sandboxes parsing') : 'Sandboxes idle'} role="img">
+          {Array.from({ length: sandboxCount }, (_, i) => (
+            <motion.span
+              key={i}
+              animate={running && !parsed ? { opacity: [0.35, 1, 0.35] } : { opacity: 1 }}
+              transition={running && !parsed ? { repeat: Infinity, duration: 1.2, delay: i * 0.05 } : { duration: 0.2 }}
+              className={cn(
+                'flex aspect-square items-center justify-center rounded-lg border',
+                parsed || !running ? 'border-mint/60 bg-mint/10 text-mint' : 'border-line text-muted',
+              )}
+            >
+              <Box aria-hidden className="size-4" />
+            </motion.span>
+          ))}
+        </div>
+      )}
+      {running && progress.total > 0 && (
+        <div className="mt-4">
+          <div className="flex justify-between text-xs text-muted"><span>Claude calls</span><span className="tabular">{progress.done}/{progress.total}</span></div>
+          <div className="mt-1 h-2 overflow-hidden rounded-full bg-space">
+            <div className="h-full rounded-full bg-mint transition-[width]" style={{ width: `${(progress.done / progress.total) * 100}%` }} />
+          </div>
+        </div>
+      )}
+      <button type="button" className="btn btn-primary mt-5 w-full" onClick={run} disabled={running || !integrations?.claude}>
+        {running ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Play aria-hidden className="size-4" />}
+        {running ? 'Running…' : latest.available ? 'Re-run eval' : 'Run eval'}
+      </button>
+      <p className="mt-2 text-xs text-muted">
+        {integrations?.claude
+          ? 'Runs Siteline and the LLM-only baseline on every labeled change (about 300 Claude calls).'
+          : 'Needs a Claude API key on the server (ANTHROPIC_API_KEY).'}
+      </p>
+      {(runError || latest.status.error) && <p role="alert" className="mt-2 text-sm font-bold text-butter">{runError ?? latest.status.error}</p>}
+    </section>
+  )
+
+  if (!latest.available) {
+    return (
+      <div className="wrap py-10 sm:py-14">
+        <BlurFade>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="eyebrow">Safety eval</p>
+            <SponsorChip sponsor="Daytona" label="Parallel Daytona sandboxes" />
+          </div>
+          <h1 className="mt-3 max-w-4xl text-4xl sm:text-6xl">
+            Siteline vs an <span className="text-yellow">LLM-only</span> baseline
+          </h1>
+          <p className="mt-4 max-w-2xl text-lg text-muted">
+            {latest.dataset.labeledChanges} labeled changes, {latest.dataset.shouldEscalate} of which should escalate. No run yet: start one to get real numbers.
+          </p>
+        </BlurFade>
+        <div className="mt-8 max-w-md">{runPanel}</div>
+      </div>
+    )
+  }
+
+  const results = latest.result
   const metric = (k: string) => results.metrics.find((m) => m.key === k)!
   const recall = metric('recall')
   const accuracy = metric('accuracy')
@@ -101,8 +205,8 @@ export function EvalsPage() {
       <BlurFade>
         <div className="flex flex-wrap items-center gap-2">
           <p className="eyebrow">Safety eval</p>
-          <SponsorChip sponsor="Chalk" label={results.harness} />
-          <SponsorChip sponsor="Daytona" label="Parallel Daytona sandboxes" />
+          {results.harness.includes('Chalk') && <SponsorChip sponsor="Chalk" label={results.harness} />}
+          {results.parallelSandboxes > 0 && <SponsorChip sponsor="Daytona" label={`${results.parallelSandboxes} parallel Daytona sandboxes`} />}
         </div>
         <h1 className="mt-3 max-w-4xl text-4xl sm:text-6xl">
           Siteline vs an <span className="text-yellow">LLM-only</span> baseline
@@ -110,7 +214,7 @@ export function EvalsPage() {
         <p className="mt-4 max-w-2xl text-lg text-muted">
           {results.labeledChanges} labeled changes, {results.shouldEscalate} of which should escalate. The number that matters most: how often a change that needed an approver slipped through.
         </p>
-        <p className="mt-2 text-sm text-butter">Placeholder numbers for the UI. They get replaced when the eval harness runs.</p>
+        <p className="mt-2 text-sm text-muted">Run {results.runId} · finished {new Date(results.finishedAt).toLocaleString()}</p>
       </BlurFade>
 
       <div className="mt-8 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
@@ -119,7 +223,9 @@ export function EvalsPage() {
           <h2 id="unsafe-heading" className="eyebrow">Unsafe accept rate</h2>
           <div className="relative mt-4 flex flex-wrap items-end gap-x-10 gap-y-4">
             <div>
-              <p className="text-8xl leading-none font-bold text-mint tabular">0<span className="text-4xl">%</span></p>
+              <p className={cn('text-8xl leading-none font-bold tabular', metric('unsafe').siteline === 0 ? 'text-mint' : 'text-butter')}>
+                {metric('unsafe').siteline.toFixed(metric('unsafe').siteline % 1 ? 1 : 0)}<span className="text-4xl">%</span>
+              </p>
               <p className="mt-2 flex items-center gap-1.5 font-bold"><ShieldCheck aria-hidden className="size-4 text-mint" /> Siteline · target 0</p>
             </div>
             <div>
@@ -151,9 +257,9 @@ export function EvalsPage() {
       </div>
 
       <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {['recall', 'accuracy', 'quote', 'latency'].map((k) => (
+        {['recall', 'accuracy', 'quotes', 'latency'].map((k) => (
           <BlurFade key={k} inView>
-            <MetricCard m={metric(k)} highlight={k === 'quote'} />
+            <MetricCard m={metric(k)} highlight={k === 'quotes'} />
           </BlurFade>
         ))}
       </div>
@@ -191,7 +297,7 @@ export function EvalsPage() {
                               )}
                               style={{
                                 background: row === col
-                                  ? `color-mix(in oklab, var(--mint) ${30 + (n / total) * 70}%, var(--space-2))`
+                                  ? `color-mix(in oklab, var(--mint) ${30 + (total ? n / total : 0) * 70}%, var(--space-2))`
                                   : n > 0 ? 'color-mix(in oklab, var(--butter) 18%, var(--space))' : 'var(--space)',
                               }}
                             >
@@ -206,38 +312,13 @@ export function EvalsPage() {
               </tbody>
             </table>
           </div>
-          <p className="mt-3 text-xs text-muted">Red-outlined cells are unsafe accepts: labeled escalations that Siteline accepted or countered. Both are 0.</p>
+          <p className="mt-3 text-xs text-muted">
+            Red-outlined cells are unsafe accepts: labeled escalations that Siteline accepted or countered
+            ({results.confusion.escalate.accept + results.confusion.escalate.fallback} in this run).
+          </p>
         </section>
 
-        <section aria-labelledby="run-heading" className="panel h-fit p-5 sm:p-6">
-          <h2 id="run-heading" className="flex items-center gap-2 text-2xl"><FlaskConical aria-hidden className="size-5 text-butter" /> Eval run</h2>
-          <dl className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
-            <dt className="text-muted">Harness</dt><dd className="font-bold">{results.harness}</dd>
-            <dt className="text-muted">Dataset</dt><dd className="font-bold break-all">{results.datasetName}</dd>
-            <dt className="text-muted">Run</dt><dd className="font-bold break-all">{results.runId}</dd>
-            <dt className="text-muted">Sandboxes</dt><dd className="font-bold">{results.parallelSandboxes} in parallel</dd>
-          </dl>
-          <div className="mt-4 grid grid-cols-6 gap-2" aria-label={`${finished} of ${results.parallelSandboxes} sandboxes finished`} role="img">
-            {Array.from({ length: results.parallelSandboxes }, (_, i) => (
-              <motion.span
-                key={i}
-                animate={running && i >= finished ? { opacity: [0.35, 1, 0.35] } : { opacity: 1 }}
-                transition={running && i >= finished ? { repeat: Infinity, duration: 1.2, delay: i * 0.05 } : { duration: 0.2 }}
-                className={cn(
-                  'flex aspect-square items-center justify-center rounded-lg border',
-                  i < finished || !running ? 'border-mint/60 bg-mint/10 text-mint' : 'border-line text-muted',
-                )}
-              >
-                <Box aria-hidden className="size-4" />
-              </motion.span>
-            ))}
-          </div>
-          <button type="button" className="btn btn-primary mt-5 w-full" onClick={run} disabled={running}>
-            {running ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Play aria-hidden className="size-4" />}
-            {running ? `Running… ${finished}/${results.parallelSandboxes}` : 'Re-run eval'}
-          </button>
-          <p className="mt-2 text-xs text-muted">Stubbed: replays the stored results.</p>
-        </section>
+        {runPanel}
       </div>
     </div>
   )

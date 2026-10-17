@@ -1,67 +1,68 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Download, LoaderCircle, TriangleAlert } from 'lucide-react'
 
 import * as api from '@/api'
 import { OutcomeBadge } from '@/components/siteline/outcome'
 import { BlurFade } from '@/components/ui/blur-fade'
 import { SPONSOR, approvers, replyMeaning } from '@/mocks/playbook'
-import { SITE07 } from '@/mocks/site07'
 import { effectiveOutcome } from '@/state/decision'
 import { useDemo } from '@/state/demo'
 import type { Decision } from '@/types'
 
 interface Entry {
   d: Decision
-  /** Text Siteline sends back; null means the site's language stands. */
+  /** Text the sponsor sends back; null means the site's language stands. '' deletes it. */
   counter: string | null
   comment: string
   pending: boolean
 }
 
+/** Same rules as the backend export (backend/src/siteline/export.py: final_text). */
 function toEntry(d: Decision): Entry {
   const outcome = effectiveOutcome(d)
   const who = approvers[d.owner].name
-  if (d.override) {
-    return {
-      d,
-      counter: outcome === 'accept' ? null : d.counterText ?? d.original ?? null,
-      comment: `Contract manager override: ${d.override.reason}`,
-      pending: false,
-    }
+  const hold = d.counterText ?? d.original
+  const note = d.override ? ` Override: ${d.override.reason}` : ''
+  if (outcome === 'accept') return { d, counter: null, comment: `Accepted under ${d.ruleId}.${note}`, pending: false }
+  if (outcome === 'fallback') {
+    return { d, counter: hold, comment: `${d.counterText != null ? 'Playbook fallback' : 'Standard held'} (${d.ruleId}).${note}`, pending: false }
   }
-  if (d.outcome === 'escalate') {
-    if (d.approval.state !== 'answered') return { d, counter: null, comment: `Pending approval from ${who}.`, pending: true }
-    return {
-      d,
-      counter: d.approval.reply === 1 ? null : d.counterText ?? d.original,
-      comment: `${who} replied ${d.approval.reply} (${replyMeaning[d.approval.reply].toLowerCase()}).`,
-      pending: false,
-    }
+  if (outcome === 'escalate') {
+    if (d.approval.state !== 'answered') return { d, counter: null, comment: `Pending approval from ${who}.${note}`, pending: true }
+    const r = d.approval.reply
+    const counter = r === 1 ? null : r === 2 ? (d.fallbackText ?? hold) : hold
+    return { d, counter, comment: `${who} replied ${r} (${replyMeaning[r].toLowerCase()}).${note}`, pending: false }
   }
-  if (outcome === 'human_review' || outcome === 'novel') {
-    return { d, counter: null, comment: 'Held for contract manager review. Resolve with an override before sending.', pending: true }
-  }
-  if (outcome === 'fallback') return { d, counter: d.counterText ?? null, comment: `Playbook fallback (${d.ruleId}).`, pending: false }
-  return { d, counter: null, comment: `Accepted under ${d.ruleId}.`, pending: false }
+  return { d, counter: null, comment: 'Held for contract manager review. Resolve with an override before sending.', pending: true }
 }
 
 export function ExportPage() {
-  const { decisions, notify } = useDemo()
+  const { agreementId } = useParams()
+  const { decisions, agreement, loadAgreement, notify } = useDemo()
   const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    if (agreementId && agreement?.id !== agreementId) void loadAgreement(agreementId)
+  }, [agreementId, agreement?.id, loadAgreement])
   const entries = decisions.map(toEntry)
   const pending = entries.filter((e) => e.pending).length
 
   async function download() {
+    if (!agreementId) return
     setBusy(true)
-    const res = await api.exportCounterProposal(SITE07.agreementId)
-    setBusy(false)
-    notify(`Export stub: ${res.fileName} would download here`)
+    try {
+      const res = await api.exportCounterProposal(agreementId)
+      notify(`Downloaded ${res.fileName}`)
+    } catch (e) {
+      notify(e instanceof Error ? e.message : 'Export failed')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
     <div className="wrap py-10 sm:py-14">
-      <Link to="/review/site-07" className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-muted hover:text-text">
+      <Link to={`/review/${agreementId}`} className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-muted hover:text-text">
         <ArrowLeft aria-hidden className="size-4" /> Back to review
       </Link>
       <BlurFade>
@@ -81,14 +82,14 @@ export function ExportPage() {
       {decisions.length === 0 ? (
         <div className="panel mt-8 p-8 text-center">
           <p className="text-muted">Nothing to export yet.</p>
-          <Link to="/upload" className="btn btn-primary mt-4">Triage Site 07</Link>
+          <Link to="/upload" className="btn btn-primary mt-4">Triage a redline</Link>
         </div>
       ) : (
         <>
           {pending > 0 && (
             <p role="status" className="mt-6 flex items-start gap-2 rounded-2xl border border-butter/50 bg-butter/10 px-4 py-3 text-sm">
               <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-butter" />
-              {pending} item{pending > 1 ? 's are' : ' is'} still pending. They export as comments, not as changes.
+              {pending} item{pending > 1 ? 's are' : ' is'} still pending. They export with the site’s tracked change left as received, plus a comment.
             </p>
           )}
 
@@ -99,7 +100,7 @@ export function ExportPage() {
             <header className="border-b border-ink/15 pb-5">
               <p className="text-xs font-bold tracking-[0.16em] text-ink/70 uppercase">{SPONSOR.name} · Protocol {SPONSOR.protocol}</p>
               <h2 className="mt-2 text-2xl text-ink sm:text-3xl">Clinical Trial Agreement · Sponsor counter-proposal</h2>
-              <p className="mt-1 text-sm text-ink/70">Site {SITE07.siteNumber}, {SITE07.siteName} · responding to {SITE07.fileName}</p>
+              <p className="mt-1 text-sm text-ink/70">Site {agreement?.siteNumber}, {agreement?.siteName}{agreement?.fileName ? ` · responding to ${agreement.fileName}` : ''}</p>
             </header>
             <ol className="mt-6 flex flex-col gap-6">
               {entries.map(({ d, counter, comment, pending: isPending }) => (
@@ -107,10 +108,14 @@ export function ExportPage() {
                   <div>
                     <p className="font-bold">{d.section}</p>
                     <p className="mt-1 leading-relaxed">
-                      {counter !== null ? (
+                      {counter !== null && counter !== d.revised ? (
                         <>
                           {d.revised && <del className="text-ink/60 decoration-red decoration-2">{d.revised}</del>}{' '}
-                          <ins className="text-blue underline decoration-blue decoration-2 underline-offset-4">{counter}</ins>
+                          {counter ? (
+                            <ins className="text-blue underline decoration-blue decoration-2 underline-offset-4">{counter}</ins>
+                          ) : (
+                            <span className="text-sm text-ink/60 italic">(sponsor deletes the inserted text)</span>
+                          )}
                         </>
                       ) : (
                         <span>{d.revised || <del className="text-ink/60 decoration-red decoration-2">{d.original}</del>}</span>

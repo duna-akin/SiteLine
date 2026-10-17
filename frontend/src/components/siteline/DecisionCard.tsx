@@ -10,7 +10,7 @@ import { useNow } from '@/hooks/useNow'
 import { formatDuration } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { approvers, clauseLabel, outcomeLabel, outcomeOrder, ownerLabel, replyMeaning } from '@/mocks/playbook'
-import { NO_REPLY_MS, effectiveOutcome } from '@/state/decision'
+import { effectiveOutcome } from '@/state/decision'
 import { useDemo } from '@/state/demo'
 import type { Decision, Outcome } from '@/types'
 
@@ -24,7 +24,7 @@ const kindLabel: Record<Decision['kind'], string> = {
 const MIN_REASON = 8
 
 function ApprovalLine({ d }: { d: Decision }) {
-  const { focusEscalation, callNow } = useDemo()
+  const { focusEscalation, callNow, noReplyMs } = useDemo()
   const waiting = d.approval.state === 'sent' || d.approval.state === 'calling'
   const now = useNow(1000, waiting)
   const person = approvers[d.owner]
@@ -51,14 +51,19 @@ function ApprovalLine({ d }: { d: Decision }) {
     )
   }
 
-  const left = a.sentAt + NO_REPLY_MS - now
+  const left = a.sentAt + noReplyMs - now
+  const how = a.delivery === 'photon' ? 'by Photon iMessage' : 'to the on-screen phone'
+  const callHow = a.state === 'calling' && a.callDelivery && a.callDelivery !== 'simulated' ? ' (live call via Twilio + Photon SIP)' : ''
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-red/50 bg-red/10 px-4 py-3 text-sm">
       {a.state === 'calling' ? <Phone aria-hidden className="size-4 text-butter" /> : <MessageSquareText aria-hidden className="size-4 text-butter" />}
       <span className="font-bold">
-        {a.state === 'calling' ? `No reply: calling ${person.name}…` : `Texted ${person.name} (${ownerLabel[d.owner]}) · awaiting reply`}
+        {a.state === 'calling' ? `No reply: calling ${person.name}${callHow}…` : `Texted ${person.name} (${ownerLabel[d.owner]}) ${how} · awaiting reply`}
       </span>
       {a.state === 'sent' && <span className="tabular text-muted">calls in {formatDuration(left)}</span>}
+      {(a.error || (a.state === 'calling' && a.callError)) && (
+        <span className="basis-full text-xs text-butter">Delivery problem: {a.state === 'calling' && a.callError ? a.callError : a.error}</span>
+      )}
       <span className="ml-auto flex gap-2">
         <button type="button" className="btn btn-ghost min-h-9 px-3 py-1 text-xs" onClick={() => focusEscalation(d.id)}>
           Show on phone
@@ -197,10 +202,16 @@ export function DecisionCard({ d }: { d: Decision }) {
           <dt className="eyebrow">Extracted values</dt>
           <dd className="mt-1 flex flex-wrap gap-1.5">
             {d.extracted.map((v) => (
-              <span key={v.field} className="rounded-full border border-line px-2.5 py-0.5 text-xs">
+              <span
+                key={v.field}
+                title={v.quote ? `“${v.quote}”${v.verified === false ? ' (not found in the redline)' : ''}` : undefined}
+                className={cn('rounded-full border px-2.5 py-0.5 text-xs', v.verified === false ? 'border-butter' : 'border-line')}
+              >
                 <span className="text-muted">{v.field}</span> <span className="font-bold">{v.value}</span>
+                {v.verified === false && <ShieldAlert aria-label="quote not verified" className="ml-1 inline size-3 text-butter" />}
               </span>
             ))}
+            {d.extracted.length === 0 && <span className="text-xs text-muted">None</span>}
             <span className="rounded-full border border-line px-2.5 py-0.5 text-xs">
               <span className="text-muted">confidence</span>{' '}
               <span className={cn('tabular font-bold', d.confidence < 0.8 && 'text-butter')}>{d.confidence.toFixed(2)}</span>
@@ -213,11 +224,22 @@ export function DecisionCard({ d }: { d: Decision }) {
             {d.quoteVerified ? 'Quote verified verbatim' : 'Quote failed verification'}
           </dt>
           <dd className="mt-1">
-            <blockquote className={cn('border-l-2 pl-3 italic', d.quoteVerified ? 'border-mint' : 'border-butter')}>
-              “{d.quote}”
-            </blockquote>
+            {d.quote ? (
+              <blockquote className={cn('border-l-2 pl-3 italic', d.quoteVerified ? 'border-mint' : 'border-butter')}>
+                “{d.quote}”
+              </blockquote>
+            ) : (
+              <p className="border-l-2 border-butter pl-3 text-muted">{d.extractionError ? `No extraction: ${d.extractionError}` : 'No quote returned.'}</p>
+            )}
+            {d.cached && <p className="mt-1 text-xs text-muted">From the cached extraction.</p>}
           </dd>
         </div>
+        {d.counterText != null && (outcome === 'fallback' || outcome === 'escalate') && (
+          <div className="md:col-span-2">
+            <dt className="eyebrow">{outcome === 'fallback' ? 'Counter sent back' : 'If rejected, sponsor holds'}</dt>
+            <dd className="mt-1 text-muted">{d.counterText || 'Delete the inserted text.'}</dd>
+          </div>
+        )}
         <div>
           <dt className="eyebrow">Owner</dt>
           <dd className="mt-1 flex items-center gap-2">
@@ -232,7 +254,7 @@ export function DecisionCard({ d }: { d: Decision }) {
         </div>
         <div className="flex items-end justify-start md:justify-end">
           {d.override ? (
-            <button type="button" className="btn btn-ghost" onClick={() => clearOverride(d.id)}>
+            <button type="button" className="btn btn-ghost" onClick={() => void clearOverride(d.id)}>
               <Undo2 aria-hidden className="size-4" /> Undo override
             </button>
           ) : (
@@ -252,7 +274,7 @@ export function DecisionCard({ d }: { d: Decision }) {
       )}
       {editing && !d.override && <OverrideForm d={d} onDone={() => setEditing(false)} />}
 
-      {d.outcome === 'escalate' && (
+      {outcome === 'escalate' && (
         <div className="mt-4">
           <ApprovalLine d={d} />
         </div>

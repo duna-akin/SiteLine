@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState, type DragEvent, type ReactNode, type RefObject } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Box, Check, FileText, Gavel, ListChecks, LoaderCircle, Sparkles, UploadCloud } from 'lucide-react'
+import { Box, Check, CircleSlash, Download, FileText, Gavel, ListChecks, LoaderCircle, Sparkles, TriangleAlert, UploadCloud } from 'lucide-react'
 
 import * as api from '@/api'
+import { runTriage } from '@/api/events'
 import { OutcomeBadge } from '@/components/siteline/outcome'
 import { SponsorChip } from '@/components/siteline/SponsorChip'
 import { AnimatedBeam } from '@/components/ui/animated-beam'
@@ -12,13 +13,12 @@ import { ShimmerButton } from '@/components/ui/shimmer-button'
 import { AnimatedSpan, Terminal } from '@/components/ui/terminal'
 import { cn } from '@/lib/utils'
 import { outcomeOrder } from '@/mocks/playbook'
-import { SITE07, parseSteps, site07Changes } from '@/mocks/site07'
+import { DEMO_FILE_NAME, stepLabels } from '@/mocks/site07'
 import { useDemo } from '@/state/demo'
-import type { ParseStep, ParseStepId } from '@/types'
+import type { ParseStepId, StepState, TriageStepEvent } from '@/types'
 
 const TARGET_SECONDS = 30
-/** Extra time a live (uncached) Claude extraction takes in the simulation. */
-const UNCACHED_EXTRA_MS = 5200
+const STEP_ORDER: ParseStepId[] = ['upload', 'sandbox', 'parse', 'extract', 'verify', 'rules', 'teardown']
 
 type RunState = 'idle' | 'running' | 'done'
 
@@ -89,14 +89,16 @@ function Node({ nodeRef, icon, label, state, sponsor }: {
 
 export function UploadPage() {
   const navigate = useNavigate()
-  const { localParser, useCache, setFlag, loadSite07, reset } = useDemo()
+  const { localParser, useCache, setFlag, loadAgreement, reset, decisions, agreement, integrations, notify } = useDemo()
   const [file, setFile] = useState<File | null>(null)
   const [dragging, setDragging] = useState(false)
   const [run, setRun] = useState<RunState>('idle')
-  const [completed, setCompleted] = useState<ParseStepId[]>([])
-  const [activeStep, setActiveStep] = useState<ParseStepId | null>(null)
+  const [steps, setSteps] = useState<Partial<Record<ParseStepId, TriageStepEvent>>>({})
+  const [logLines, setLogLines] = useState<string[]>([])
   const [elapsed, setElapsed] = useState(0)
   const [fileError, setFileError] = useState<string | null>(null)
+  const [runError, setRunError] = useState<string | null>(null)
+  const [resultId, setResultId] = useState<string | null>(null)
   const startedAt = useRef(0)
 
   const container = useRef<HTMLDivElement>(null)
@@ -112,15 +114,8 @@ export function UploadPage() {
     return () => clearInterval(t)
   }, [run])
 
-  const steps: ParseStep[] = parseSteps.map((s) => {
-    if (localParser && s.sponsor === 'Daytona') {
-      if (s.id === 'parse') return { ...s, detail: s.detail.replace('→ JSON', '→ JSON (local parser)'), sponsor: undefined, ms: 900 }
-      return { ...s, label: s.id === 'sandbox' ? 'Sandbox skipped' : 'No sandbox to delete', detail: 'Local parser flag is on', sponsor: undefined, ms: 150 }
-    }
-    if (s.id === 'extract' && useCache) return { ...s, detail: 'Cached extraction for the demo file · quotes still verified', ms: 700 }
-    if (s.id === 'extract') return { ...s, ms: s.ms + UNCACHED_EXTRA_MS }
-    return s
-  })
+  const daytonaLive = !!integrations?.daytona && !localParser
+  const fileName = file?.name ?? DEMO_FILE_NAME
 
   function pick(f: File | null) {
     if (!f) return
@@ -141,31 +136,47 @@ export function UploadPage() {
   async function start() {
     reset()
     setRun('running')
-    setCompleted([])
+    setSteps({})
+    setLogLines([])
+    setRunError(null)
+    setResultId(null)
     setElapsed(0)
     startedAt.current = performance.now()
-    await api.uploadRedline(file, { localParser, useCache })
-    for (const step of steps) {
-      setActiveStep(step.id)
-      await new Promise((r) => setTimeout(r, step.ms))
-      setCompleted((c) => [...c, step.id])
+    try {
+      const result = await runTriage(
+        file,
+        { localParser, useCache },
+        (e) => setSteps((s) => ({ ...s, [e.step]: e })),
+        (line) => setLogLines((l) => [...l, line]),
+      )
+      setElapsed(performance.now() - startedAt.current)
+      await loadAgreement(result.agreementId)
+      setResultId(result.agreementId)
+      setRun('done')
+    } catch (e) {
+      setElapsed(performance.now() - startedAt.current)
+      setRunError(e instanceof Error ? e.message : 'Triage failed')
+      setRun('idle')
+      notify('Triage failed')
     }
-    const seconds = (performance.now() - startedAt.current) / 1000
-    setElapsed(seconds * 1000)
-    setActiveStep(null)
-    await loadSite07(Number(seconds.toFixed(1)))
-    setRun('done')
   }
 
-  const nodeState = (ids: ParseStepId[], skip = false): 'waiting' | 'active' | 'done' | 'skipped' => {
-    if (skip) return 'skipped'
-    if (ids.every((id) => completed.includes(id))) return 'done'
-    if (activeStep && ids.includes(activeStep)) return 'active'
-    return 'waiting'
+  const stepState = (id: ParseStepId): StepState | 'waiting' => steps[id]?.state ?? 'waiting'
+  const nodeState = (ids: ParseStepId[]): 'waiting' | 'active' | 'done' | 'skipped' => {
+    const states = ids.map(stepState)
+    if (states.every((s) => s === 'skipped')) return 'skipped'
+    if (states.some((s) => s === 'active')) return 'active'
+    if (states.every((s) => s === 'done' || s === 'skipped' || s === 'failed')) return 'done'
+    return run === 'running' && states.some((s) => s !== 'waiting') ? 'active' : 'waiting'
   }
+  const activeStep = STEP_ORDER.find((id) => steps[id]?.state === 'active') ?? null
+  const finished = STEP_ORDER.filter((id) => steps[id] && steps[id]!.state !== 'active')
 
   const seconds = elapsed / 1000
-  const counts = outcomeOrder.map((o) => [o, site07Changes.filter((c) => c.outcome === o).length] as const)
+  const ready = run === 'done' && resultId !== null && agreement?.id === resultId
+  const counts = outcomeOrder.map((o) => [o, decisions.filter((d) => d.outcome === o).length] as const)
+  const escalations = decisions.filter((d) => d.outcome === 'escalate')
+  const viaPhoton = escalations.filter((d) => d.approval.state !== 'none' && d.approval.delivery === 'photon').length
 
   return (
     <div className="wrap py-10 sm:py-14">
@@ -209,25 +220,25 @@ export function UploadPage() {
             <button type="button" className="btn btn-ghost" onClick={() => { setFile(null); setFileError(null) }}>
               <FileText aria-hidden className="size-4" /> Use demo file · Site 07 (14 changes)
             </button>
-            {useCache && <span className="rounded-full bg-butter/15 px-3 py-1 text-xs font-bold text-butter">Cached extraction</span>}
+            <a href={api.demoFileUrl} className="btn btn-ghost" download>
+              <Download aria-hidden className="size-4" /> Download demo .docx
+            </a>
           </div>
-          <p className="mt-3 text-sm text-muted">
-            {file ? 'Your file is shown for the demo; triage runs on the Site 07 sample.' : `Selected: ${SITE07.fileName}`}
-          </p>
+          <p className="mt-3 text-sm text-muted">Selected: {fileName}</p>
 
           <div className="mt-6 divide-y divide-line border-t border-line">
             <Toggle
               id="flag-local"
               label="Local parser"
-              hint="Fallback flag: parse here instead of in a fresh Daytona sandbox."
-              checked={localParser}
+              hint={integrations && !integrations.daytona ? 'No Daytona key on the server, so parsing runs locally.' : 'Fallback flag: parse here instead of in a fresh Daytona sandbox.'}
+              checked={localParser || (!!integrations && !integrations.daytona)}
               onChange={(v) => setFlag('localParser', v)}
-              disabled={run === 'running'}
+              disabled={run === 'running' || (!!integrations && !integrations.daytona)}
             />
             <Toggle
               id="flag-cache"
               label="Cached extraction"
-              hint="Reuse the stored Claude extraction for the demo file. Quotes are still verified."
+              hint={integrations && !integrations.claude ? 'No Claude key on the server: only cached changes are extracted; others go to human review.' : 'Reuse a stored Claude extraction when the change was seen before. Quotes are still verified.'}
               checked={useCache}
               onChange={(v) => setFlag('useCache', v)}
               disabled={run === 'running'}
@@ -241,6 +252,11 @@ export function UploadPage() {
             </button>
             <span className="text-sm text-muted">Target: under {TARGET_SECONDS} s for a 14-change file</span>
           </div>
+          {runError && (
+            <p role="alert" className="mt-4 flex items-start gap-2 rounded-2xl border border-red/50 bg-red/10 px-4 py-3 text-sm">
+              <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-red" /> {runError}
+            </p>
+          )}
           {run === 'running' && <BorderBeam size={120} duration={6} colorFrom="var(--yellow)" colorTo="var(--magenta)" />}
         </section>
 
@@ -248,14 +264,14 @@ export function UploadPage() {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 id="pipeline-heading" className="text-2xl">Parse pipeline</h2>
             <div className="flex flex-wrap gap-2">
-              {!localParser && <SponsorChip sponsor="Daytona" />}
+              {daytonaLive && <SponsorChip sponsor="Daytona" />}
               <SponsorChip sponsor="Anthropic Claude" />
             </div>
           </div>
 
           <div ref={container} className="relative mt-6 flex items-start justify-between gap-1 overflow-hidden py-2">
             <Node nodeRef={nDoc} icon={<FileText className="size-6" />} label=".docx" state={nodeState(['upload'])} />
-            <Node nodeRef={nBox} icon={<Box className="size-6" />} label={localParser ? 'Local parser' : 'Sandbox'} sponsor={localParser ? undefined : 'Daytona'} state={nodeState(['sandbox', 'parse'])} />
+            <Node nodeRef={nBox} icon={<Box className="size-6" />} label={daytonaLive ? 'Sandbox' : 'Local parser'} sponsor={daytonaLive ? 'Daytona' : undefined} state={nodeState(['sandbox', 'parse'])} />
             <Node nodeRef={nClaude} icon={<Sparkles className="size-6" />} label="Extract + verify" sponsor="Claude" state={nodeState(['extract', 'verify'])} />
             <Node nodeRef={nRules} icon={<Gavel className="size-6" />} label="Rules" state={nodeState(['rules'])} />
             <Node nodeRef={nList} icon={<ListChecks className="size-6" />} label="Decisions" state={nodeState(['teardown'])} />
@@ -285,31 +301,39 @@ export function UploadPage() {
           </div>
 
           <Terminal sequence={false} className="mt-6 h-auto max-w-none bg-space [&_pre]:whitespace-pre-wrap [&_pre]:break-words">
-            <span className="text-muted">$ siteline triage {SITE07.fileName}</span>
-            {steps.filter((s) => completed.includes(s.id)).map((s) => (
-              <AnimatedSpan key={s.id} className="block text-mint">
-                <span>
-                  <Check aria-hidden className="mr-1 inline size-3.5" />
-                  {s.label} <span className="text-muted">· {s.detail}</span>
-                </span>
-              </AnimatedSpan>
+            <span className="text-muted">$ siteline triage {fileName}</span>
+            {finished.map((id) => {
+              const s = steps[id]!
+              const skipped = s.state === 'skipped'
+              const failed = s.state === 'failed'
+              return (
+                <AnimatedSpan key={id} className={cn('block', skipped ? 'text-muted' : failed ? 'text-butter' : 'text-mint')}>
+                  <span>
+                    {skipped ? <CircleSlash aria-hidden className="mr-1 inline size-3.5" /> : failed ? <TriangleAlert aria-hidden className="mr-1 inline size-3.5" /> : <Check aria-hidden className="mr-1 inline size-3.5" />}
+                    {stepLabels[id]} <span className="text-muted">· {s.detail}</span>
+                  </span>
+                </AnimatedSpan>
+              )
+            })}
+            {logLines.map((line, i) => (
+              <span key={`log-${i}`} className="block text-xs text-muted">  {line}</span>
             ))}
             {activeStep && (
               <span className="text-butter">
                 <LoaderCircle aria-hidden className="mr-1 inline size-3.5 animate-spin" />
-                {steps.find((s) => s.id === activeStep)?.label}…
+                {stepLabels[activeStep]}… <span className="text-muted">{steps[activeStep]?.detail}</span>
               </span>
             )}
           </Terminal>
         </section>
       </div>
 
-      {run === 'done' && (
+      {ready && agreement && (
         <BlurFade className="panel mt-6 flex flex-col gap-5 p-5 sm:p-7 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="eyebrow">Triage complete</p>
+            <p className="eyebrow">Triage complete · Site {agreement.siteNumber}, {agreement.siteName}</p>
             <p className="mt-2 text-2xl font-bold">
-              14 changes triaged in <span className="tabular text-mint">{seconds.toFixed(1)} s</span>
+              {decisions.length} changes triaged in <span className="tabular text-mint">{seconds.toFixed(1)} s</span>
               {seconds < TARGET_SECONDS && <span className="text-muted"> · under target</span>}
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
@@ -319,10 +343,16 @@ export function UploadPage() {
                 </span>
               ))}
             </div>
-            <p className="mt-3 text-sm text-muted">4 escalation texts sent to approvers by Photon.</p>
+            <p className="mt-3 text-sm text-muted">
+              {escalations.length === 0
+                ? 'No escalations: nothing to text.'
+                : viaPhoton > 0
+                  ? `${viaPhoton} of ${escalations.length} escalation texts sent to approvers by Photon.`
+                  : `${escalations.length} escalation texts sent to the on-screen approver phone (Photon not configured).`}
+            </p>
           </div>
           <ShimmerButton
-            onClick={() => navigate('/review/site-07')}
+            onClick={() => navigate(`/review/${agreement.id}`)}
             background="var(--wine)"
             shimmerColor="var(--magenta)"
             className="min-h-12 font-bold text-text"

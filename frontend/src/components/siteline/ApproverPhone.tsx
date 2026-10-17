@@ -9,7 +9,6 @@ import { useNow } from '@/hooks/useNow'
 import { formatDuration } from '@/lib/format'
 import { cn } from '@/lib/utils'
 import { approvers, clauseLabel, ownerLabel, replyMeaning } from '@/mocks/playbook'
-import { NO_REPLY_MS } from '@/state/decision'
 import { useDemo } from '@/state/demo'
 import type { ApprovalReply, Decision } from '@/types'
 
@@ -41,7 +40,7 @@ function Bubble({ from, children }: { from: 'agent' | 'me'; children: ReactNode 
 }
 
 function Thread({ d }: { d: Decision }) {
-  const { reply } = useDemo()
+  const { reply, agreement } = useDemo()
   const person = approvers[d.owner]
   const a = d.approval
   const answered = a.state === 'answered' ? a : null
@@ -62,13 +61,13 @@ function Thread({ d }: { d: Decision }) {
         <span className="self-center text-[10px] text-muted">iMessage · Today</span>
         {a.state !== 'none' && (
           <Bubble from="agent">
-            {`Site 07 · ${d.section}\n${clauseLabel[d.clauseType]} needs ${ownerLabel[d.owner]}.\n“${d.quote}”\nRule ${d.ruleId}.\n\nReply 1 approve · 2 counter with fallback · 3 reject`}
+            {a.text ?? `Site ${agreement?.siteNumber} · ${d.section}\n${clauseLabel[d.clauseType]} needs ${ownerLabel[d.owner]}.\n“${d.quote}”\nRule ${d.ruleId}.\n\nReply 1 approve · 2 counter with fallback · 3 reject`}
           </Bubble>
         )}
         {answered && (
           <>
             <Bubble from="me">{answered.reply}</Bubble>
-            <Bubble from="agent">{`Got it: ${replyMeaning[answered.reply].toLowerCase()}. Site 07 card updated.`}</Bubble>
+            <Bubble from="agent">{`Recorded C${String(d.index).padStart(2, '0')}: ${replyMeaning[answered.reply]}. Thank you.`}</Bubble>
           </>
         )}
         {a.state === 'none' && <p className="self-center text-[11px] text-muted">No text sent yet.</p>}
@@ -96,7 +95,7 @@ function Thread({ d }: { d: Decision }) {
 }
 
 function CallScreen({ d }: { d: Decision }) {
-  const { reply } = useDemo()
+  const { reply, agreement } = useDemo()
   const now = useNow(500)
   const person = approvers[d.owner]
   const startedAt = d.approval.state === 'calling' ? d.approval.callStartedAt : now
@@ -114,7 +113,7 @@ function CallScreen({ d }: { d: Decision }) {
       </p>
       {connected && (
         <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative mt-5 rounded-2xl bg-space-2/90 px-3 py-2 text-[12px] leading-snug">
-          “Hi {person.name.split(' ')[0]}, Siteline here with one Site 07 escalation: {d.section}. Press 1 to approve, 2 to counter with the fallback, 3 to reject.”
+          “Hi {person.name.split(' ')[0]}, Siteline here with one Site {agreement?.siteNumber} escalation: {d.section}. Press 1 to approve, 2 to counter with the fallback, 3 to reject.”
         </motion.p>
       )}
       <div className="relative mt-auto grid w-full grid-cols-3 gap-3" role="group" aria-label="Keypad">
@@ -136,7 +135,7 @@ function CallScreen({ d }: { d: Decision }) {
 }
 
 export function ApproverPhone({ escalations }: { escalations: Decision[] }) {
-  const { activeEscalationId, focusEscalation, callNow } = useDemo()
+  const { activeEscalationId, focusEscalation, callNow, noReplyMs, integrations } = useDemo()
   const active = escalations.find((d) => d.id === activeEscalationId) ?? escalations[0]
   const now = useNow(1000, active?.approval.state === 'sent')
 
@@ -204,16 +203,27 @@ export function ApproverPhone({ escalations }: { escalations: Decision[] }) {
           <div className="flex flex-wrap items-center justify-center gap-2">
             <span className="tabular">
               <PhoneForwarded aria-hidden className="mr-1 inline size-4" />
-              Voice call in {formatDuration(active.approval.sentAt + NO_REPLY_MS - now)} if no reply
+              Voice call in {formatDuration(active.approval.sentAt + noReplyMs - now)} if no reply
             </span>
             <button type="button" className="btn btn-ghost min-h-9 px-3 py-1 text-xs" onClick={() => void callNow(active.id)}>
               <PhoneCall aria-hidden className="size-3.5" /> Simulate no reply
             </button>
           </div>
         )}
-        {active.approval.state === 'calling' && <p>Text got no reply, so the Photon voice agent is calling.</p>}
+        {active.approval.state === 'calling' && (
+          <p>
+            Text got no reply, so the voice agent is calling
+            {active.approval.callDelivery && active.approval.callDelivery !== 'simulated' ? ' the real phone through Photon.' : ' (on-screen call).'}
+          </p>
+        )}
         {active.approval.state === 'answered' && <p className="text-mint">Answered. The card updated live.</p>}
-        <p className="mt-2 text-xs">On-screen phone for the demo; a teammate’s iPhone gets the real text.</p>
+        <p className="mt-2 text-xs">
+          {active.approval.state !== 'none' && active.approval.delivery === 'photon'
+            ? `Live: this text went to ${approvers[active.owner].name}’s phone by Photon. Their reply updates here; these buttons are the backup.`
+            : integrations?.photon
+              ? 'On-screen phone: this approver has no real phone number configured.'
+              : 'On-screen phone: Photon isn’t configured on the server, so texts stay on this screen.'}
+        </p>
       </div>
     </section>
   )
