@@ -2,18 +2,18 @@ import type { Agreement, PriorityLevel, SitePriority } from '@/types'
 
 /** Dot colour per level. */
 export const priorityTone: Record<PriorityLevel, string> = {
-  high: 'var(--rose-ink)',
-  elevated: 'var(--amber-ink)',
-  standard: 'var(--blue)',
+  high: 'var(--high)',
+  elevated: 'var(--elevated)',
+  standard: 'var(--accent)',
   unknown: 'var(--muted)',
 }
 
-/** The mockup's pill per level. */
+/** Status badge per level. */
 export const priorityPill: Record<PriorityLevel, string> = {
-  high: 'p-rose',
-  elevated: 'p-butter',
-  standard: 'p-sky',
-  unknown: 'p-cream',
+  high: 's-high',
+  elevated: 's-elevated',
+  standard: 's-info',
+  unknown: 's-neutral',
 }
 
 export const priorityShort: Record<PriorityLevel, string> = {

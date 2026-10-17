@@ -1,40 +1,41 @@
-/* Sunday Morning (mockups/b-sunday-morning.html): cream, tangerine + trust blue, pastel card fills.
-   Fredoka (display) and Nunito (body) load from Google Fonts in index.html. */
+/* Institutional, calming neutral: greys on white with charcoal text, one blue-gray accent and
+   muted status tones, built on the palette's #F5F5F5 and #757575. IBM Plex Serif headings over
+   IBM Plex Sans body; fonts load from Google Fonts in index.html. */
 :root {
-  --bg: #FFF8EE;
-  --card: #FFFFFF;
-  --ink: #3A2A1E;
-  --muted: #75614F;
-  --line: #F0E4D3;
-  --tangerine: #F97316;
-  --tangerine-ink: #C2410C;
-  --blue: #2563EB;
-  --butter: #FFF1C9;
-  --sky: #E6EFFF;
-  --mint: #DDF5E6;
-  --mint-ink: #166534;
-  --peach: #FFE6D5;
-  --rose: #FFE1E4;
-  --rose-ink: #BE123C;
-  --amber-ink: #92400E;
+  --page: #F5F5F5;
+  --surface: #FFFFFF;
+  --subtle: #FAFAFA;          /* table heads, wells */
+  --sunken: #EEEEEE;
+  --ink: #212121;
+  --ink-2: #424242;           /* primary buttons, strong UI */
+  --muted: #616161;           /* secondary text (AA on page and surface) */
+  --faint: #757575;           /* icons, large secondary text, strong rules */
+  --line: #E0E0E0;
+  --line-strong: #BDBDBD;
+  --accent: #4C5B6B;          /* links, focus, active navigation */
+  --accent-bg: #E8EBEF;
 
-  /* Accents used by single elements */
-  --on-ink: #FFF8EE;          /* text on ink-filled controls */
-  --on-orange: #2B1608;       /* text on the tangerine button */
-  --marker: #FFD27A;          /* highlighter behind key numbers, logo sun */
-  --phone: #FFFDF9;
-  --bubble: #ECE6DC;
-  --bubble-new: #FFD9BF;
-  --beam-base: #D6E2FA;
-  --radar-ok: #22C55E;        /* no stuck clauses */
-  --radar-warn: #F5B83D;      /* 1–2 stuck */
-  --radar-bad: #F43F5E;       /* 3+ stuck */
+  /* Status: muted, so colour supports meaning without shouting */
+  --high: #8C4A4A;
+  --high-bg: #F2E9E9;
+  --elevated: #755E2E;
+  --elevated-bg: #F3EEE4;
+  --ok: #4D6A58;
+  --ok-bg: #E7EDE9;
+  --neutral-bg: #EEEEEE;
 
-  --display: "Fredoka", system-ui, sans-serif;
-  --body: "Nunito", system-ui, sans-serif;
-  --shadow: 0 1px 0 rgba(58, 42, 30, .05), 0 12px 28px -16px rgba(58, 42, 30, .22);
+  /* Radar blips by stuck clauses (they differ in lightness as well as hue) */
+  --radar-ok: #7E9A88;
+  --radar-warn: #BCA77E;
+  --radar-bad: #8C4A4A;
+
+  --serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, Menlo, monospace;
+  --radius: 6px;
+  --radius-lg: 8px;
+  --shadow: 0 1px 2px rgba(33, 33, 33, .05);
   --ease: cubic-bezier(.2, .8, .2, 1);
-  --ease-in-out: cubic-bezier(.7, 0, .2, 1);
-  --max: 1240px;
+  --max: 1280px;
   --gutter: clamp(16px, 3vw, 32px);
 }

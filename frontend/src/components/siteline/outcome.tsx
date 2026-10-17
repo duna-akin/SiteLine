@@ -7,7 +7,7 @@ export function OutcomeBadge({ outcome, size = 'md', className }: { outcome: Out
   const Icon = outcomeIcon[outcome]
   return (
     <span
-      className={cn('pill', size === 'sm' ? 'px-2 py-0.5 text-xs' : '', className)}
+      className={cn('pill', size === 'sm' ? 'px-1.5 py-0 text-[11.5px]' : '', className)}
       style={{ background: outcomeBg[outcome], color: outcomeVar[outcome] }}
     >
       <Icon aria-hidden className={size === 'sm' ? 'size-3.5' : 'size-4'} />

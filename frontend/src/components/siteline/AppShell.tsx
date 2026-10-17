@@ -1,11 +1,12 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Menu, Search, Upload, X } from 'lucide-react'
+import { Menu, Search, Upload, UserRound, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 
 import { SiteSearch } from '@/components/siteline/SiteSearch'
 import { SponsorChip } from '@/components/siteline/SponsorChip'
 import { cn } from '@/lib/utils'
+import { SPONSOR } from '@/mocks/playbook'
 import { useDemo } from '@/state/demo'
 import { useDesk } from '@/state/desk'
 
@@ -20,9 +21,13 @@ const tabs: { to: string; label: string; match: (path: string) => boolean }[] = 
 
 export function Wordmark() {
   return (
-    <span className="flex items-center gap-2 font-display text-[26px] leading-none font-bold">
-      <span aria-hidden className="size-[22px] rounded-full bg-[radial-gradient(circle_at_35%_35%,var(--marker),var(--tangerine))] shadow-[0_0_0_4px_var(--peach)]" />
-      siteline
+    <span className="flex items-center gap-2.5">
+      <span aria-hidden className="grid size-8 place-items-center rounded-[6px] bg-ink-2 text-white">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+          <path d="M4 16a8 8 0 0 1 16 0" /><path d="M2 20h20" /><path d="M12 4v3" />
+        </svg>
+      </span>
+      <span className="font-serif text-[21px] leading-none font-medium tracking-tight text-ink">Siteline</span>
     </span>
   )
 }
@@ -38,13 +43,17 @@ function Tabs({ newEmail, onNavigate, stacked }: { newEmail: boolean; onNavigate
         onClick={onNavigate}
         aria-current={current ? 'page' : undefined}
         className={cn(
-          'inline-flex min-h-10 items-center gap-1.5 rounded-full px-4 text-[15px] font-bold transition-colors duration-200',
-          stacked && 'min-h-11 justify-between',
-          current ? 'bg-ink text-[var(--on-ink)]' : 'text-muted hover:bg-bg hover:text-ink',
+          'relative inline-flex items-center gap-1.5 text-[14px] font-medium transition-colors duration-150',
+          stacked
+            ? cn('min-h-11 justify-between rounded-[6px] px-3', current ? 'bg-page text-ink' : 'text-muted hover:bg-page hover:text-ink')
+            : cn(
+                'h-16 px-3 after:absolute after:inset-x-3 after:bottom-0 after:h-[2px] after:transition-colors',
+                current ? 'text-ink after:bg-accent' : 'text-muted after:bg-transparent hover:text-ink',
+              ),
         )}
       >
         {t.label}
-        {t.to === '/inbound' && newEmail && <span aria-label="new email waiting" className="size-2 rounded-full bg-tangerine" />}
+        {t.to === '/inbound' && newEmail && <span aria-label="new email waiting" className="size-1.5 rounded-full bg-accent" />}
       </NavLink>
     )
   })
@@ -68,47 +77,54 @@ export function AppShell() {
 
   return (
     <div className="relative flex min-h-dvh flex-col">
-      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-full focus:bg-ink focus:px-4 focus:py-2 focus:text-[var(--on-ink)]">
+      <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-[6px] focus:bg-ink focus:px-4 focus:py-2 focus:text-white">
         Skip to content
       </a>
 
-      <header className="py-[18px]">
-        <div className="wrap flex items-center gap-4">
-          <Link to="/" aria-label="Siteline home" className="rounded-lg">
+      <header className="border-b border-line bg-surface">
+        <div className="wrap flex h-16 items-center gap-6">
+          <Link to="/" aria-label="Siteline home" className="shrink-0 rounded-[6px]">
             <Wordmark />
           </Link>
-          <nav aria-label="Primary" className="ml-4 hidden gap-1 rounded-full bg-card p-[5px] shadow-[var(--shadow)] min-[1081px]:flex">
+          <span aria-hidden className="hidden h-6 w-px bg-line xl:block" />
+          <span className="hidden text-[13px] text-muted xl:block">
+            <span className="font-medium text-ink">{SPONSOR.protocol}</span> · {SPONSOR.name}
+          </span>
+          <nav aria-label="Primary" className="hidden items-center min-[1081px]:flex">
             <Tabs newEmail={newEmail} />
           </nav>
-          <div className="ml-auto flex items-center gap-2.5">
+          <div className="ml-auto flex items-center gap-2">
             <SiteSearch agreements={agreements ?? []} emails={emails ?? []} className="hidden w-56 sm:block lg:w-64" />
             <button
               type="button"
-              className="btn btn-soft size-11 p-0 sm:hidden"
+              className="btn btn-secondary size-10 p-0 sm:hidden"
               aria-label={searchOpen ? 'Close search' : 'Find a site or file'}
               aria-expanded={searchOpen}
               onClick={() => setSearchOpen((v) => !v)}
             >
-              {searchOpen ? <X aria-hidden className="size-5" /> : <Search aria-hidden className="size-5" />}
+              {searchOpen ? <X aria-hidden className="size-4" /> : <Search aria-hidden className="size-4" />}
             </button>
-            <Link to="/upload" className="btn btn-orange" onClick={() => setMenuOpen(false)}>
+            <Link to="/upload" className="btn btn-primary" onClick={() => setMenuOpen(false)}>
               <Upload aria-hidden className="size-4" />
-              <span className="max-sm:sr-only">Upload</span>
+              <span className="max-sm:sr-only">Upload redline</span>
             </Link>
+            <span className="hidden size-10 place-items-center rounded-full border border-line text-muted sm:grid" title="Signed in" role="img" aria-label="Signed in">
+              <UserRound aria-hidden className="size-4" />
+            </span>
             <button
               type="button"
-              className="btn btn-soft size-11 p-0 min-[1081px]:hidden"
+              className="btn btn-secondary size-10 p-0 min-[1081px]:hidden"
               aria-label={menuOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={menuOpen}
               aria-controls="mobile-nav"
               onClick={() => setMenuOpen((v) => !v)}
             >
-              {menuOpen ? <X aria-hidden className="size-5" /> : <Menu aria-hidden className="size-5" />}
+              {menuOpen ? <X aria-hidden className="size-4" /> : <Menu aria-hidden className="size-4" />}
             </button>
           </div>
         </div>
         {searchOpen && (
-          <div className="wrap mt-3 sm:hidden">
+          <div className="wrap pb-3 sm:hidden">
             <SiteSearch agreements={agreements ?? []} emails={emails ?? []} autoFocus onNavigate={() => setSearchOpen(false)} />
           </div>
         )}
@@ -117,13 +133,13 @@ export function AppShell() {
             <motion.nav
               id="mobile-nav"
               aria-label="Primary"
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8, transition: { duration: 0.14 } }}
-              transition={{ duration: 0.2, ease: [0.2, 0.8, 0.2, 1] }}
-              className="wrap mt-3 min-[1081px]:hidden"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0, transition: { duration: 0.12 } }}
+              transition={{ duration: 0.15 }}
+              className="wrap pb-3 min-[1081px]:hidden"
             >
-              <div className="grid grid-cols-2 gap-1 rounded-[24px] bg-card p-2 shadow-[var(--shadow)] sm:grid-cols-5">
+              <div className="grid grid-cols-2 gap-1 border-t border-line pt-3 sm:grid-cols-5">
                 <Tabs newEmail={newEmail} onNavigate={() => setMenuOpen(false)} stacked />
               </div>
             </motion.nav>
@@ -138,9 +154,9 @@ export function AppShell() {
         </Suspense>
       </main>
 
-      <footer className="mt-12 border-t-2 border-line">
-        <div className="wrap flex flex-col gap-4 py-8 text-sm text-muted md:flex-row md:items-center md:justify-between">
-          <p>Fictional demo data. Clean room: public sources only, built this weekend for HackHarvard 2026.</p>
+      <footer className="mt-12 border-t border-line bg-surface">
+        <div className="wrap flex flex-col gap-4 py-6 text-[13px] text-muted md:flex-row md:items-center md:justify-between">
+          <p>Fictional demo data. Clean room: public sources only. Built for HackHarvard 2026.</p>
           <div className="flex flex-wrap gap-2">
             <SponsorChip sponsor="Photon" label="Photon 2.0 · approvals" />
             <SponsorChip sponsor="Daytona" label="Daytona · sandboxes" />
@@ -157,10 +173,11 @@ export function AppShell() {
               key={t.id}
               type="button"
               onClick={() => dismissToast(t.id)}
-              initial={{ opacity: 0, y: 12, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, transition: { duration: 0.15 } }}
-              className="pointer-events-auto max-w-md rounded-full bg-ink px-5 py-3 text-sm font-bold text-[var(--on-ink)] shadow-[var(--shadow)]"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, transition: { duration: 0.12 } }}
+              transition={{ duration: 0.18 }}
+              className="pointer-events-auto max-w-md rounded-[6px] bg-ink px-4 py-2.5 text-[13.5px] font-medium text-white shadow-[0_4px_16px_rgba(33,33,33,.18)]"
             >
               {t.text}
             </motion.button>

@@ -79,7 +79,7 @@ export function SiteSearch({ agreements, emails, className, autoFocus, onNavigat
     <div className={cn('relative', className)}>
       <label
         htmlFor={id}
-        className="flex min-h-11 items-center gap-2 rounded-full bg-card px-4 text-[15px] text-muted shadow-[var(--shadow)] focus-within:outline-3 focus-within:outline-blue"
+        className="flex min-h-10 items-center gap-2 rounded-[6px] border border-line-strong bg-surface px-3 text-[14px] text-muted transition-colors focus-within:border-accent focus-within:outline-2 focus-within:outline-accent"
       >
         <Search aria-hidden className="size-4 shrink-0" />
         <span className="sr-only">Find a site or file</span>
@@ -112,7 +112,7 @@ export function SiteSearch({ agreements, emails, className, autoFocus, onNavigat
           id={`${id}-list`}
           role="listbox"
           aria-label="Matching sites and files"
-          className="absolute top-full right-0 left-0 z-50 mt-2 flex max-h-80 flex-col gap-1 overflow-y-auto rounded-[20px] bg-card p-2 shadow-[var(--shadow)] sm:min-w-80"
+          className="absolute top-full right-0 left-0 z-50 mt-1 flex max-h-80 flex-col overflow-y-auto rounded-[6px] border border-line bg-surface py-1 shadow-[0_6px_20px_rgba(33,33,33,.08)] sm:min-w-80"
         >
           {hits.length === 0 && <li className="px-3 py-2 text-sm text-muted">No site or file matches “{query.trim()}”.</li>}
           {hits.map((h, i) => (
@@ -124,9 +124,9 @@ export function SiteSearch({ agreements, emails, className, autoFocus, onNavigat
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => go(h)}
               onMouseEnter={() => setActive(i)}
-              className={cn('cursor-pointer rounded-[14px] px-3 py-2', i === active && 'bg-bg')}
+              className={cn('cursor-pointer px-3 py-2', i === active && 'bg-subtle')}
             >
-              <span className="block truncate text-sm font-extrabold">{h.label}</span>
+              <span className="block truncate text-sm font-medium text-ink">{h.label}</span>
               <span className="block truncate text-xs text-muted">{h.detail}</span>
             </li>
           ))}
