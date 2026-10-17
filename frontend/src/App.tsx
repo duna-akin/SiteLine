@@ -7,7 +7,7 @@ import { DemoProvider } from '@/state/demo'
 import { DeskProvider } from '@/state/desk'
 
 // Route-level code splitting: only Home ships in the first bundle.
-const InboxPage = lazy(() => import('@/pages/InboxPage').then((m) => ({ default: m.InboxPage })))
+const InboundPage = lazy(() => import('@/pages/InboundPage').then((m) => ({ default: m.InboundPage })))
 const UploadPage = lazy(() => import('@/pages/UploadPage').then((m) => ({ default: m.UploadPage })))
 const ReviewPage = lazy(() => import('@/pages/ReviewPage').then((m) => ({ default: m.ReviewPage })))
 const ExportPage = lazy(() => import('@/pages/ExportPage').then((m) => ({ default: m.ExportPage })))
@@ -29,7 +29,7 @@ export default function App() {
             <Routes>
               <Route element={<AppShell />}>
                 <Route index element={<HomePage />} />
-                <Route path="inbound" element={<InboxPage />} />
+                <Route path="inbound" element={<InboundPage />} />
                 <Route path="upload" element={<UploadPage />} />
                 <Route path="sites" element={<PortfolioPage />} />
                 <Route path="review/:agreementId" element={<ReviewPage />} />
