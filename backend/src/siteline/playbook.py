@@ -35,7 +35,7 @@ SPONSOR = {
 APPROVERS = {
     "legal": {"owner": "legal", "name": "Tuna Akin", "role": "Contracts counsel"},
     "finance": {"owner": "finance", "name": "Brian Soon", "role": "Clinical finance"},
-    "privacy": {"owner": "privacy", "name": "Lena Okafor", "role": "Privacy officer"},
+    "privacy": {"owner": "privacy", "name": "Michael Boneta", "role": "Privacy officer"},
 }
 
 DEFAULT_PATH = DATA_DIR / "playbook.json"
