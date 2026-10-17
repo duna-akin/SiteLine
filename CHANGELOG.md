@@ -3,6 +3,17 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · Institutional frontend
+
+### Changed
+
+- **Institutional redesign** of the whole frontend, keeping the calming-neutral palette (#F5F5F5 page, #757575 secondary greys, charcoal text) with one blue-gray accent and muted status tones. IBM Plex Serif headings over IBM Plex Sans body, 1.5px line icons, white panels with hairline borders and 6–8px radii, and restrained buttons.
+- **Shell:** a white header with a serif wordmark, plain navigation with an underline for the current page, a rectangular search box and a neutral footer.
+- **Pages:** every page opens with an eyebrow, a serif title and a hairline rule. Home, Inbound and Sites carry a row of summary figures. Sites uses a proper data table. Export reads as a document, with serif text, struck-through deletions, underlined insertions and margin comments. Decision cards and redlines use the same redline convention.
+- **Approvers by role:** the UI shows approvers by role ("Legal approver", with a scale, landmark or lock mark) and never by name or initials.
+- **Quieter motion:** no confetti, no animated beams and no pop-in effects. Transitions are short fades.
+- **Imagery:** one greyscale laboratory photo (Unsplash licence) in the Home header.
+
 ## [Unreleased] · Sample redlines
 
 ### Added
