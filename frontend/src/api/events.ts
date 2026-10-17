@@ -23,6 +23,8 @@ const handlers = new Map<string, Set<Handler>>()
 const lostListeners = new Set<() => void>()
 let started = false
 let lost = false
+/** Aborts the stream in flight. */
+let current: AbortController | null = null
 
 const emit = (name: string, data: unknown) => handlers.get(name)?.forEach((h) => h(data))
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms))
@@ -53,6 +55,7 @@ async function listen() {
   let retryMs = RETRY_MIN_MS
   for (;;) {
     const ctrl = new AbortController()
+    current = ctrl
     let watchdog = setTimeout(() => ctrl.abort(), STALE_MS)
     const alive = () => {
       clearTimeout(watchdog)
@@ -94,6 +97,10 @@ async function listen() {
 function connect() {
   if (started) return
   started = true
+  // A page kept in the back/forward cache keeps its fetch streams open, and six of them use up
+  // the browser's connections to this host. Close the stream when the page is hidden; if the page
+  // comes back, the listen loop reconnects and RECONNECTED refetches what it missed.
+  window.addEventListener('pagehide', () => current?.abort())
   void listen()
 }
 
