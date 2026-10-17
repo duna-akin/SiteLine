@@ -1,0 +1,146 @@
+export type Outcome = 'accept' | 'fallback' | 'escalate' | 'human_review' | 'novel'
+
+export type ClauseType =
+  | 'indemnification'
+  | 'subject_injury'
+  | 'publication'
+  | 'confidentiality'
+  | 'intellectual_property'
+  | 'data_privacy'
+  | 'payment_terms'
+  | 'termination'
+  | 'governing_law'
+
+export type Owner = 'legal' | 'finance' | 'privacy'
+
+export type ChangeKind = 'insertion' | 'deletion' | 'replacement' | 'comment'
+
+export interface PlaybookRule {
+  clauseType: ClauseType
+  label: string
+  owner: Owner
+  standard: string
+  fallback: string
+  escalateWhen: string
+  /** Open question carried over from the PRD, shown as a flag in the editor. */
+  openQuestion?: string
+}
+
+export interface ExtractedValue {
+  field: string
+  value: string
+}
+
+/** Reply digits the approver can text or press on a call. */
+export type ApprovalReply = 1 | 2 | 3
+
+export type ApprovalChannel = 'imessage' | 'voice'
+
+export type ApprovalStatus =
+  | { state: 'none' }
+  | { state: 'sent'; sentAt: number }
+  | { state: 'calling'; sentAt: number; callStartedAt: number }
+  | { state: 'answered'; sentAt: number; reply: ApprovalReply; channel: ApprovalChannel; answeredAt: number }
+
+export interface Override {
+  outcome: Outcome
+  reason: string
+  at: number
+}
+
+export interface Change {
+  id: string
+  index: number
+  kind: ChangeKind
+  section: string
+  clauseType: ClauseType
+  /** Text before the site's edit (empty for pure insertions). */
+  original: string
+  /** Text after the site's edit (empty for pure deletions). */
+  revised: string
+  siteComment?: string
+  author: string
+  extracted: ExtractedValue[]
+  quote: string
+  quoteVerified: boolean
+  confidence: number
+  outcome: Outcome
+  ruleId: string
+  ruleText: string
+  owner: Owner
+  /** What Siteline would send back in the counter-proposal. */
+  counterText?: string
+}
+
+export interface Decision extends Change {
+  override?: Override
+  approval: ApprovalStatus
+}
+
+export type AgreementStatus = 'triaging' | 'awaiting_approval' | 'ready_to_export' | 'sent_to_site' | 'executed'
+
+export interface Agreement {
+  id: string
+  siteNumber: string
+  siteName: string
+  city: string
+  status: AgreementStatus
+  daysOpen: number
+  changes: number
+  stuckClauses: ClauseType[]
+  outcomeMix: Record<Outcome, number>
+  source: 'upload' | 'email'
+  receivedAt: string
+}
+
+export interface InboundEmail {
+  id: string
+  from: string
+  siteName: string
+  subject: string
+  attachment: string
+  receivedAt: string
+  triaged: boolean
+}
+
+export interface Approver {
+  owner: Owner
+  name: string
+  role: string
+  phone: string
+}
+
+export interface EvalMetric {
+  key: string
+  label: string
+  description: string
+  siteline: number
+  baseline: number
+  unit: '%' | 's'
+  /** true when lower is better (unsafe accepts, latency). */
+  lowerIsBetter: boolean
+  target?: string
+}
+
+export interface EvalResults {
+  runId: string
+  harness: string
+  datasetName: string
+  labeledChanges: number
+  shouldEscalate: number
+  parallelSandboxes: number
+  finishedAt: string
+  metrics: EvalMetric[]
+  /** Rows = labeled outcome, columns = Siteline outcome. */
+  confusion: Record<Outcome, Record<Outcome, number>>
+}
+
+export type ParseStepId = 'upload' | 'sandbox' | 'parse' | 'extract' | 'verify' | 'rules' | 'teardown'
+
+export interface ParseStep {
+  id: ParseStepId
+  label: string
+  detail: string
+  sponsor?: 'Daytona' | 'Anthropic Claude'
+  ms: number
+}
