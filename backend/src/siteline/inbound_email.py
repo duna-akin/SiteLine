@@ -9,6 +9,7 @@ from __future__ import annotations
 import asyncio
 import email
 import imaplib
+import json
 import logging
 import random
 import uuid
@@ -63,10 +64,15 @@ def seed_attachment(e: dict) -> bytes:
 
 
 def ensure_seed_attachments() -> None:
+    """Write the seeded emails' generated redlines. They are rebuilt every time, so a file left
+    in var/inbox by an older version (without the enrollment figures) never goes stale."""
     INBOX_DIR.mkdir(parents=True, exist_ok=True)
+    seeded = {e["id"] for e in json.loads(store.SEED_PATH.read_text())["emails"]}
     for e in store.list_emails():
         path = attachment_path(e["id"])
-        if not path.exists() and e["id"].startswith("em-"):
+        if e["id"] in seeded:
+            path.write_bytes(seed_attachment(e))
+        elif not path.exists() and e["id"].startswith("em-"):
             path.write_bytes(seed_attachment(e))
 
 
