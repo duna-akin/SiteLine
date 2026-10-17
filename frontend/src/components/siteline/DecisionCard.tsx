@@ -10,7 +10,7 @@ import { RedlineDiff } from '@/components/siteline/RedlineDiff'
 import { useNow } from '@/hooks/useNow'
 import { formatDuration } from '@/lib/format'
 import { cn } from '@/lib/utils'
-import { approvers, clauseLabel, outcomeLabel, replyMeaning } from '@/mocks/playbook'
+import { approvers, clauseLabel, outcomeLabel, outcomeOrder, replyMeaning } from '@/mocks/playbook'
 import { effectiveOutcome, isConfirmed, isWaiting } from '@/state/decision'
 import { useDemo } from '@/state/demo'
 import type { Decision, Outcome } from '@/types'
@@ -23,8 +23,6 @@ const kindLabel: Record<Decision['kind'], string> = {
 }
 
 const MIN_REASON = 8
-/** Outcomes an override can resolve to. Human review and novel would leave the change unresolved. */
-const OVERRIDE_OUTCOMES: Outcome[] = ['accept', 'fallback', 'escalate']
 
 function ApprovalLine({ d }: { d: Decision }) {
   const { focusEscalation, callNow, noReplyMs } = useDemo()
@@ -73,9 +71,9 @@ function ApprovalLine({ d }: { d: Decision }) {
 
 function OverrideForm({ d, onDone }: { d: Decision; onDone: () => void }) {
   const { override } = useDemo()
-  // The backend refuses Siteline's own outcome, so it is not offered.
-  const options = OVERRIDE_OUTCOMES.filter((o) => o !== d.outcome)
-  const [outcome, setOutcome] = useState<Outcome>(options[0])
+  // All five outcomes are listed; Siteline's own is shown but disabled, since the backend refuses it.
+  // Human review and novel keep the change waiting, so export holds it until someone decides.
+  const [outcome, setOutcome] = useState<Outcome>(outcomeOrder.find((o) => o !== d.outcome)!)
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -101,21 +99,24 @@ function OverrideForm({ d, onDone }: { d: Decision; onDone: () => void }) {
       <fieldset>
         <legend className="text-sm font-semibold">Override outcome</legend>
         <div className="mt-2 flex flex-wrap gap-2">
-          {options.map((o) => {
+          {outcomeOrder.map((o) => {
             const Icon = outcomeIcon[o]
             const on = outcome === o
+            const own = o === d.outcome
             return (
               <label
                 key={o}
+                title={own ? 'Siteline’s own outcome: pick a different one to override' : undefined}
                 className={cn(
                   'inline-flex min-h-10 items-center gap-1.5 rounded-[6px] border px-3 text-sm font-medium transition-colors has-[input:focus-visible]:outline-2 has-[input:focus-visible]:outline-accent',
-                  on ? '' : 'border-line-strong bg-surface text-muted hover:text-ink',
+                  own ? 'cursor-not-allowed border-dashed border-line-strong bg-subtle text-faint' : on ? '' : 'border-line-strong bg-surface text-muted hover:text-ink',
                 )}
                 style={on ? { background: outcomeBg[o], color: outcomeVar[o], borderColor: outcomeVar[o] } : undefined}
               >
-                <input type="radio" name={`override-${d.id}`} value={o} checked={on} onChange={() => setOutcome(o)} className="sr-only" />
+                <input type="radio" name={`override-${d.id}`} value={o} checked={on} disabled={own} onChange={() => setOutcome(o)} className="sr-only" />
                 <Icon aria-hidden className="size-4" />
                 {outcomeLabel[o]}
+                {own && <span className="text-xs font-normal">· Siteline’s call</span>}
               </label>
             )
           })}
