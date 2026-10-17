@@ -1,3 +1,33 @@
+# Siteline project notes
+
+Siteline (HackHarvard 2026, Regeneron "Reinvent Clinical Trials" track) triages a site's redlined
+clinical trial agreement against the sponsor's playbook. Product source: `PRD.docx`. Devpost
+deadline: Sunday Oct 18, 2026, 8:00 AM.
+
+- **Layout:** `backend/` (Python 3.12, uv, FastAPI, package `siteline`; see `backend/README.md`)
+  and `frontend/` (React 19 + Vite; proxies `/api` to :8000). `CHANGELOG.md` tracks what changed.
+  The Chalk scaffold at the root (`chalk.yaml`, root `pyproject.toml`) is separate; `.chalkignore`
+  excludes the app code.
+- **Run:** `cd backend && uv run siteline serve`, `cd frontend && npm run dev`, and for callbacks
+  `ngrok http --url=https://sudden-playlist-untimely.ngrok-free.dev 8000`.
+- **Check before committing:** `cd backend && uv run pytest`; `cd frontend && npx tsc -b && npm run lint`.
+- **Design rules:** Claude only extracts facts with verbatim quotes; deterministic rules decide,
+  with a rule ID. Anything uncertain (failed quote, confidence < 0.80, error, no rule) goes to
+  human review, never to accept. Precedents are single terms from confirmed agreements, never
+  from Siteline's own automated decisions.
+- **Clean room:** all contract content, sites and sponsors are fictional. Don't add real contract
+  or company material, and don't commit the mentor-meeting PDF (kept out via `.git/info/exclude`).
+- **Secrets:** only in `backend/.env` (git-ignored); `.env.example` stays blank. Never print key
+  values; check them by prefix or status code.
+- **Photon is 2.0** (app.beta.photon.codes + `api.photon.codes/v1`), not classic Photon; the Photon
+  CLI doesn't work with it. Each approver has their own assigned shared line. With real
+  `APPROVER_*_PHONE` values set, every upload texts real teammates, so don't send test texts
+  without asking.
+- **Open work:** GitHub issues #2 per-site priority and cost of delay, #3 credentials (Photon
+  done; Claude, Daytona, Twilio voice, IMAP, Chalk Evaluations left), #4 `claude -p` fallback
+  for extraction. #1 precedent lookup shipped in PR #5 (Postgres + S3 on Supabase).
+- **Commits:** Conventional Commits, subject line only, several small commits.
+
 # Chalk Development Guidelines
 
 Rules for writing correct Chalk code. When something here is not enough, fetch the docs:
