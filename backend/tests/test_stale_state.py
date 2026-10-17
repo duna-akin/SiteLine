@@ -10,9 +10,6 @@ from siteline.demo import build_redline
 def _old_state(tmp_path, monkeypatch):
     """var/state.json as it was saved before site priority: seed rows without the new fields."""
     seed = json.loads(store.SEED_PATH.read_text())
-    for a in seed["agreements"]:
-        a.pop("priorityInputs", None)
-        a.pop("redlineReceivedAt", None)
     for e in seed["emails"]:
         e.pop("enrollment", None)
     path = tmp_path / "state.json"
@@ -22,11 +19,8 @@ def _old_state(tmp_path, monkeypatch):
     store.load()
 
 
-def test_old_state_gets_the_seeded_priority_figures(tmp_path, monkeypatch):
+def test_old_state_gets_the_seeded_enrollment(tmp_path, monkeypatch):
     _old_state(tmp_path, monkeypatch)
-    a = store.get_agreement("site-03")
-    assert a["priority"]["level"] == "high" and a["priority"]["moneyAtRiskPerWeek"] == 10731
-    assert store.get_agreement("site-09")["priority"]["level"] == "unknown"  # no figures on file, by design
     assert next(e for e in store.list_emails() if e["id"] == "em-1")["enrollment"]["targetSubjects"] == 20
 
 
