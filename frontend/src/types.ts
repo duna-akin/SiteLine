@@ -29,6 +29,16 @@ export interface PlaybookRule {
 export interface ExtractedValue {
   field: string
   value: string
+  /** Verbatim quote Claude gave for this value, and whether it was found in the redline. */
+  quote?: string
+  verified?: boolean
+}
+
+/** A run of paragraph text: plain, inserted or deleted by the site. */
+export interface Segment {
+  type: 'text' | 'ins' | 'del'
+  text: string
+  author?: string
 }
 
 /** Reply digits the approver can text or press on a call. */
@@ -36,11 +46,20 @@ export type ApprovalReply = 1 | 2 | 3
 
 export type ApprovalChannel = 'imessage' | 'voice'
 
+/** How the text and call actually went out: through Photon / Twilio, or only to the on-screen phone. */
+export interface ApprovalDelivery {
+  delivery?: 'photon' | 'simulated'
+  text?: string
+  error?: string | null
+  callDelivery?: 'twilio' | 'twilio+photon-sip' | 'simulated'
+  callError?: string | null
+}
+
 export type ApprovalStatus =
   | { state: 'none' }
-  | { state: 'sent'; sentAt: number }
-  | { state: 'calling'; sentAt: number; callStartedAt: number }
-  | { state: 'answered'; sentAt: number; reply: ApprovalReply; channel: ApprovalChannel; answeredAt: number }
+  | ({ state: 'sent'; sentAt: number } & ApprovalDelivery)
+  | ({ state: 'calling'; sentAt: number; callStartedAt: number } & ApprovalDelivery)
+  | ({ state: 'answered'; sentAt: number; reply: ApprovalReply; channel: ApprovalChannel; answeredAt: number } & ApprovalDelivery)
 
 export interface Override {
   outcome: Outcome
@@ -58,7 +77,9 @@ export interface Change {
   original: string
   /** Text after the site's edit (empty for pure deletions). */
   revised: string
-  siteComment?: string
+  siteComment?: string | null
+  /** The paragraph as parsed from Word, with the site's tracked insertions and deletions. */
+  segments?: Segment[]
   author: string
   extracted: ExtractedValue[]
   quote: string
@@ -68,8 +89,15 @@ export interface Change {
   ruleId: string
   ruleText: string
   owner: Owner
-  /** What Siteline would send back in the counter-proposal. */
-  counterText?: string
+  /** What Siteline sends back in the counter-proposal ('' deletes the site's text). */
+  counterText?: string | null
+  /** What an approver's reply 2 ("counter with the fallback") sends back. */
+  fallbackText?: string | null
+  rationale?: string | null
+  novelIssue?: string | null
+  /** Set when Claude extraction failed; the change goes to human review. */
+  extractionError?: string | null
+  cached?: boolean
 }
 
 export interface Decision extends Change {
@@ -91,6 +119,10 @@ export interface Agreement {
   outcomeMix: Record<Outcome, number>
   source: 'upload' | 'email'
   receivedAt: string
+  fileName?: string
+  triageSeconds?: number
+  parser?: 'daytona' | 'local'
+  sandboxId?: string | null
 }
 
 export interface InboundEmail {
@@ -101,6 +133,7 @@ export interface InboundEmail {
   attachment: string
   receivedAt: string
   triaged: boolean
+  agreementId?: string
 }
 
 export interface Approver {
@@ -133,6 +166,33 @@ export interface EvalResults {
   metrics: EvalMetric[]
   /** Rows = labeled outcome, columns = Siteline outcome. */
   confusion: Record<Outcome, Record<Outcome, number>>
+  baselineConfusion?: Record<Outcome, Record<Outcome, number>>
+  model?: string
+}
+
+export interface Integrations {
+  claude: boolean
+  claudeModel: string
+  daytona: boolean
+  photon: boolean
+  voice: boolean
+  imap: boolean
+  publicUrl: boolean
+  approverPhonesReal: Record<Owner, boolean>
+  noReplySeconds: number
+}
+
+export type StepState = 'active' | 'done' | 'skipped' | 'failed'
+
+/** Live progress from the triage pipeline, streamed over /api/events. */
+export interface TriageStepEvent {
+  jobId: string
+  agreementId: string
+  step: ParseStepId
+  state: StepState
+  detail: string
+  sponsor: 'Daytona' | 'Anthropic Claude' | null
+  elapsedMs: number
 }
 
 export type ParseStepId = 'upload' | 'sandbox' | 'parse' | 'extract' | 'verify' | 'rules' | 'teardown'
