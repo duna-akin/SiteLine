@@ -29,7 +29,7 @@ export interface PlaybookRule {
 export interface ExtractedValue {
   field: string
   value: string
-  /** Verbatim quote Claude gave for this value, and whether it was found in the redline. */
+  /** Verbatim quote the model gave for this value, and whether it was found in the redline. */
   quote?: string
   verified?: boolean
 }
@@ -122,14 +122,14 @@ export interface Change {
   precedent?: Precedent | null
   rationale?: string | null
   novelIssue?: string | null
-  /** Set when Claude extraction failed; the change goes to human review. */
+  /** Set when extraction failed; the change goes to human review. */
   extractionError?: string | null
   cached?: boolean
 }
 
 export type PriorityLevel = 'high' | 'elevated' | 'standard' | 'unknown'
 
-/** One figure Claude read from the contract (or the study plan), with its quote. */
+/** One figure the model read from the contract (or the study plan), with its quote. */
 export interface PriorityFigure {
   field: 'enrollment_target_subjects' | 'enrollment_period_months' | 'per_patient_amount_usd'
   value: string
@@ -301,6 +301,9 @@ export interface Integrations {
   photon: boolean
   voice: boolean
   imap: boolean
+  /** Where confirmed agreements' precedents and final documents are kept. */
+  precedentStore?: 'postgres' | 'json'
+  documentStore?: 's3' | 'local'
   publicUrl: boolean
   approverPhonesReal: Record<Owner, boolean>
   noReplySeconds: number
@@ -315,7 +318,7 @@ export interface TriageStepEvent {
   step: ParseStepId
   state: StepState
   detail: string
-  sponsor: 'Daytona' | 'Anthropic Claude' | null
+  sponsor: 'Daytona' | 'OpenAI' | null
   elapsedMs: number
 }
 
@@ -325,6 +328,6 @@ export interface ParseStep {
   id: ParseStepId
   label: string
   detail: string
-  sponsor?: 'Daytona' | 'Anthropic Claude'
+  sponsor?: 'Daytona' | 'OpenAI'
   ms: number
 }
