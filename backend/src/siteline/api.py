@@ -61,7 +61,7 @@ def integrations() -> dict:
     real_phones = {k: not is_fictional_phone(v) for k, v in settings.approver_phones.items()}
     return {
         "claude": settings.claude_enabled,
-        "claudeModel": settings.claude_model,
+        "claudeModel": settings.extraction_model,
         "daytona": settings.daytona_enabled,
         "photon": settings.photon_enabled,
         "voice": settings.voice_enabled,

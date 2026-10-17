@@ -40,6 +40,14 @@ class Settings:
     claude_effort: str = field(default_factory=lambda: _env("SITELINE_OPENAI_EFFORT", "medium"))
     openai_timeout: float = field(default_factory=lambda: _float("SITELINE_OPENAI_TIMEOUT", 180))
 
+    # Claude Code in headless mode (`claude -p`) as the extraction backend: "api" (default) or "cli".
+    # The cli path runs only when there is no OPENAI_API_KEY. Auth is the local Claude Code login
+    # or CLAUDE_CODE_OAUTH_TOKEN (from `claude setup-token`).
+    claude_backend: str = field(default_factory=lambda: _env("SITELINE_CLAUDE_BACKEND", "api").lower())
+    claude_cli_model: str = field(default_factory=lambda: _env("SITELINE_CLAUDE_CLI_MODEL", "sonnet"))
+    claude_cli_timeout: float = field(default_factory=lambda: _float("SITELINE_CLAUDE_CLI_TIMEOUT", 180))
+    claude_cli_concurrency: int = field(default_factory=lambda: int(_float("SITELINE_CLAUDE_CLI_CONCURRENCY", 3)))
+
     # Daytona (one fresh sandbox per uploaded file)
     daytona_api_key: str = field(default_factory=lambda: _env("DAYTONA_API_KEY"))
 
@@ -91,8 +99,16 @@ class Settings:
     s3_bucket: str = field(default_factory=lambda: _env("S3_BUCKET"))
 
     @property
+    def claude_cli(self) -> bool:
+        return self.claude_backend == "cli" and not self.openai_api_key
+
+    @property
     def claude_enabled(self) -> bool:
-        return bool(self.openai_api_key)
+        return bool(self.openai_api_key) or self.claude_cli
+
+    @property
+    def extraction_model(self) -> str:
+        return f"claude -p ({self.claude_cli_model})" if self.claude_cli else self.claude_model
 
     @property
     def daytona_enabled(self) -> bool:

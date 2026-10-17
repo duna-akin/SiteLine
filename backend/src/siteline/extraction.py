@@ -178,7 +178,11 @@ def client() -> openai.AsyncOpenAI:
 async def complete_json(system: str, user: str, schema: dict, name: str, max_tokens: int) -> tuple[dict, str]:
     """One structured-output chat completion, checked. Returns the parsed answer and the model name;
     any failure, from the API or in the answer, raises ExtractionError with the reason."""
-    effort = {} if settings.claude_effort.lower() == "off" else {"reasoning_effort": settings.claude_effort}
+    if settings.claude_cli:
+        from siteline import claude_cli  # imports ExtractionError from this module
+
+        return await claude_cli.complete_json(system, user, schema)
+    effort ={} if settings.claude_effort.lower() == "off" else {"reasoning_effort": settings.claude_effort}
     try:
         response = await client().chat.completions.create(
             model=settings.claude_model,
