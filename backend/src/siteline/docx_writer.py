@@ -57,6 +57,11 @@ def _now() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def _attr(value: str) -> str:
+    """Escape a value for a double-quoted XML attribute (saxutils.escape leaves quotes alone)."""
+    return escape(value, {'"': "&quot;"})
+
+
 def _t(text: str, tag: str = "w:t") -> str:
     return f'<{tag} xml:space="preserve">{escape(text)}</{tag}>'
 
@@ -114,10 +119,10 @@ class DocxWriter:
             segments = [{"type": "text", "text": segments}]
         ppr_parts: list[str] = []
         if style:
-            ppr_parts.append(f'<w:pStyle w:val="{escape(style)}"/>')
+            ppr_parts.append(f'<w:pStyle w:val="{_attr(style)}"/>')
         if mark:
             kind, author, date = mark
-            ppr_parts.append(f'<w:rPr><w:{kind} w:id="{self._next_rev()}" w:author="{escape(author)}" w:date="{date}"/></w:rPr>')
+            ppr_parts.append(f'<w:rPr><w:{kind} w:id="{self._next_rev()}" w:author="{_attr(author)}" w:date="{date}"/></w:rPr>')
         body: list[str] = [f"<w:pPr>{''.join(ppr_parts)}</w:pPr>"] if ppr_parts else []
         for cid in comment_ids or []:
             body.append(f'<w:commentRangeStart w:id="{cid}"/>')
@@ -129,7 +134,7 @@ class DocxWriter:
             if kind == "text":
                 body.append(_run(text))
             else:
-                author = escape(seg.get("author", "Unknown"))
+                author = _attr(seg.get("author", "Unknown"))
                 date = seg.get("date") or _now()
                 body.append(
                     f'<w:{kind} w:id="{self._next_rev()}" w:author="{author}" w:date="{date}">'
@@ -147,7 +152,7 @@ class DocxWriter:
                 f'<w:p><w:pPr><w:pStyle w:val="CommentText"/></w:pPr>{_run(line)}</w:p>' for line in c.text.split("\n")
             )
             items.append(
-                f'<w:comment w:id="{c.id}" w:author="{escape(c.author)}" w:date="{c.date}" w:initials="{escape(c.initials)}">{paras}</w:comment>'
+                f'<w:comment w:id="{c.id}" w:author="{_attr(c.author)}" w:date="{c.date}" w:initials="{_attr(c.initials)}">{paras}</w:comment>'
             )
         return f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<w:comments xmlns:w="{W_NS}">{"".join(items)}</w:comments>'
 

@@ -105,7 +105,9 @@ def _comment(d: dict, status: str) -> str:
 
 def file_name(agreement_id: str) -> str:
     a = store.state()["agreements"].get(agreement_id, {})
-    return f"{SPONSOR['protocol']}_CTA_Site{a.get('siteNumber', agreement_id)}_counter-proposal.docx"
+    name = f"{SPONSOR['protocol']}_CTA_Site{a.get('siteNumber', agreement_id)}_counter-proposal.docx"
+    # ASCII only: it goes into a Content-Disposition header (an undetected site number is "—")
+    return re.sub(r"[^\w.-]", "_", name, flags=re.ASCII)
 
 
 def build_export(agreement_id: str) -> tuple[bytes, dict]:
