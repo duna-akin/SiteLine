@@ -33,6 +33,8 @@ OUTCOMES = ["accept", "fallback", "escalate", "human_review", "novel"]
 HIGH_TIER = {"level": "high", "share": MAX_SHARE, "days": 120, "bucket": "eval", "moneyAtRiskPerWeek": 25000}
 RESULTS_DIR = DATA_DIR / "evals"
 LATEST = RESULTS_DIR / "latest.json"
+# Changes in flight at once; each one makes its extraction and baseline calls together
+CONCURRENCY = 16
 
 BASELINE_SCHEMA = {
     "type": "object",
@@ -172,7 +174,7 @@ def score(rows: list[dict]) -> dict[str, Any]:
     return {"metrics": metrics, "confusion": confusion("siteline"), "baselineConfusion": confusion("baseline"), "shouldEscalate": len(esc)}
 
 
-async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = 8) -> dict:
+async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = CONCURRENCY) -> dict:
     if not settings.claude_enabled:
         raise RuntimeError("The eval needs OPENAI_API_KEY in backend/.env")
     items = load_dataset()
@@ -192,12 +194,14 @@ async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = 8) ->
 
     async def one(it: dict, change: dict) -> dict:
         nonlocal done
-        async with sem:
+        async def extract() -> dict:
             try:
-                ex = await extract_live(change, it["context"])
+                return await extract_live(change, it["context"])
             except ExtractionError as e:
-                ex = {"error": str(e), "latencyMs": 0}
-            b = await baseline(change, it["context"])
+                return {"error": str(e), "latencyMs": 0}
+
+        async with sem:
+            ex, b = await asyncio.gather(extract(), baseline(change, it["context"]))
         verdict, quotes = siteline_verdict(change, ex, it["context"], it)
         # The same reading decided for a high-priority site at the widest leniency the config allows
         high, _ = siteline_verdict(change, ex, it["context"], it, HIGH_TIER)

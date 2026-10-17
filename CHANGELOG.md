@@ -15,6 +15,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Export filenames are ASCII (no 500 when the site number is unknown), author names with quotes no longer corrupt the Word file, and one failing inbound email no longer drops the rest of the IMAP batch.
 - The Chalk evaluation installs `psycopg`, runs the same precedent step as the local harness (`siteline_verdict`), and scores a row with no output as unsafe.
 
+### Changed
+
+- **Faster eval:** each labeled change runs its extraction and baseline calls together, and 16 changes run at once (was 8, one call after the other). Set it with `siteline eval --concurrency` or `POST /api/evals/run?concurrency=`.
+
 ## [Unreleased] · Site priority and cost of delay (issue #2)
 
 ### Added
