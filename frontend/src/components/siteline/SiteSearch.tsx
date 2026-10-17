@@ -2,6 +2,7 @@ import { useId, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Search } from 'lucide-react'
 
+import { agreementPath } from '@/lib/sites'
 import { cn } from '@/lib/utils'
 import type { Agreement, InboundEmail } from '@/types'
 
@@ -13,9 +14,6 @@ interface Hit {
 }
 
 const MAX_HITS = 6
-
-/** Where an agreement opens: its decision list once triaged, otherwise its row on Sites. */
-export const agreementPath = (a: Pick<Agreement, 'id' | 'fileName'>) => (a.fileName ? `/review/${a.id}` : `/sites?site=${encodeURIComponent(a.id)}`)
 
 function hitsFor(query: string, agreements: Agreement[], emails: InboundEmail[]): Hit[] {
   const q = query.trim().toLowerCase()
@@ -36,11 +34,12 @@ function hitsFor(query: string, agreements: Agreement[], emails: InboundEmail[])
 }
 
 /** "Find a site or file": a client-side filter over loaded agreements and inbound emails. */
-export function SiteSearch({ agreements, emails, className, autoFocus }: {
+export function SiteSearch({ agreements, emails, className, autoFocus, onNavigate }: {
   agreements: Agreement[]
   emails: InboundEmail[]
   className?: string
   autoFocus?: boolean
+  onNavigate?: () => void
 }) {
   const navigate = useNavigate()
   const id = useId()
@@ -57,6 +56,7 @@ export function SiteSearch({ agreements, emails, className, autoFocus }: {
     setOpen(false)
     input.current?.blur()
     navigate(hit.to)
+    onNavigate?.()
   }
 
   function onKey(e: KeyboardEvent<HTMLInputElement>) {

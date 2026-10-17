@@ -301,6 +301,9 @@ export interface Integrations {
   photon: boolean
   voice: boolean
   imap: boolean
+  /** Where confirmed agreements' precedents and final documents are kept. */
+  precedentStore?: 'postgres' | 'json'
+  documentStore?: 's3' | 'local'
   publicUrl: boolean
   approverPhonesReal: Record<Owner, boolean>
   noReplySeconds: number

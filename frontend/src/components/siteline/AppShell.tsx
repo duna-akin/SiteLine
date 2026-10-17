@@ -64,8 +64,6 @@ export function AppShell() {
   useEffect(() => {
     mainRef.current?.focus({ preventScroll: true })
     if (!location.hash) window.scrollTo({ top: 0 })
-    setMenuOpen(false)
-    setSearchOpen(false)
   }, [location.pathname, location.hash])
 
   return (
@@ -93,7 +91,7 @@ export function AppShell() {
             >
               {searchOpen ? <X aria-hidden className="size-5" /> : <Search aria-hidden className="size-5" />}
             </button>
-            <Link to="/upload" className="btn btn-orange">
+            <Link to="/upload" className="btn btn-orange" onClick={() => setMenuOpen(false)}>
               <Upload aria-hidden className="size-4" />
               <span className="max-sm:sr-only">Upload</span>
             </Link>
@@ -111,7 +109,7 @@ export function AppShell() {
         </div>
         {searchOpen && (
           <div className="wrap mt-3 sm:hidden">
-            <SiteSearch agreements={agreements ?? []} emails={emails ?? []} autoFocus />
+            <SiteSearch agreements={agreements ?? []} emails={emails ?? []} autoFocus onNavigate={() => setSearchOpen(false)} />
           </div>
         )}
         <AnimatePresence>

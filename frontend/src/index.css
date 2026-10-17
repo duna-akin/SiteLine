@@ -236,6 +236,7 @@
   .rank-list .n { font: 600 16px var(--display); }
   .rank-list .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .rank-list b { font-weight: 800; }
+  .radar [role="button"]:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; border-radius: 50%; }
   .legend { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; color: var(--muted); }
   .legend li { display: inline-flex; align-items: center; gap: 6px; }
   .legend i { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
