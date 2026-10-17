@@ -108,3 +108,112 @@ def test_a_redelivered_webhook_is_applied_once(fresh_state, monkeypatch):
         assert r.status_code == 204
     assert _state("site-07-c02")["reply"] == 1
     assert _state("site-07-c06")["state"] == "sent"  # the second delivery did not answer the next item
+
+
+@pytest.fixture
+def voice_on(monkeypatch):
+    """Calls 'go out' (to a fake Twilio) for every approver; returns the list of placed calls."""
+    from siteline import voice
+
+    calls = []
+    monkeypatch.setattr(approvals, "_real_phone", lambda owner: LEGAL)
+    monkeypatch.setattr(approvals, "settings", dataclasses.replace(
+        approvals.settings, twilio_account_sid="AC1", twilio_auth_token="t", public_base_url="https://example.test",
+        twilio_from_number="+15550001111", photon_sip_server=""))
+
+    def use(during=None):
+        async def fake_call(phone, change_id, script):
+            calls.append(change_id)
+            await asyncio.sleep(0)
+            if during:
+                await during(change_id)
+            return f"CA{len(calls)}"
+
+        monkeypatch.setattr(voice, "place_call", fake_call)
+        return calls
+
+    return use
+
+
+def test_a_reply_during_call_setup_is_kept(fresh_state, voice_on):
+    voice_on(during=lambda change_id: approvals.record_reply(change_id, 3, "imessage"))
+    _agreement("site-07", "07", [_esc("site-07", 2)])
+    asyncio.run(approvals.place_call("site-07-c02"))
+    a = _state("site-07-c02")
+    assert (a["state"], a["reply"]) == ("answered", 3)
+
+
+def test_the_timer_and_call_now_place_one_call(fresh_state, voice_on):
+    calls = voice_on()
+    _agreement("site-07", "07", [_esc("site-07", 2)])
+
+    async def both():
+        await asyncio.gather(approvals.place_call("site-07-c02"), approvals.place_call("site-07-c02"))
+
+    asyncio.run(both())
+    assert calls == ["site-07-c02"]
+    assert (_state("site-07-c02")["state"], _state("site-07-c02")["callSid"]) == ("calling", "CA1")
+
+
+def test_overriding_an_escalation_stops_its_no_reply_call(fresh_state, voice_on):
+    calls = voice_on()
+    _agreement("site-07", "07", [_esc("site-07", 2)])
+
+    async def scenario():
+        approvals._arm_timer("site-07-c02", 0.05)
+        await api.override("site-07-c02", api.OverrideBody(outcome="accept", reason="Agreed with legal by phone"))
+        await asyncio.sleep(0.1)
+
+    asyncio.run(scenario())
+    assert calls == [] and _state("site-07-c02")["state"] == "sent"
+
+
+def test_the_timer_skips_a_change_that_is_no_longer_escalated(fresh_state, voice_on):
+    calls = voice_on()
+    d = _esc("site-07", 2)
+    d["override"] = {"outcome": "accept", "reason": "resolved", "at": 0}
+    _agreement("site-07", "07", [d])
+
+    async def scenario():
+        approvals._arm_timer("site-07-c02", 0)
+        await asyncio.sleep(0.05)
+
+    asyncio.run(scenario())
+    assert calls == []
+
+
+def test_a_failing_call_is_logged_not_lost(fresh_state, monkeypatch, caplog):
+    async def boom(change_id):
+        raise RuntimeError("twilio exploded")
+
+    monkeypatch.setattr(approvals, "place_call", boom)
+    _agreement("site-07", "07", [_esc("site-07", 2)])
+
+    async def scenario():
+        approvals._arm_timer("site-07-c02", 0)
+        task = approvals._timers["site-07-c02"]
+        await task
+        return task
+
+    task = asyncio.run(scenario())
+    assert task.exception() is None and "No-reply call for site-07-c02 failed" in caplog.text
+
+
+def _unreachable(monkeypatch, module):
+    import httpx
+
+    def handler(request):
+        raise httpx.ConnectError("network down", request=request)
+
+    real = httpx.AsyncClient
+    monkeypatch.setattr(module.httpx, "AsyncClient", lambda **kw: real(transport=httpx.MockTransport(handler), **kw))
+
+
+def test_network_errors_become_photon_and_voice_errors(fresh_state, monkeypatch):
+    from siteline import voice
+
+    _unreachable(monkeypatch, photon)
+    with pytest.raises(photon.PhotonError, match="Could not reach Photon"):
+        asyncio.run(photon.send_text(LEGAL, "hello"))
+    with pytest.raises(voice.VoiceError, match="Could not reach Twilio"):
+        asyncio.run(voice.place_call(LEGAL, "site-07-c02", "script"))

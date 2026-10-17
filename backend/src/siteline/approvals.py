@@ -96,8 +96,11 @@ def _arm_timer(change_id: str, delay: float) -> None:
         await asyncio.sleep(max(0.0, delay))
         _timers.pop(change_id, None)
         hit = store.find_decision(change_id)
-        if hit and hit[1]["approval"]["state"] == "sent":
-            await place_call(change_id)
+        if hit and hit[1]["approval"]["state"] == "sent" and store.effective_outcome(hit[1]) == "escalate":
+            try:
+                await place_call(change_id)
+            except Exception:  # noqa: BLE001 - a background task: log it rather than lose it silently
+                log.exception("No-reply call for %s failed", change_id)
 
     _timers[change_id] = asyncio.create_task(fire())
 
@@ -106,6 +109,21 @@ def _cancel_timer(change_id: str) -> None:
     t = _timers.pop(change_id, None)
     if t:
         t.cancel()
+
+
+def sync_timer(change_id: str) -> None:
+    """After an override changes: keep the no-reply countdown only while the change is still an
+    escalation waiting on its text (resuming it with the time left), cancel it otherwise."""
+    hit = store.find_decision(change_id)
+    if not hit:
+        return
+    d = hit[1]
+    if store.effective_outcome(d) == "escalate" and d["approval"]["state"] == "sent":
+        if change_id not in _timers:
+            elapsed = (store.now_ms() - d["approval"].get("sentAt", 0)) / 1000
+            _arm_timer(change_id, settings.no_reply_seconds - elapsed)
+    else:
+        _cancel_timer(change_id)
 
 
 async def send_text(change_id: str) -> dict:
@@ -146,9 +164,12 @@ async def place_call(change_id: str) -> dict:
         raise KeyError(change_id)
     agreement_id, d = hit
     a = d["approval"]
-    if a["state"] != "sent":
+    if a["state"] != "sent" or store.effective_outcome(d) != "escalate":
         return d
     _cancel_timer(change_id)
+    # Claim the call before waiting on Twilio, so the timer and "Call now" never both place one
+    claimed = {**a, "state": "calling", "callStartedAt": store.now_ms(), "callDelivery": "simulated", "callSid": None, "callError": None}
+    d = store.update_decision(change_id, approval=claimed) or d
     phone = _real_phone(d["owner"])
     delivery, call_sid, error = "simulated", None, None
     if settings.voice_enabled and phone:
@@ -159,8 +180,11 @@ async def place_call(change_id: str) -> dict:
         except voice.VoiceError as e:
             error = str(e)
             log.warning("Call failed for %s: %s", change_id, e)
-    approval = {**a, "state": "calling", "callStartedAt": store.now_ms(), "callDelivery": delivery, "callSid": call_sid, "callError": error}
-    d = store.update_decision(change_id, approval=approval) or d
+    # Read the decision again: a reply may have been recorded while the call was being placed
+    hit = store.find_decision(change_id)
+    if not hit or hit[1]["approval"]["state"] != "calling":
+        return hit[1] if hit else d
+    d = store.update_decision(change_id, approval={**hit[1]["approval"], "callDelivery": delivery, "callSid": call_sid, "callError": error}) or d
     _publish(agreement_id, d)
     return d
 

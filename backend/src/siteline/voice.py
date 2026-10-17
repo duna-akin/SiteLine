@@ -44,7 +44,7 @@ def reply_twiml(message: str) -> str:
 
 
 async def place_call(phone: str, change_id: str, script: str) -> str:
-    """Start the call. Returns the Twilio call SID."""
+    """Start the call. Returns the Twilio call SID. Every failure raises VoiceError."""
     to = e164(phone)
     data = {"Twiml": call_twiml(change_id, script)}
     if settings.photon_sip_server and settings.photon_number:
@@ -60,11 +60,17 @@ async def place_call(phone: str, change_id: str, script: str) -> str:
     else:
         data.update({"To": to, "From": e164(settings.twilio_from_number)})
     url = f"https://api.twilio.com/2010-04-01/Accounts/{settings.twilio_account_sid}/Calls.json"
-    async with httpx.AsyncClient(timeout=20) as client:
-        r = await client.post(url, data=data, auth=(settings.twilio_account_sid, settings.twilio_auth_token))
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            r = await client.post(url, data=data, auth=(settings.twilio_account_sid, settings.twilio_auth_token))
+    except httpx.HTTPError as e:
+        raise VoiceError(f"Could not reach Twilio: {e!r}") from e
     if r.status_code >= 400:
         raise VoiceError(f"Twilio returned {r.status_code}: {r.text[:300]}")
-    return r.json()["sid"]
+    try:
+        return r.json()["sid"]
+    except (ValueError, KeyError, TypeError) as e:
+        raise VoiceError(f"Unexpected Twilio response: {e!r}") from e
 
 
 def verify_twilio(url: str, params: dict[str, str], signature: str) -> bool:

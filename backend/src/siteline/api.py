@@ -173,6 +173,7 @@ async def override(change_id: str, body: OverrideBody) -> dict:
     d = store.update_decision(change_id, override={"outcome": body.outcome, "reason": body.reason.strip(), "at": store.now_ms()})
     if body.outcome == "escalate" and d["approval"]["state"] == "none":
         d = await approvals.send_text(change_id)
+    approvals.sync_timer(change_id)  # no call about a change that is no longer an escalation
     events.publish("decision.updated", {"agreementId": agreement_id, "decision": d})
     events.publish("agreement.updated", {"agreement": store.get_agreement(agreement_id)})
     return d
@@ -247,6 +248,7 @@ async def clear_override(change_id: str) -> dict:
         raise HTTPException(404, "No such change")
     agreement_id, _ = hit
     d = store.update_decision(change_id, override=None)
+    approvals.sync_timer(change_id)
     events.publish("decision.updated", {"agreementId": agreement_id, "decision": d})
     events.publish("agreement.updated", {"agreement": store.get_agreement(agreement_id)})
     return d
