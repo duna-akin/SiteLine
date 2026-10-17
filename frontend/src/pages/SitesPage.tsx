@@ -1,17 +1,16 @@
-import { useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowRight, LoaderCircle, RotateCw } from 'lucide-react'
+import { ArrowRight, RotateCw } from 'lucide-react'
 
 import { PriorityBadge } from '@/components/siteline/PriorityBadge'
+import { outcomeBg, outcomeVar } from '@/components/siteline/outcome-style'
 import { byPriority, openSites, priorityPill, priorityShort, usd } from '@/components/siteline/priority-style'
 import { RadarLegend, SiteRadar } from '@/components/siteline/SiteRadar'
-import { RedlineDocument } from '@/components/siteline/RedlineDocument'
 import { agreementPath, notTriaged } from '@/lib/sites'
 import { cn } from '@/lib/utils'
-import { clauseLabel } from '@/mocks/playbook'
+import { clauseLabel, outcomeLabel, outcomeOrder } from '@/mocks/playbook'
 import { statusLabel } from '@/mocks/portfolio'
-import { useDemo } from '@/state/demo'
 import { useDesk } from '@/state/desk'
+import type { Agreement } from '@/types'
 
 const TARGET_DAYS = 90
 
@@ -24,38 +23,18 @@ function Stat({ value, label, tone }: { value: string; label: string; tone?: str
   )
 }
 
-/** The selected site's redline, loaded into the same store the Review page uses so overrides stay in step. */
-function SiteRedline({ id }: { id: string }) {
-  const { agreement, decisions, loading, loadError, loadAgreement } = useDemo()
-  const current = agreement?.id === id
-
-  useEffect(() => {
-    if (agreement?.id !== id) void loadAgreement(id)
-  }, [id, agreement?.id, loadAgreement])
-
-  const open = decisions.filter((d) => (d.outcome === 'human_review' || d.outcome === 'novel') && !d.override).length
-
+/** How Siteline sorted the selected site's changes; the contract itself is read on Review. */
+function ChangeSummary({ site }: { site: Agreement }) {
   return (
-    <section aria-labelledby="redline-h" className="mt-5">
-      <h3 id="redline-h" className="eyebrow font-sans">
-        Redline{current && !loading && open > 0 && <span className="ml-2 normal-case text-high">{open} need a reviewer</span>}
-      </h3>
-      {loadError && !loading ? (
-        <p className="mt-2 text-sm text-high" role="alert">
-          Couldn’t load the redline: {loadError}{' '}
-          <button type="button" className="link min-h-0 text-sm" onClick={() => void loadAgreement(id)}>Try again</button>
-        </p>
-      ) : loading || !current ? (
-        <p className="mt-2 text-sm text-muted" role="status">
-          <LoaderCircle aria-hidden className="mr-1.5 inline size-4 animate-spin" /> Loading the redline…
-        </p>
-      ) : decisions.length === 0 ? (
-        <p className="empty mt-2">No tracked changes found in this redline.</p>
-      ) : (
-        <div tabIndex={0} aria-label={`Site redline, ${decisions.length} changes`} className="well mt-2 max-h-[28rem] overflow-y-auto p-4">
-          <RedlineDocument decisions={decisions} />
-        </div>
-      )}
+    <section aria-labelledby="changes-h" className="mt-5">
+      <h3 id="changes-h" className="eyebrow font-sans">{site.changes} redlined paragraph{site.changes === 1 ? '' : 's'}</h3>
+      <ul className="mt-2 flex flex-wrap gap-1.5">
+        {outcomeOrder.filter((o) => site.outcomeMix[o]).map((o) => (
+          <li key={o} className="pill" style={{ background: outcomeBg[o], color: outcomeVar[o] }}>
+            {outcomeLabel[o]} <span className="tabular">{site.outcomeMix[o]}</span>
+          </li>
+        ))}
+      </ul>
     </section>
   )
 }
@@ -145,8 +124,8 @@ export function SitesPage() {
               )}
               {pick.fileName ? (
                 <>
-                  <SiteRedline id={pick.id} />
-                  <Link to={`/review/${pick.id}`} className="btn btn-primary mt-5">Open Site {pick.siteNumber} review <ArrowRight aria-hidden className="size-4" /></Link>
+                  <ChangeSummary site={pick} />
+                  <Link to={`/review/${pick.id}`} className="btn btn-primary mt-5">Open contract <ArrowRight aria-hidden className="size-4" /></Link>
                 </>
               ) : (
                 <p className="empty mt-5">
