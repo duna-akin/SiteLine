@@ -32,12 +32,12 @@ Other commands:
 
 | Integration | Key | Without it |
 |---|---|---|
-| Claude extraction | `ANTHROPIC_API_KEY` | Only cached changes are extracted (the demo file ships with a hand-written seed); anything else goes to human review |
+| Claude extraction | `OPENAI_API_KEY` | Only cached changes are extracted (the demo file ships with a hand-written seed); anything else goes to human review |
 | Daytona parsing | `DAYTONA_API_KEY` | Local parser (same code) |
 | Photon texts | `PHOTON_*` + real `APPROVER_*_PHONE` | On-screen phone in the UI |
 | Voice call | `TWILIO_*` + `PUBLIC_BASE_URL` | On-screen call keypad |
 | Inbound email | `IMAP_*` | Seeded inbox emails only |
-| Eval | `ANTHROPIC_API_KEY` | Evals page shows "no run yet" |
+| Eval | `OPENAI_API_KEY` | Evals page shows "no run yet" |
 | Precedent history | `DATABASE_URL` | Precedents are kept in `var/state.json` |
 | Source documents | `S3_*` (Supabase Storage) | Final documents are kept in `var/documents/` |
 

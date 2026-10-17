@@ -505,7 +505,7 @@ async def eval_run(limit: int = 0, sandboxes: int = 12) -> dict:
     if _eval_state["running"]:
         raise HTTPException(409, "An eval is already running")
     if not settings.claude_enabled:
-        raise HTTPException(400, "The eval needs Claude. Set ANTHROPIC_API_KEY in backend/.env.")
+        raise HTTPException(400, "The eval needs a model. Set OPENAI_API_KEY in backend/.env.")
     _eval_state.update(running=True, error=None)
 
     async def go() -> None:

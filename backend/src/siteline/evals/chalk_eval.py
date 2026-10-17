@@ -6,7 +6,7 @@ Two evaluations over the same pinned dataset revision, in one suite:
 Scorers: exact match on the outcome, and "safe" (0 when a labeled escalation was
 accepted or countered, so 1 - mean(safe) is the unsafe accept rate).
 
-Needs Evaluations enabled on the Chalk environment, `chalk login`, and ANTHROPIC_API_KEY in
+Needs Evaluations enabled on the Chalk environment, `chalk login`, and OPENAI_API_KEY in
 your shell (uploaded as a Chalk secret at deploy time). Run from backend/:
 
     uv run --extra chalk python -m siteline.evals.chalk_eval
@@ -24,12 +24,12 @@ import chalkcompute
 
 IMAGE = (
     chalkcompute.Image.debian_slim("3.12")
-    .pip_install(["anthropic>=1.15", "python-dotenv", "httpx", "pydantic"])
+    .pip_install(["openai>=1.100", "python-dotenv", "httpx", "pydantic"])
     .add_local_python_source("siteline")
     .add_local_dir("data", "/app/data")
     .env({"SITELINE_DATA_DIR": "/app/data", "SITELINE_RUNTIME_DIR": "/tmp/siteline"})
 )
-SECRETS = [chalkcompute.Secret.from_local_env("ANTHROPIC_API_KEY")]
+SECRETS = [chalkcompute.Secret.from_local_env("OPENAI_API_KEY")]
 
 
 @chalkcompute.function(image=IMAGE, secrets=SECRETS, concurrency=8, cpu="500m", memory="1Gi")

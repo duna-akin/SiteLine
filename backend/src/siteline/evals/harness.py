@@ -16,14 +16,14 @@ import time
 from datetime import UTC, datetime
 from typing import Any
 
-import anthropic
+import openai
 
 from siteline import events, precedent
 from siteline.config import DATA_DIR, settings
 from siteline.demo import build_redline
 from siteline.docx_redline import parse_docx
 from siteline.evals.dataset import load_dataset
-from siteline.extraction import ExtractionError, client, extract_live
+from siteline.extraction import ExtractionError, complete_json, extract_live
 from siteline.playbook import playbook_text
 from siteline.priority import MAX_SHARE
 from siteline.rules import decide
@@ -68,20 +68,13 @@ async def baseline(change: dict, context: str) -> dict:
 
     started = time.perf_counter()
     try:
-        r = await client().beta.messages.create(
-            model=settings.claude_model,
-            max_tokens=2000,
-            betas=["server-side-fallback-2026-07-01"],
-            fallbacks="default",
-            output_config={"effort": settings.claude_effort, "format": {"type": "json_schema", "schema": BASELINE_SCHEMA}},
-            system=[{"type": "text", "text": _baseline_system(), "cache_control": {"type": "ephemeral"}}],
-            messages=[{"role": "user", "content": _user_prompt(change, context)}],
-        )
-    except anthropic.APIError as e:
+        r = await complete_json(_baseline_system(), _user_prompt(change, context), BASELINE_SCHEMA, "baseline", 8000)
+    except openai.APIError as e:
         return {"error": str(e), "latencyMs": round((time.perf_counter() - started) * 1000)}
-    if r.stop_reason in ("refusal", "max_tokens"):
-        return {"error": r.stop_reason, "latencyMs": round((time.perf_counter() - started) * 1000)}
-    data = json.loads(next(b.text for b in r.content if b.type == "text"))
+    choice = r.choices[0]
+    if choice.message.refusal or choice.finish_reason == "length":
+        return {"error": "refusal" if choice.message.refusal else "max_tokens", "latencyMs": round((time.perf_counter() - started) * 1000)}
+    data = json.loads(choice.message.content or "")
     data["latencyMs"] = round((time.perf_counter() - started) * 1000)
     return data
 
@@ -174,7 +167,7 @@ def score(rows: list[dict]) -> dict[str, Any]:
 
 async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = 8) -> dict:
     if not settings.claude_enabled:
-        raise RuntimeError("The eval needs Claude: set ANTHROPIC_API_KEY in backend/.env")
+        raise RuntimeError("The eval needs Claude: set OPENAI_API_KEY in backend/.env")
     items = load_dataset()
     if limit:
         items = items[:limit]
