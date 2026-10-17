@@ -1,0 +1,35 @@
+[project]
+name = "siteline"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "tuna", email = "tuna.takin@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "anthropic>=1.15.0",
+    "daytona>=0.225.0",
+    "fastapi>=0.143.3",
+    "httpx>=0.28.1",
+    "python-dotenv>=1.2.4",
+    "python-multipart>=0.0.32",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[project.scripts]
+siteline = "siteline:main"
+
+[project.optional-dependencies]
+chalk = [
+    "chalkcompute>=2.13.7",
+]
+
+[build-system]
+requires = ["uv_build>=0.13.1,<0.14.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+]
