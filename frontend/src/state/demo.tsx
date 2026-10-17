@@ -148,7 +148,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     if (aid !== agreementId.current) return
     const before = decisionsRef.current.find((d) => d.id === decision.id)
     if (decision.approval.state === 'answered' && before && before.approval.state !== 'answered') {
-      const who = approvers[decision.owner].name
+      const who = `The ${approvers[decision.owner].title.toLowerCase()}`
       notify(`${who} replied ${decision.approval.reply} by ${decision.approval.channel === 'voice' ? 'phone' : 'text'}: ${replyMeaning[decision.approval.reply]}`)
     }
     if (decision.approval.state === 'calling' && before?.approval.state === 'sent') {
