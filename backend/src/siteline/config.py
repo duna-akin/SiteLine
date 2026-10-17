@@ -76,6 +76,16 @@ class Settings:
     imap_folder: str = field(default_factory=lambda: _env("IMAP_FOLDER", "INBOX"))
     inbound_address: str = field(default_factory=lambda: _env("SITELINE_INBOUND_ADDRESS", "redlines@siteline.demo"))
 
+    # Postgres for precedent history (local now, Supabase later: only the URL changes)
+    database_url: str = field(default_factory=lambda: _env("DATABASE_URL"))
+
+    # S3-compatible bucket for final agreed documents (Supabase Storage → S3 Connection)
+    s3_endpoint: str = field(default_factory=lambda: _env("S3_ENDPOINT"))
+    s3_region: str = field(default_factory=lambda: _env("S3_REGION"))
+    s3_access_key_id: str = field(default_factory=lambda: _env("S3_ACCESS_KEY_ID"))
+    s3_secret_access_key: str = field(default_factory=lambda: _env("S3_SECRET_ACCESS_KEY"))
+    s3_bucket: str = field(default_factory=lambda: _env("S3_BUCKET"))
+
     @property
     def claude_enabled(self) -> bool:
         return bool(self.anthropic_api_key or _env("ANTHROPIC_AUTH_TOKEN") or _env("ANTHROPIC_PROFILE"))
@@ -98,6 +108,10 @@ class Settings:
     @property
     def imap_enabled(self) -> bool:
         return bool(self.imap_host and self.imap_user and self.imap_password)
+
+    @property
+    def s3_enabled(self) -> bool:
+        return bool(self.s3_endpoint and self.s3_access_key_id and self.s3_secret_access_key and self.s3_bucket)
 
 
 settings = Settings()
