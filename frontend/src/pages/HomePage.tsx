@@ -7,8 +7,9 @@ import { EscalationQueue } from '@/components/siteline/EscalationQueue'
 import { InboundFeed } from '@/components/siteline/InboundFeed'
 import { byMoney, isOnUs, openSites, usd, usdK } from '@/components/siteline/priority-style'
 import { RadarLegend, SiteRadar } from '@/components/siteline/SiteRadar'
+import { TextBubble } from '@/components/siteline/TextBubble'
 import { formatClock } from '@/lib/format'
-import { agreementPath, byArrival, notTriaged } from '@/lib/sites'
+import { agreementPath, byArrival, hasPriorityLine, notTriaged } from '@/lib/sites'
 import { approvers } from '@/mocks/playbook'
 import { useDemo } from '@/state/demo'
 import { useDesk } from '@/state/desk'
@@ -17,8 +18,6 @@ import type { EscalationQueueItem } from '@/types'
 const QUEUE_SHOWN = 3
 const RANKED_SHOWN = 6
 const FEED_SHOWN = 3
-/** Matches the backend's priority line in an escalation text ("Site 07 = high priority, ≈$11,200/week at risk …"). */
-const PRIORITY_LINE = /^Site \S+ = .*priority/
 
 function greeting(hour = new Date().getHours()) {
   return hour < 12 ? 'Good morning!' : hour < 18 ? 'Good afternoon!' : 'Good evening!'
@@ -75,29 +74,19 @@ function QueueTile({ queue }: { queue: EscalationQueueItem[] }) {
 
 function PhoneTile({ queue }: { queue: EscalationQueueItem[] }) {
   const top = queue.find((q) => q.decision.approval.state !== 'none' && q.decision.approval.text)
-  const first = top ? approvers[top.decision.owner].name.split(' ')[0] : null
   const a = top?.decision.approval
-  const lines = a && a.state !== 'none' ? (a.text ?? '').split('\n') : []
-  const k = lines.findIndex((l) => PRIORITY_LINE.test(l))
+  const text = a && a.state !== 'none' ? a.text ?? '' : ''
+  const name = top ? approvers[top.decision.owner].name : null
+  const first = name?.split(' ')[0]
   return (
     <section className="tile bg-peach min-[1081px]:col-span-5" aria-labelledby="ph-h">
       <div className="tile-head"><h2 id="ph-h">{first ? `What ${first} sees` : 'What approvers see'}</h2></div>
-      <p className="tile-sub">{k >= 0 ? 'Each escalation text carries one priority line.' : 'The text sent for the top escalation.'}</p>
-      {top && a && a.state !== 'none' ? (
+      <p className="tile-sub">{hasPriorityLine(text) ? 'Each escalation text carries one priority line.' : 'The text sent for the top escalation.'}</p>
+      {a && a.state !== 'none' ? (
         <>
-          <div className="phone" role="img" aria-label={`Text message to ${approvers[top.decision.owner].name}: ${lines.join(' ')}`}>
+          <div className="phone" role="img" aria-label={`Text message to ${name}: ${text.replace(/\n+/g, ' ')}`}>
             <div className="phone-top"><b>Siteline</b> · Text message · {formatClock(a.sentAt)}</div>
-            <div className="bubble">
-              {k >= 0 ? (
-                <>
-                  {lines.slice(0, k).join('\n')}
-                  <span className="new">{lines[k]}</span>
-                  {lines.slice(k + 1).join('\n').replace(/^\n+/, '')}
-                </>
-              ) : (
-                lines.join('\n')
-              )}
-            </div>
+            <TextBubble text={text} />
           </div>
           <p className="phone-note">A bare “1”, “2” or “3” still answers the oldest question {first} was sent.</p>
         </>

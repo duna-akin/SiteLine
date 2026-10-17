@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, BadgeCheck, Download, FileText, LoaderCircle, TriangleAlert } from 'lucide-react'
+import { ArrowLeft, BadgeCheck, Download, FileText, LoaderCircle, RotateCw, TriangleAlert } from 'lucide-react'
 
 import * as api from '@/api'
 import { OutcomeBadge } from '@/components/siteline/outcome'
-import { BlurFade } from '@/components/ui/blur-fade'
 import { SPONSOR, approvers, replyMeaning } from '@/mocks/playbook'
 import { effectiveOutcome, isConfirmed, isWaiting } from '@/state/decision'
 import { useDemo } from '@/state/demo'
@@ -34,19 +33,17 @@ function toEntry(d: Decision): Entry {
     const counter = r === 1 ? null : r === 2 ? (d.fallbackText ?? hold) : hold
     return { d, counter, comment: `${who} replied ${r} (${replyMeaning[r].toLowerCase()}).${note}`, pending: false }
   }
-  return { d, counter: null, comment: 'Held for contract manager review. Resolve with an override before sending.', pending: true }
+  return { d, counter: null, comment: 'Held for contract manager review. Override it to accept, counter or escalate before sending.', pending: true }
 }
 
 export function ExportPage() {
   const { agreementId } = useParams()
-  const { decisions, agreement, loadAgreement, notify } = useDemo()
+  const { decisions, agreement, loading, loadError, loadAgreement, notify } = useDemo()
   const [busy, setBusy] = useState(false)
+  const current = agreement?.id === agreementId
   useEffect(() => {
     if (agreementId && agreement?.id !== agreementId) void loadAgreement(agreementId)
   }, [agreementId, agreement?.id, loadAgreement])
-  const entries = decisions.map(toEntry)
-  const pending = entries.filter((e) => e.pending).length
-  const unconfirmed = decisions.filter((d) => !isWaiting(d) && !isConfirmed(d)).length
 
   async function download() {
     if (!agreementId) return
@@ -75,95 +72,122 @@ export function ExportPage() {
     }
   }
 
+  const back = (
+    <Link to={`/review/${agreementId}`} className="link"><ArrowLeft aria-hidden className="size-4" /> Back to review</Link>
+  )
+
+  if (loadError && !loading) {
+    return (
+      <div className="wrap pb-12">
+        {back}
+        <div className="tile mx-auto mt-6 max-w-xl text-center" role="alert">
+          <h1 className="text-3xl">Couldn’t load this agreement</h1>
+          <p className="mt-3 text-muted">{loadError}</p>
+          <button type="button" className="btn btn-orange mt-5" onClick={() => agreementId && void loadAgreement(agreementId)}>
+            <RotateCw aria-hidden className="size-4" /> Try again
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Until this agreement has loaded, the store may still hold the previous one: show nothing of it.
+  if (loading || !current) {
+    return (
+      <div className="wrap py-16 text-muted" role="status">
+        <LoaderCircle aria-hidden className="mr-2 inline size-5 animate-spin" /> Loading the counter-proposal…
+      </div>
+    )
+  }
+
+  const entries = decisions.map(toEntry)
+  const pending = entries.filter((e) => e.pending).length
+  const unconfirmed = decisions.filter((d) => !isWaiting(d) && !isConfirmed(d)).length
+  const executed = agreement?.status === 'executed'
+
   return (
-    <div className="wrap py-10 sm:py-14">
-      <Link to={`/review/${agreementId}`} className="inline-flex min-h-11 items-center gap-2 text-sm font-bold text-muted hover:text-text">
-        <ArrowLeft aria-hidden className="size-4" /> Back to review
-      </Link>
-      <BlurFade>
-        <p className="eyebrow mt-4">Step 3 · Export</p>
-        <div className="mt-3 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+    <div className="wrap pb-12">
+      {back}
+      <section className="hello pt-2 pb-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1 className="text-4xl sm:text-5xl">Counter-proposal</h1>
-            <p className="mt-2 text-muted">Word file with tracked changes and one comment per decision.</p>
+            <h1>Counter-proposal</h1>
+            <p>Word file with tracked changes and one comment per decision.</p>
             {unconfirmed > 0 && (
-              <p role="status" className="mt-2 text-sm font-bold text-butter">
+              <p role="status" className="!text-sm font-extrabold !text-tangerine-ink">
                 {unconfirmed} suggestion{unconfirmed === 1 ? '' : 's'} not yet confirmed by a person.{' '}
-                <Link to={`/review/${agreementId}`} className="text-blue-l hover:underline">Confirm them in review</Link> before exporting.
+                <Link to={`/review/${agreementId}`} className="text-blue hover:underline">Confirm them in review</Link> before exporting.
               </p>
             )}
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn btn-primary" onClick={download} disabled={busy || decisions.length === 0 || unconfirmed > 0}>
+          <div className="flex flex-wrap gap-2.5">
+            <button type="button" className="btn btn-orange" onClick={download} disabled={busy || decisions.length === 0 || unconfirmed > 0}>
               {busy ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Download aria-hidden className="size-4" />}
               Download .docx
             </button>
             <button
               type="button"
-              className="btn btn-ghost"
+              className="btn btn-soft"
               onClick={confirm}
-              disabled={busy || decisions.length === 0 || pending > 0 || unconfirmed > 0 || agreement?.status === 'executed'}
+              disabled={busy || decisions.length === 0 || pending > 0 || unconfirmed > 0 || executed}
               title={pending > 0 ? 'Resolve every pending item first' : unconfirmed > 0 ? 'Confirm every suggestion first' : undefined}
             >
               <BadgeCheck aria-hidden className="size-4" />
-              {agreement?.status === 'executed' ? 'Agreement confirmed' : 'Confirm agreement'}
+              {executed ? 'Agreement confirmed' : 'Confirm agreement'}
             </button>
             {agreement?.finalDocumentKey && (
-              <a href={api.sourceUrl(agreement.finalDocumentKey)} className="btn btn-ghost">
+              <a href={api.sourceUrl(agreement.finalDocumentKey)} className="btn btn-soft">
                 <FileText aria-hidden className="size-4" /> Download final document
               </a>
             )}
           </div>
         </div>
-      </BlurFade>
+      </section>
 
       {decisions.length === 0 ? (
-        <div className="panel mt-8 p-8 text-center">
+        <div className="tile p-8 text-center">
           <p className="text-muted">Nothing to export yet.</p>
-          <Link to="/upload" className="btn btn-primary mt-4">Triage a redline</Link>
+          <Link to="/upload" className="btn btn-orange mt-4">Triage a redline</Link>
         </div>
       ) : (
         <>
           {pending > 0 && (
-            <p role="status" className="mt-6 flex items-start gap-2 rounded-2xl border border-butter/50 bg-butter/10 px-4 py-3 text-sm">
-              <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0 text-butter" />
+            <p role="status" className="mb-[18px] flex items-start gap-2 rounded-[20px] bg-butter px-4 py-3 text-sm font-bold text-amber-ink">
+              <TriangleAlert aria-hidden className="mt-0.5 size-4 shrink-0" />
               {pending} item{pending > 1 ? 's are' : ' is'} still pending. They export with the site’s tracked change left as received, plus a comment.
             </p>
           )}
 
-          <article
-            aria-label="Counter-proposal preview"
-            className="mt-6 rounded-[6px] bg-cream p-5 text-ink shadow-[0_30px_80px_-30px_var(--magenta)] sm:p-10"
-          >
-            <header className="border-b border-ink/15 pb-5">
-              <p className="text-xs font-bold tracking-[0.16em] text-ink/70 uppercase">{SPONSOR.name} · Protocol {SPONSOR.protocol}</p>
-              <h2 className="mt-2 text-2xl text-ink sm:text-3xl">Clinical Trial Agreement · Sponsor counter-proposal</h2>
-              <p className="mt-1 text-sm text-ink/70">Site {agreement?.siteNumber}, {agreement?.siteName}{agreement?.fileName ? ` · responding to ${agreement.fileName}` : ''}</p>
+          <article aria-label="Counter-proposal preview" className="tile p-5 sm:p-10">
+            <header className="border-b-2 border-line pb-5">
+              <p className="eyebrow">{SPONSOR.name} · Protocol {SPONSOR.protocol}</p>
+              <h2 className="mt-2 text-2xl sm:text-3xl">Clinical Trial Agreement · Sponsor counter-proposal</h2>
+              <p className="mt-1 text-sm text-muted">Site {agreement?.siteNumber}, {agreement?.siteName}{agreement?.fileName ? ` · responding to ${agreement.fileName}` : ''}</p>
             </header>
             <ol className="mt-6 flex flex-col gap-6">
               {entries.map(({ d, counter, comment, pending: isPending }) => (
-                <li key={d.id} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_240px]">
+                <li key={d.id} className="grid gap-3 md:grid-cols-[minmax(0,1fr)_260px]">
                   <div>
-                    <p className="font-bold">{d.section}</p>
+                    <p className="font-extrabold">{d.section}</p>
                     <p className="mt-1 leading-relaxed">
                       {counter !== null && counter !== d.revised ? (
                         <>
-                          {d.revised && <del className="text-ink/60 decoration-red decoration-2">{d.revised}</del>}{' '}
+                          {d.revised && <del className="text-muted decoration-rose-ink decoration-2">{d.revised}</del>}{' '}
                           {counter ? (
                             <ins className="text-blue underline decoration-blue decoration-2 underline-offset-4">{counter}</ins>
                           ) : (
-                            <span className="text-sm text-ink/60 italic">(sponsor deletes the inserted text)</span>
+                            <span className="text-sm text-muted italic">(sponsor deletes the inserted text)</span>
                           )}
                         </>
                       ) : (
-                        <span>{d.revised || <del className="text-ink/60 decoration-red decoration-2">{d.original}</del>}</span>
+                        <span>{d.revised || <del className="text-muted decoration-rose-ink decoration-2">{d.original}</del>}</span>
                       )}
                     </p>
                   </div>
-                  <aside className="rounded-md border-l-4 bg-ink/5 px-3 py-2 text-sm" style={{ borderColor: isPending ? 'var(--butter)' : 'var(--blue)' }}>
+                  <aside className={isPending ? 'rounded-[16px] bg-butter px-3 py-2 text-sm' : 'rounded-[16px] bg-sky px-3 py-2 text-sm'}>
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-xs font-bold text-ink/70">Siteline comment</span>
-                      <span className="rounded-full bg-ink"><OutcomeBadge outcome={effectiveOutcome(d)} size="sm" /></span>
+                      <span className="text-xs font-extrabold text-muted">Siteline comment</span>
+                      <OutcomeBadge outcome={effectiveOutcome(d)} size="sm" />
                     </div>
                     <p className="mt-1">{comment}</p>
                   </aside>

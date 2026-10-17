@@ -19,8 +19,8 @@ function wordDiff(a: string, b: string) {
   }
 }
 
-const del = 'rounded bg-red/15 px-0.5 text-text line-through decoration-red decoration-2'
-const ins = 'rounded bg-mint/15 px-0.5 text-text underline decoration-mint decoration-2 underline-offset-4'
+const del = 'rounded bg-rose px-0.5 text-rose-ink line-through decoration-rose-ink decoration-2'
+const ins = 'rounded bg-mint px-0.5 text-mint-ink underline decoration-mint-ink decoration-2 underline-offset-4'
 
 export function RedlineDiff({ change }: { change: Change }) {
   if (change.kind === 'insertion' && !change.original) {
@@ -38,11 +38,11 @@ export function RedlineDiff({ change }: { change: Change }) {
     )
   }
   if (change.kind === 'comment') {
-    return <p className="leading-relaxed text-muted">{change.original}</p>
+    return <p className="leading-relaxed text-ink">{change.original}</p>
   }
   const d = wordDiff(change.original, change.revised)
   return (
-    <p className="leading-relaxed text-muted">
+    <p className="leading-relaxed text-ink">
       {d.prefix}
       {d.removed && <del className={del}>{d.removed}</del>}
       {d.added && <ins className={d.removed ? `${ins} ml-1` : ins}>{d.added}</ins>}

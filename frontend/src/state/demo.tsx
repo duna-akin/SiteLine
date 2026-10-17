@@ -91,13 +91,14 @@ function reducer(state: DemoState, action: Action): DemoState {
 interface DemoApi extends DemoState {
   noReplyMs: number
   loadAgreement: (id: string) => Promise<void>
-  override: (id: string, outcome: Outcome, reason: string) => Promise<void>
-  clearOverride: (id: string) => Promise<void>
-  confirm: (id: string) => Promise<void>
-  unconfirm: (id: string) => Promise<void>
+  /** Decision actions resolve to the error message, or null when the change was saved. */
+  override: (id: string, outcome: Outcome, reason: string) => Promise<string | null>
+  clearOverride: (id: string) => Promise<string | null>
+  confirm: (id: string) => Promise<string | null>
+  unconfirm: (id: string) => Promise<string | null>
   confirmAll: (agreementId: string) => Promise<void>
-  reply: (id: string, reply: ApprovalReply, channel: ApprovalChannel) => Promise<void>
-  callNow: (id: string) => Promise<void>
+  reply: (id: string, reply: ApprovalReply, channel: ApprovalChannel) => Promise<string | null>
+  callNow: (id: string) => Promise<string | null>
   setFlag: (flag: 'localParser' | 'useCache', value: boolean) => void
   focusEscalation: (id: string | null) => void
   notify: (text: string) => void
@@ -164,12 +165,14 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   })
 
   const run = useCallback(
-    async (fn: () => Promise<Decision>, done?: string) => {
+    async (fn: () => Promise<Decision>, done?: string): Promise<string | null> => {
       try {
         dispatch({ type: 'decision', decision: await fn() })
         if (done) notify(done)
+        return null
       } catch (e) {
         notify(message(e))
+        return message(e)
       }
     },
     [notify],

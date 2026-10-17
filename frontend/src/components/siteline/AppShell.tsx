@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
 import { Menu, Search, Upload, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -132,7 +132,10 @@ export function AppShell() {
       </header>
 
       <main id="main" ref={mainRef} tabIndex={-1} className="flex-1 outline-none">
-        <Outlet />
+        {/* Pages load lazily; the header stays while one does */}
+        <Suspense fallback={<div className="wrap py-16 text-muted" role="status">Loading…</div>}>
+          <Outlet />
+        </Suspense>
       </main>
 
       <footer className="mt-12 border-t-2 border-line">
