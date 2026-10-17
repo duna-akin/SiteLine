@@ -3,6 +3,7 @@ import type {
   Agreement,
   ApprovalReply,
   Decision,
+  DocParagraph,
   EscalationQueueItem,
   EvalResults,
   InboundEmail,
@@ -85,6 +86,10 @@ export const demoFileUrl = '/api/demo-file'
 export const getAgreement = (agreementId: string) =>
   request<{ agreement: Agreement; decisions: Decision[] }>(`/agreements/${encodeURIComponent(agreementId)}`)
 
+/** The whole redline, every paragraph in order; 404 for agreements triaged before it was stored. */
+export const getDocument = (agreementId: string) =>
+  request<{ paragraphs: DocParagraph[] }>(`/agreements/${encodeURIComponent(agreementId)}/document`)
+
 export const overrideDecision = (changeId: string, outcome: Outcome, reason: string) =>
   request<Decision>(`/decisions/${changeId}/override`, json('POST', { outcome, reason }))
 
@@ -92,7 +97,7 @@ export const clearOverride = (changeId: string) => request<Decision>(`/decisions
 
 export const sendApprovalText = (changeId: string) => request<Decision>(`/approvals/${changeId}/text`, { method: 'POST' })
 
-/** The on-screen phone's reply (a real reply arrives through the Photon webhook instead). */
+/** A reply recorded on Review (a real reply arrives through the Photon webhook instead). */
 export const recordApprovalReply = (changeId: string, reply: ApprovalReply, channel: 'imessage' | 'voice') =>
   request<Decision>(`/approvals/${changeId}/reply`, json('POST', { reply, channel }))
 

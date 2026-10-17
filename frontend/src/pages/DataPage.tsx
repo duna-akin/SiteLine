@@ -10,7 +10,7 @@ function integrationRows(i: Integrations) {
   return [
     { name: 'OpenAI extraction', live: i.claude, on: `Model ${i.claudeModel}`, off: 'Cached extractions only; anything else goes to human review' },
     { name: 'Daytona sandboxes', live: i.daytona, on: 'One fresh sandbox per file, deleted after the parse', off: 'The local parser reads the file on the server' },
-    { name: 'Photon texts', live: i.photon, on: 'Escalations text the approvers’ phones', off: 'Texts appear on the on-screen phone' },
+    { name: 'Photon texts', live: i.photon, on: 'Escalations text the approvers’ phones', off: 'Texts are simulated; record replies on Review' },
     { name: 'Twilio voice', live: i.voice, on: 'A call follows an unanswered text', off: 'Calls are simulated on screen' },
     { name: 'Inbound mailbox', live: i.imap, on: 'The IMAP mailbox is checked every 30 s', off: 'Seeded emails only' },
     { name: 'Precedent store', live: i.precedentStore === 'postgres', on: 'Postgres', off: 'The server’s state file' },

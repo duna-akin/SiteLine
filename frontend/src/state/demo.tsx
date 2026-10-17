@@ -20,7 +20,6 @@ interface DemoState {
   inboundAddress: string
   localParser: boolean
   useCache: boolean
-  activeEscalationId: string | null
   toasts: Toast[]
 }
 
@@ -32,7 +31,6 @@ type Action =
   | { type: 'agreement'; agreement: Agreement }
   | { type: 'health'; integrations: Integrations; inboundAddress: string }
   | { type: 'setFlag'; flag: 'localParser' | 'useCache'; value: boolean }
-  | { type: 'focusEscalation'; id: string | null }
   | { type: 'toast'; toast: Toast }
   | { type: 'dismissToast'; id: number }
   | { type: 'reset' }
@@ -46,7 +44,6 @@ const initialState: DemoState = {
   inboundAddress: 'redlines@siteline.demo',
   localParser: false,
   useCache: true,
-  activeEscalationId: null,
   toasts: [],
 }
 
@@ -60,10 +57,6 @@ function reducer(state: DemoState, action: Action): DemoState {
         loading: false,
         agreement: action.agreement,
         decisions: action.decisions,
-        activeEscalationId:
-          action.decisions.find((d) => d.outcome === 'escalate' && d.approval.state !== 'answered')?.id ??
-          action.decisions.find((d) => d.outcome === 'escalate')?.id ??
-          null,
       }
     case 'loadFailed':
       return { ...state, loading: false, loadError: action.error, agreement: null, decisions: [] }
@@ -77,8 +70,6 @@ function reducer(state: DemoState, action: Action): DemoState {
       return { ...state, integrations: action.integrations, inboundAddress: action.inboundAddress }
     case 'setFlag':
       return { ...state, [action.flag]: action.value }
-    case 'focusEscalation':
-      return { ...state, activeEscalationId: action.id }
     case 'toast':
       return { ...state, toasts: [...state.toasts, action.toast] }
     case 'dismissToast':
@@ -100,7 +91,6 @@ interface DemoApi extends DemoState {
   reply: (id: string, reply: ApprovalReply, channel: ApprovalChannel) => Promise<string | null>
   callNow: (id: string) => Promise<string | null>
   setFlag: (flag: 'localParser' | 'useCache', value: boolean) => void
-  focusEscalation: (id: string | null) => void
   notify: (text: string) => void
   dismissToast: (id: number) => void
   reset: () => void
@@ -139,7 +129,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Live updates: approver replies (Photon webhook or on-screen phone), calls, overrides.
+  // Live updates: approver replies (Photon webhook or recorded on Review), calls, overrides.
   const decisionsRef = useRef(state.decisions)
   useEffect(() => {
     decisionsRef.current = state.decisions
@@ -150,9 +140,6 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     if (decision.approval.state === 'answered' && before && before.approval.state !== 'answered') {
       const who = `The ${approvers[decision.owner].title.toLowerCase()}`
       notify(`${who} replied ${decision.approval.reply} by ${decision.approval.channel === 'voice' ? 'phone' : 'text'}: ${replyMeaning[decision.approval.reply]}`)
-    }
-    if (decision.approval.state === 'calling' && before?.approval.state === 'sent') {
-      dispatch({ type: 'focusEscalation', id: decision.id })
     }
     dispatch({ type: 'decision', decision })
   })
@@ -209,7 +196,6 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       reply: (id, r, channel) => run(() => api.recordApprovalReply(id, r, channel)),
       callNow: (id) => run(() => api.placeApprovalCall(id)),
       setFlag: (flag, v) => dispatch({ type: 'setFlag', flag, value: v }),
-      focusEscalation: (id) => dispatch({ type: 'focusEscalation', id }),
       notify,
       dismissToast: (id) => dispatch({ type: 'dismissToast', id }),
       reset: () => {
