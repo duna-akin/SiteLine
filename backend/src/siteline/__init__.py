@@ -20,6 +20,7 @@ def main() -> None:
     parse = sub.add_parser("parse", help="Print the tracked changes in a .docx as JSON")
     parse.add_argument("file")
     sub.add_parser("reset", help="Clear agreements, decisions and approvals back to the seed portfolio")
+    sub.add_parser("seed-precedents", help="Save past confirmed agreements (and their final documents) as demo precedent")
     ev = sub.add_parser("eval", help="Run Siteline vs the LLM-only baseline on the labeled set")
     ev.add_argument("--limit", type=int, default=0, help="Only the first N labeled changes")
     ev.add_argument("--sandboxes", type=int, default=12, help="Parallel Daytona sandboxes for parsing (0 = local)")
@@ -63,6 +64,10 @@ def main() -> None:
 
         store.reset()
         print("state reset to the seed portfolio")
+    elif args.cmd == "seed-precedents":
+        from siteline.history import seed
+
+        print(json.dumps(seed()))
     elif args.cmd == "make-dataset":
         from siteline.evals.dataset import write_dataset
 
