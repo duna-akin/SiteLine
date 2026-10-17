@@ -39,6 +39,10 @@ class Settings:
     # "off" leaves reasoning_effort out, for models without reasoning (gpt-4o, gpt-4.1, ...)
     claude_effort: str = field(default_factory=lambda: _env("SITELINE_OPENAI_EFFORT", "medium"))
     openai_timeout: float = field(default_factory=lambda: _float("SITELINE_OPENAI_TIMEOUT", 180))
+    # The eval harness uses a fast non-reasoning model so a full run (every call at once) takes
+    # about 3s; gpt-5-mini took 8s and gpt-5-nano missed every escalation
+    eval_model: str = field(default_factory=lambda: _env("SITELINE_EVAL_MODEL", "gpt-4.1-mini"))
+    eval_effort: str = field(default_factory=lambda: _env("SITELINE_EVAL_EFFORT", "off"))
 
     # Daytona (one fresh sandbox per uploaded file)
     daytona_api_key: str = field(default_factory=lambda: _env("DAYTONA_API_KEY"))
