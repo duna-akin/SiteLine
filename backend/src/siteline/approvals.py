@@ -188,32 +188,55 @@ async def record_reply(change_id: str, reply: int, channel: str) -> dict:
     return d
 
 
+_NAMED = re.compile(r"(?:\bsite\s*0*(\d{1,3})\D{0,3})?\bC?0*(\d{1,3})\s*[:\-\s]\s*([123])\b", re.I)
+
+
+def _site_number(d: dict) -> str:
+    hit = store.find_decision(d["id"])
+    a = store.state()["agreements"].get(hit[0], {}) if hit else {}
+    return str(a.get("siteNumber") or "?")
+
+
+async def _clarify(owners: list[str], open_items: list[dict]) -> None:
+    """Ask which escalation a reply meant instead of guessing."""
+    phone = next((p for p in (_real_phone(o) for o in owners) if p), None)
+    if not (settings.photon_enabled and phone):
+        return
+    codes = ", ".join(f"Site {_site_number(d)} {_code(d)}" for d in open_items)
+    text = (f"Siteline could not tell which escalation that reply was for, so nothing was recorded. Open: {codes}. "
+            f"Reply with the site and code, e.g. “Site {_site_number(open_items[0])} {_code(open_items[0])} 1”.")
+    try:
+        await photon.send_text(phone, text)
+    except photon.PhotonError as e:
+        log.warning("Photon clarification failed: %s", e)
+
+
 async def handle_inbound_text(handle: str | None, space_id: str | None, text: str) -> dict | None:
-    """Match an approver's text to their oldest open escalation (or the one they name)."""
+    """Match an approver's text to the escalation it names, or (a bare 1, 2 or 3) to their oldest
+    open one. A named code that matches no open item, or more than one across sites, is never
+    applied to another escalation: the approver is asked which one they meant."""
     if not handle and space_id:
         handle = photon.handle_for_space(space_id)
-    owner = None
-    for o, info in approvers().items():
-        if handle and photon.e164(info["phone"]) == photon.e164(handle):
-            owner = o
-    if owner is None:
+    # Approvers may share a number (a demo with one phone): their open items are answered together
+    owners = [o for o, info in approvers().items() if handle and photon.e164(info["phone"]) == photon.e164(handle)]
+    if not owners:
         log.info("Inbound text from unknown sender %s", handle)
         return None
-    open_items = store.pending_escalations(owner)
+    open_items = [d for d in store.pending_escalations() if d["owner"] in owners]
     if not open_items:
         return None
-    m = re.search(r"\bC?0*(\d{1,3})\s*[:\-\s]\s*([123])\b", text, re.I)
-    target, reply = None, None
-    if m and len(open_items) > 1:
-        idx = int(m.group(1))
-        target = next((d for d in open_items if d["index"] == idx), None)
-        reply = int(m.group(2))
-    if target is None:
-        digit = re.search(r"\b([123])\b", text.strip())
-        if not digit:
-            return None
-        target, reply = open_items[0], int(digit.group(1))
-    return await record_reply(target["id"], reply, "imessage")
+    if m := _NAMED.search(text):
+        site, idx, reply = m.group(1), int(m.group(2)), int(m.group(3))
+        named = [d for d in open_items if d["index"] == idx and (site is None or _site_number(d) == site.zfill(2))]
+        if len(named) == 1:
+            return await record_reply(named[0]["id"], reply, "imessage")
+        log.info("Inbound reply %r names no single open escalation for %s", text, owners)
+        await _clarify(owners, open_items)
+        return None
+    digit = re.search(r"\b([123])\b", text.strip())
+    if not digit:
+        return None
+    return await record_reply(open_items[0]["id"], int(digit.group(1)), "imessage")
 
 
 async def handle_call_digit(change_id: str, digit: str) -> str:

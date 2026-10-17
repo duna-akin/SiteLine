@@ -295,6 +295,8 @@ async def photon_webhook(request: Request) -> Response:
     headers = {k.lower(): v for k, v in request.headers.items()}
     if not photon.verify_webhook(body, headers):
         raise HTTPException(401, "Bad signature")
+    if store.seen_webhook(headers["webhook-id"]):
+        return Response(status_code=204)  # a redelivery: the first one was already applied
     event = json.loads(body)
     inbound = photon.parse_inbound(event)
     if inbound:
