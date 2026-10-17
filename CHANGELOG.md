@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · Sample redlines
+
+### Added
+
+- **Nine sample redlines** (`backend/data/samples/`, Sites 21–29), one fictional CTA per playbook clause. Each one's tracked changes center on that clause's issues, with a few edits elsewhere. Every change has a hand-written seed extraction, so the samples triage without an API key, and an expected outcome and rule ID. Together they reach every clause rule and system check and all three priority levels. `uv run siteline make-samples` rewrites them and their seeds.
+- `tests/test_samples.py` uploads each sample through the API and checks the whole path: site and priority read from the contract, the outcome and rule ID of every change, owner routing and simulated texts, the export guard, an approver reply, confirm-all and the Word counter-proposal.
+
 ## [Unreleased] · Claude Code extraction fallback
 
 ### Added

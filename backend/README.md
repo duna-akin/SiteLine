@@ -21,6 +21,7 @@ Other commands:
 |---|---|
 | `uv run siteline make-demo` | Rewrite `data/demo/NSO-417_CTA_Site07_redline.docx` and its seed extraction cache |
 | `uv run siteline cache-demo` | Extract the demo file with OpenAI and save that as the demo cache (needs a key) |
+| `uv run siteline make-samples` | Rewrite the nine per-clause sample redlines in `data/samples/` and their seed extractions |
 | `uv run siteline parse FILE.docx` | Print a redline's tracked changes as JSON |
 | `uv run siteline make-dataset` | Rewrite the labeled eval set (150 playbook changes + 12 precedent cases) |
 | `uv run siteline eval [--limit N]` | Siteline vs the LLM-only baseline; writes `data/evals/latest.json` |
@@ -110,6 +111,24 @@ Set `PUBLIC_BASE_URL` to that URL. A Cloudflare quick tunnel also works, but its
 every restart (then update the webhook and `.env`); a named Cloudflare tunnel needs a domain on
 Cloudflare. ngrok's browser warning page does not affect server-to-server webhooks.
 
+## Sample redlines
+
+`data/samples/` holds nine fictional CTAs (Sites 21–29), one per playbook clause, for demos and
+tests. Upload any of them on the Inbound page. They triage from seed extractions, so no key is
+needed, and each change lands on the rule ID listed in `samples.py`.
+
+| Site | Clause | What to look for |
+|---|---|---|
+| 21 Copperline | Payment | Net 20 escalates; the 14% fee is accepted only because the site is high priority (`PAY-A3P`) |
+| 22 Halvorsen | Confidentiality | 2-year survival and trade-secret cap escalate; a site comment and a low-confidence read go to review |
+| 23 Marrowgate | Indemnification | Carve-out removed and mutual indemnity escalate; "as finally adjudicated" is struck |
+| 24 Saltmarsh | Subject injury | Pain and suffering and an uncapped reimbursement escalate to Finance |
+| 25 Thornbury | Publication | 21-day review, patent delay removed, open-ended thesis review; public-institution law accepted |
+| 26 Ashgrove | Intellectual property | Institution and joint ownership escalate; the research license is pre-approved |
+| 27 Kestrel Valley | Data protection | BAA and blocked secondary use escalate to Privacy; AI-training limit is novel |
+| 28 Brightwater | Termination | 10-day notice, convenience termination, conflicting notice, a failed quote |
+| 29 Cardinal Plains | Governing law | Sovereign immunity and arbitration abroad escalate; county venue is countered |
+
 ## Layout
 
 - `src/siteline/docx_redline.py`: stdlib-only parser (also uploaded into the Daytona sandbox)
@@ -120,5 +139,6 @@ Cloudflare. ngrok's browser warning page does not affect server-to-server webhoo
 - `storage.py`: final agreed documents in the S3 bucket (or `var/documents/`), served back as precedent sources
 - `approvals.py`, `photon.py`, `voice.py`: texts, replies, no-reply timer, calls
 - `export.py`, `docx_writer.py`: the Word counter-proposal
+- `samples.py`: the nine per-clause sample redlines, their seed extractions and expected rule IDs
 - `evals/`: labeled set, harness, Chalk runner
 - `data/`: playbook, demo redline, seed cache, seed portfolio (fictional). Runtime state goes to `var/` (git-ignored).
