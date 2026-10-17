@@ -28,3 +28,7 @@ idea
 # Git artifacts
 .git
 .github
+
+# Siteline app code (not Chalk features)
+backend
+frontend
