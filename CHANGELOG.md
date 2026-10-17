@@ -34,9 +34,18 @@ The product now runs end to end. A new `backend/` (Python, FastAPI) replaces eve
 
 - Mock agreements, emails and eval numbers from `frontend/src/mocks/` (now served by the backend; the eval no longer shows placeholder numbers).
 
+### Fixed
+
+- Photon: texts go out from each approver's own assigned shared iMessage line (looked up from Photon), not one fixed line. People on the same project can be assigned different lines.
+- Config: a blank value in `.env` (e.g. `APPROVER_FINANCE_PHONE=`) now counts as unset, so it falls back to the fictional number instead of an empty "real" phone.
+
+### Verified live
+
+- Photon 2.0 iMessage: escalation texts reach real approver phones, and a reply comes back through the signed webhook (via an ngrok static domain), updates the decision, and gets a confirmation text.
+
 ### Not yet verified
 
-- Live Claude, Daytona, Photon, Twilio, IMAP and Chalk calls: no credentials were available. Each path is written against the provider's current API and falls back safely, but none has run against the real service.
+- Live Claude, Daytona, Twilio voice, IMAP and Chalk calls: no credentials yet (tracked in issue #3). Each path is written against the provider's current API and falls back safely.
 
 ## Frontend prototype
 
