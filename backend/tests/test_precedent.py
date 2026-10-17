@@ -1,0 +1,196 @@
+import asyncio
+
+import pytest
+
+from siteline import approvals, precedent, storage, store
+from siteline.demo import demo_bytes
+from siteline.evals.dataset import load_dataset
+from siteline.rules import Verdict
+
+SITE = "Larkspur Cancer Institute"
+ESC = Verdict("escalate", "DP-E1", "Site requires a Business Associate Agreement → escalate to Privacy.")
+
+
+def rec(values, site=SITE, agreement="larkspur-nso311", clause="data_privacy", reply=None, id="p1"):
+    return {"id": id, "siteName": site, "agreementId": agreement, "siteNumber": "04", "protocol": "NSO-311", "clauseType": clause,
+            "values": values, "via": "executed" if reply is None else "approver_reply", "reply": reply,
+            "decidedAt": "2025-11-20T16:00:00Z", "label": "test"}
+
+
+@pytest.fixture
+def fresh_state(tmp_path, monkeypatch):
+    monkeypatch.setattr(store, "STATE_PATH", tmp_path / "state.json")
+    store.reset()
+
+
+def test_comparator_respects_each_fields_direction():
+    assert precedent._value_ok("net_days", "45", "30")
+    assert not precedent._value_ok("net_days", "20", "30")
+    assert precedent._value_ok("start_up_fee_pct", "8", "10")
+    assert not precedent._value_ok("start_up_fee_pct", "15", "10")
+    # Not monotonic: more than 60 days is countered, so only the same value counts
+    assert not precedent._value_ok("site_notice_days", "90", "60")
+    assert precedent._value_ok("requires_baa", "True", "yes")
+    assert not precedent._value_ok("invention_ownership", "joint", "sponsor")
+
+
+def test_same_site_acceptance_downgrades_with_audit_trail():
+    v, p = precedent.review(ESC, "data_privacy", {"requires_baa": "true"}, "Larkspur Cancer Institute.", "site-07",
+                            [rec({"requires_baa": "true"})])
+    assert (v.outcome, v.rule_id) == ("accept", "PREC-A1")
+    assert p["downgraded"] and p["originalRuleId"] == "DP-E1" and "Larkspur" in p["summary"]
+
+
+def test_other_site_acceptance_is_ignored():
+    other = rec({"requires_baa": "true"}, site="Cedar Hollow Cancer Center")
+    assert precedent.review(ESC, "data_privacy", {"requires_baa": "true"}, SITE, "site-07", [other]) == (ESC, None)
+
+
+def test_worse_ask_or_same_agreement_never_counts():
+    pay = Verdict("escalate", "PAY-E1", "Net 10 is under 30 days → escalate to Finance.")
+    granted = rec({"net_days": "20"}, clause="payment_terms")
+    assert precedent.review(pay, "payment_terms", {"net_days": "10"}, SITE, "site-07", [granted])[1] is None
+    own = rec({"requires_baa": "true"}, agreement="site-07", reply=1)
+    assert precedent.review(ESC, "data_privacy", {"requires_baa": "true"}, SITE, "site-07", [own]) == (ESC, None)
+
+
+def test_fail_safes_are_untouched():
+    hr = Verdict("human_review", "SYS-QUOTE", "A quote was not found verbatim in the redline → human review.")
+    novel = Verdict("novel", "NONE", "No playbook rule covers this → flagged as novel.")
+    for v in (hr, novel):
+        assert precedent.review(v, "data_privacy", {"requires_baa": "true"}, SITE, "site-07", [rec({"requires_baa": "true"})]) == (v, None)
+
+
+def _decision(i, outcome, values, approval=None, verified=True, counter=None):
+    return {"id": f"s20-c0{i}", "index": i, "clauseType": "data_privacy", "owner": "privacy", "section": f"§11.{i}", "quote": "q",
+            "quoteVerified": verified, "outcome": outcome, "original": "old", "revised": "new", "counterText": counter,
+            "extracted": [{"field": f, "value": v, "quote": "q", "verified": verified} for f, v in values.items()],
+            "approval": approval or {"state": "none"}}
+
+
+def test_replies_do_not_write_precedent(fresh_state):
+    store.put_agreement({"id": "site-20", "siteNumber": "20", "siteName": "Test Site", "status": "awaiting_approval", "receivedAt": "2026-10-01T00:00:00Z"})
+    store.set_decisions("site-20", [_decision(1, "escalate", {"requires_baa": "true"}, {"state": "sent", "sentAt": 0})])
+    asyncio.run(approvals.record_reply("s20-c01", 1, "imessage"))
+    assert store.precedents_for_site("Test Site") == []
+
+
+def test_completed_records_keep_only_accepted_terms_with_their_source(fresh_state):
+    store.put_agreement({"id": "site-20", "siteNumber": "20", "siteName": "Test Site", "status": "awaiting_approval", "receivedAt": "2026-10-01T00:00:00Z"})
+    answered = lambda r: {"state": "answered", "sentAt": 0, "answeredAt": 1, "reply": r, "channel": "imessage"}  # noqa: E731
+    store.set_decisions("site-20", [
+        _decision(1, "accept", {"data_use_addendum": "true"}),
+        _decision(2, "escalate", {"requires_baa": "true"}, answered(1)),
+        _decision(3, "escalate", {"blocks_secondary_research": "true"}, answered(3)),
+        _decision(4, "fallback", {"requires_baa": "true"}, counter="countered text"),
+        _decision(5, "accept", {"data_use_addendum": "true"}, verified=False),
+    ])
+    records = precedent.completed_records("site-20", "site-20/final.docx")
+    assert [r["id"] for r in records] == ["site-20:s20-c01", "site-20:s20-c02"]
+    assert records[1]["sourceKey"] == "site-20/final.docx" and records[1]["sourceSection"] == "§11.2" and records[1]["reply"] == 1
+    store.post_completed(records)
+    store.post_completed(records)  # confirming twice adds nothing
+    assert [r["id"] for r in store.precedents_for_site("TEST SITE.")] == ["site-20:s20-c01", "site-20:s20-c02"]
+    assert store.precedents_for_site("Cedar Hollow Cancer Center") == []
+
+
+def _triage_demo():
+    from siteline.extraction import SEED_CACHE
+    from siteline.pipeline import TriageOptions, triage
+
+    if not SEED_CACHE.exists():
+        from siteline.demo_cache import write_seed
+
+        write_seed()
+
+    async def go():
+        await triage(demo_bytes(), "NSO-417_CTA_Site07_redline.docx", TriageOptions(local_parser=True, use_cache=True))
+        approvals.cancel_all()
+
+    asyncio.run(go())
+
+
+def test_confirm_is_refused_while_items_are_pending(fresh_state):
+    from fastapi import HTTPException
+
+    from siteline import api
+
+    _triage_demo()
+    with pytest.raises(HTTPException) as e:
+        asyncio.run(api.complete_agreement("site-07"))
+    assert e.value.status_code == 409
+
+
+def test_confirm_keeps_the_final_document_and_posts_accepted_terms(fresh_state, tmp_path):
+    from siteline import api
+
+    _triage_demo()
+    for d in store.get_decisions("site-07"):
+        if d["outcome"] == "escalate":
+            asyncio.run(approvals.record_reply(d["id"], 1, "imessage"))
+        elif d["outcome"] in ("human_review", "novel"):
+            store.update_decision(d["id"], override={"outcome": "accept", "reason": "resolved in the test", "at": 0})
+    res = asyncio.run(api.complete_agreement("site-07"))
+    assert res["agreement"]["status"] == "executed"
+    assert (tmp_path / "documents" / res["finalDocumentKey"]).exists()
+    saved = {r["id"]: r for r in store.precedents_for_site("Larkspur Cancer Institute")}
+    assert len(saved) == res["precedentsSaved"] and "site-07:s07-c07" in saved  # BAA, approved with a 1
+    assert saved["site-07:s07-c07"]["sourceKey"] == res["finalDocumentKey"]
+    assert "site-07:s07-c12" not in saved  # its quote failed verification, so it is never precedent
+    # The cited document comes back through the sources endpoint, byte for byte
+    served = asyncio.run(api.source_document(res["finalDocumentKey"]))
+    assert served.body == (tmp_path / "documents" / res["finalDocumentKey"]).read_bytes()
+    assert served.media_type == storage.DOCX
+
+
+def test_storage_round_trip_and_key_rules():
+    storage.put("site-20/NSO-417_CTA_Site20_final.docx", b"doc")
+    assert storage.get("site-20/NSO-417_CTA_Site20_final.docx") == b"doc"
+    assert storage.get("site-20/missing_final.docx") is None
+    assert storage.valid_key("site-07/NSO-417_CTA_Site07_final.docx")
+    for bad in ("../etc/passwd.docx", "site-07/../x.docx", "site-07/x.pdf", "x.docx", "a/b/c.docx"):
+        assert not storage.valid_key(bad), bad
+
+
+def test_sources_endpoint_rejects_bad_and_missing_keys():
+    from fastapi import HTTPException
+
+    from siteline import api
+
+    for key, status in (("../secret.docx", 400), ("site-20/missing_final.docx", 404)):
+        with pytest.raises(HTTPException) as e:
+            asyncio.run(api.source_document(key))
+        assert e.value.status_code == status
+
+
+def test_demo_applies_stored_precedent(fresh_state):
+    from siteline.extraction import SEED_CACHE
+    from siteline.pipeline import TriageOptions, triage
+
+    if not SEED_CACHE.exists():
+        from siteline.demo_cache import write_seed
+
+        write_seed()
+    store.post_completed([rec({"requires_baa": "true"}),
+                          rec({"mutual_indemnity": "true"}, site="Ironwood University Medical Center", agreement="site-11",
+                              clause="indemnification", id="p2")])
+
+    async def go():
+        await triage(demo_bytes(), "NSO-417_CTA_Site07_redline.docx", TriageOptions(local_parser=True, use_cache=True))
+        approvals.cancel_all()
+
+    asyncio.run(go())
+    d = {x["index"]: x for x in store.get_decisions("site-07")}
+    assert (d[7]["outcome"], d[7]["ruleId"], d[7]["precedent"]["originalRuleId"]) == ("accept", "PREC-A1", "DP-E1")
+    assert d[7]["approval"]["state"] == "none"
+    assert d[10]["outcome"] == "escalate" and d[10]["precedent"] is None
+    assert d[4]["outcome"] == "escalate" and d[4]["precedent"] is None  # another institution's acceptance is not looked up
+    assert d[9]["precedent"] is None  # low-confidence read stays with human review
+
+
+def test_precedent_eval_cases_hold_and_never_accept_unsafely():
+    cases = [it for it in load_dataset() if it.get("precedents")]
+    assert sum(it["gold"] == "accept" for it in cases) >= 4 and sum(it["gold"] == "escalate" for it in cases) >= 4
+    for it in cases:
+        v, _ = precedent.review(Verdict("escalate", "X", "rule"), it["clause_type"], it["ask"], it["siteName"], it["agreementId"], it["precedents"])
+        assert v.outcome == it["gold"], it["note"]
