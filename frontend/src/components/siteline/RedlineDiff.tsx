@@ -20,8 +20,8 @@ function wordDiff(a: string, b: string) {
 }
 
 // Redline convention: struck-through deletions, underlined insertions
-const del = 'text-high line-through decoration-high'
-const ins = 'text-accent underline decoration-accent underline-offset-[3px]'
+export const del = 'text-high line-through decoration-high'
+export const ins = 'text-accent underline decoration-accent underline-offset-[3px]'
 
 export function RedlineDiff({ change }: { change: Change }) {
   if (change.kind === 'insertion' && !change.original) {

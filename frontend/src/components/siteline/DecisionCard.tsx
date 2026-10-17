@@ -71,7 +71,7 @@ function ApprovalLine({ d }: { d: Decision }) {
   )
 }
 
-function OverrideForm({ d, onDone }: { d: Decision; onDone: () => void }) {
+export function OverrideForm({ d, onDone }: { d: Decision; onDone: () => void }) {
   const { override } = useDemo()
   // The backend refuses Siteline's own outcome, so it is not offered.
   const options = OVERRIDE_OUTCOMES.filter((o) => o !== d.outcome)
