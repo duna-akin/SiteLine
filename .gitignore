@@ -22,3 +22,5 @@ idea
 .env
 .env.*
 .claude/settings.local.json
+
+.superpowers/
