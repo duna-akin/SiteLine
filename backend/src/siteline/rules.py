@@ -1,6 +1,6 @@
 """Rules engine: one outcome per change, from extracted values and the playbook.
 
-Order: system checks (failed quote, low confidence, extraction error), then novel terms,
+Order: system checks (failed quote, low confidence, extraction error, conflicting values), then novel terms,
 then the clause rules. Every outcome carries the ID and text of the rule that fired.
 Counter-proposal text comes from fixed substitutions on the site's own wording; Siteline
 does not draft new legal language (PRD non-goal).
@@ -106,29 +106,43 @@ def _drop_phrase(text: str, pattern: str) -> str | None:
 # ---- clause rules -------------------------------------------------------------------
 
 
+STRICTNESS = {"accept": 0, "fallback": 1, "escalate": 2}
+
+
 def _payment(v: dict, ch: dict, lenient: dict | None = None) -> Verdict | None:
+    """Net days and the start-up fee are checked separately; a change that touches both gets the
+    stricter of the two verdicts (on a tie, the net-days one)."""
+    verdicts = [x for x in (_net_days(v, ch), _start_up_fee(v, ch, lenient)) if x]
+    return max(verdicts, key=lambda x: STRICTNESS[x.outcome], default=None)
+
+
+def _net_days(v: dict, ch: dict) -> Verdict | None:
     net = _num(v.get("net_days"))
-    if net is not None:
-        if net < 30:
-            fb = _replace_quantity(ch["revised"], "days", "thirty (30)")
-            return Verdict("escalate", "PAY-E1", f"Net {net:g} is under 30 days → escalate to Finance.", ch["original"], fb)
-        if net < 45:
-            return Verdict("accept", "PAY-A2", f"Net {net:g} is within the pre-approved Net 30 fallback.")
-        return Verdict("accept", "PAY-A1", f"Net {net:g} meets the Net 45 standard.")
+    if net is None:
+        return None
+    if net < 30:
+        fb = _replace_quantity(ch["revised"], "days", "thirty (30)")
+        return Verdict("escalate", "PAY-E1", f"Net {net:g} is under 30 days → escalate to Finance.", ch["original"], fb)
+    if net < 45:
+        return Verdict("accept", "PAY-A2", f"Net {net:g} is within the pre-approved Net 30 fallback.")
+    return Verdict("accept", "PAY-A1", f"Net {net:g} meets the Net 45 standard.")
+
+
+def _start_up_fee(v: dict, ch: dict, lenient: dict | None) -> Verdict | None:
     fee = _num(v.get("start_up_fee_pct"))
-    if fee is not None:
-        refundable = _bool(v.get("start_up_fee_refundable"))
-        counter = _replace_percent(ch["revised"], "ten percent (10%)")
-        if counter:
-            counter = counter.replace("non-refundable ", "").rstrip(".") + ", refundable pro rata if no subject is enrolled."
-        if fee > 20 and refundable is not True:
-            return Verdict("escalate", "PAY-E2", f"Non-refundable start-up fee of {fee:g}% is above 20% → escalate to Finance.", ch["original"], counter)
-        if fee > 10:
-            if widened := _widened("start_up_fee_pct", fee, lenient):
-                return widened
-            return Verdict("fallback", "PAY-F2", f"Start-up fee of {fee:g}% is above 10% → counter at 10%, refundable pro rata if no subject is enrolled.", counter)
-        return Verdict("accept", "PAY-A3", f"Start-up fee of {fee:g}% is within the 10% standard.")
-    return None
+    if fee is None:
+        return None
+    refundable = _bool(v.get("start_up_fee_refundable"))
+    counter = _replace_percent(ch["revised"], "ten percent (10%)")
+    if counter:
+        counter = counter.replace("non-refundable ", "").rstrip(".") + ", refundable pro rata if no subject is enrolled."
+    if fee > 20 and refundable is not True:
+        return Verdict("escalate", "PAY-E2", f"Non-refundable start-up fee of {fee:g}% is above 20% → escalate to Finance.", ch["original"], counter)
+    if fee > 10:
+        if widened := _widened("start_up_fee_pct", fee, lenient):
+            return widened
+        return Verdict("fallback", "PAY-F2", f"Start-up fee of {fee:g}% is above 10% → counter at 10%, refundable pro rata if no subject is enrolled.", counter)
+    return Verdict("accept", "PAY-A3", f"Start-up fee of {fee:g}% is within the 10% standard.")
 
 
 def _confidentiality(v: dict, ch: dict, lenient: dict | None = None) -> Verdict | None:
@@ -244,7 +258,13 @@ def _termination(v: dict, ch: dict) -> Verdict | None:
     return Verdict("fallback", "TERM-F1", f"{days:g} days’ notice exceeds the 60-day fallback → counter at 60 days.", _replace_quantity(ch["revised"], "days", "sixty (60)"))
 
 
+GOV_FIELDS = ("governing_law_state", "venue", "arbitration_abroad", "sovereign_immunity_waiver_required")
+
+
 def _governing_law(v: dict, ch: dict) -> Verdict | None:
+    # Whether the institution is public only qualifies a choice of law; on its own it is no rule
+    if not any(str(v.get(f) or "").strip() for f in GOV_FIELDS):
+        return None
     if _bool(v.get("arbitration_abroad")) or _bool(v.get("sovereign_immunity_waiver_required")):
         return Verdict("escalate", "GOV-E1", "Mandatory arbitration abroad or a sovereign immunity demand → escalate to Legal.", ch["original"])
     state = (v.get("governing_law_state") or "").strip()
@@ -292,6 +312,11 @@ def decide(change: dict, extraction: dict, quotes_ok: bool, lenient: dict | None
             "SYS-LOWCONF",
             f"Extraction confidence {confidence:.2f} < {LOW_CONFIDENCE:.2f} → human review. {extraction.get('rationale', '')}".strip(),
         )
+    seen: dict[str, set[str]] = {}
+    for v in extraction.get("values", []):
+        seen.setdefault(v["field"], set()).add(str(v["value"]).strip().lower())
+    if conflicts := sorted(f for f, vals in seen.items() if len(vals) > 1):
+        return Verdict("human_review", "SYS-CONFLICT", f"The extraction gave conflicting values for {', '.join(conflicts)} → human review.")
     values = {v["field"]: v["value"] for v in extraction.get("values", [])}
     if _bool(values.pop("no_substantive_change", None)) and not values and not extraction.get("novel_issue"):
         return Verdict("accept", "SYS-COSMETIC", "Wording or formatting edit with no change to rights or obligations → accept.")

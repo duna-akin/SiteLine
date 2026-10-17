@@ -195,3 +195,84 @@ def test_precedent_eval_cases_hold_and_never_accept_unsafely():
     for it in cases:
         v, _ = precedent.review(Verdict("escalate", "X", "rule"), it["clause_type"], it["ask"], it["siteName"], it["agreementId"], it["precedents"])
         assert v.outcome == it["gold"], it["note"]
+
+
+def test_partial_precedent_never_covers_a_broader_ask():
+    pay = Verdict("escalate", "PAY-E2", "Non-refundable start-up fee of 25% is above 20% → escalate to Finance.")
+    granted = rec({"start_up_fee_pct": "30", "start_up_fee_refundable": "true"}, clause="payment_terms")
+    assert precedent.review(pay, "payment_terms", {"start_up_fee_pct": "25"}, SITE, "site-07", [granted]) == (pay, None)
+    term = Verdict("escalate", "TERM-E1", "Termination for convenience without non-cancellable costs → escalate to Legal.")
+    granted = rec({"termination_for_convenience": "true", "pays_noncancellable_costs": "true"}, clause="termination")
+    assert precedent.review(term, "termination", {"termination_for_convenience": "true"}, SITE, "site-07", [granted]) == (term, None)
+    # The same fields, each no worse for the sponsor, still count
+    v, _ = precedent.review(pay, "payment_terms", {"start_up_fee_pct": "25", "start_up_fee_refundable": "true"}, SITE, "site-07",
+                            [rec({"start_up_fee_pct": "30", "start_up_fee_refundable": "true"}, clause="payment_terms")])
+    assert v.rule_id == "PREC-A1"
+
+
+def test_precedent_never_downgrades_an_escalation_with_a_novel_issue():
+    ind = Verdict("escalate", "IND-E2", "Site adds mutual indemnity → escalate to Legal.")
+    v, p = precedent.review(ind, "indemnification", {"mutual_indemnity": "true"}, SITE, "site-07",
+                            [rec({"mutual_indemnity": "true"}, clause="indemnification")], novel_issue="Bans AI training on study data")
+    assert (v.outcome, v.rule_id) == ("escalate", "IND-E2") and not p["downgraded"]
+
+
+def test_earlier_rounds_with_the_same_site_count_but_the_current_round_does_not():
+    started = "2026-10-01T00:00:00Z"
+    earlier = rec({"requires_baa": "true"}, agreement="site-07")  # decided 2025-11-20, a signed earlier round
+    v, _ = precedent.review(ESC, "data_privacy", {"requires_baa": "true"}, SITE, "site-07", [earlier], round_started=started)
+    assert v.rule_id == "PREC-A1"
+    current = {**earlier, "decidedAt": "2026-10-02T00:00:00Z"}
+    assert precedent.review(ESC, "data_privacy", {"requires_baa": "true"}, SITE, "site-07", [current], round_started=started) == (ESC, None)
+
+
+def _resolve_and_complete(agreement_id="site-07"):
+    from siteline import api
+
+    for d in store.get_decisions(agreement_id):
+        if store.effective_outcome(d) == "escalate" and d["approval"]["state"] != "answered":
+            asyncio.run(approvals.record_reply(d["id"], 1, "imessage"))
+        elif d["outcome"] in ("human_review", "novel") and not d.get("override"):
+            store.update_decision(d["id"], override={"outcome": "accept", "reason": "resolved in the test", "at": 0})
+    asyncio.run(api.confirm_all(agreement_id))
+    for d in store.get_decisions(agreement_id):  # suggestions resting on a precedent need their own confirm
+        if not store.is_waiting(d) and not store.is_confirmed(d):
+            asyncio.run(api.confirm_decision(d["id"]))
+    return asyncio.run(api.complete_agreement(agreement_id))
+
+
+def test_a_new_round_with_a_signed_site_keeps_the_signed_round(fresh_state, tmp_path):
+    _triage_demo()
+    first = _resolve_and_complete()
+    _triage_demo()  # the site sends another redline
+    a = store.state()["agreements"]["site-07"]
+    assert a["status"] == "awaiting_approval" and a["round"] == 2
+    assert a["previousRounds"][0]["finalDocumentKey"] == first["finalDocumentKey"] and a["previousRounds"][0]["round"] == 1
+    d7 = next(d for d in store.get_decisions("site-07") if d["index"] == 7)
+    assert d7["ruleId"] == "PREC-A1"  # round 1's approved BAA now counts for this site
+    second = _resolve_and_complete()
+    assert second["finalDocumentKey"].endswith("_r2.docx") and second["finalDocumentKey"] != first["finalDocumentKey"]
+    assert (tmp_path / "documents" / first["finalDocumentKey"]).exists()
+    ids = {r["id"] for r in store.precedents_for_site("Larkspur Cancer Institute")}
+    assert "site-07:s07-c07" in ids and "site-07:r2:s07-c07" in ids
+    assert len(ids) == first["precedentsSaved"] + second["precedentsSaved"]
+
+
+def test_a_failed_precedent_save_does_not_mark_the_agreement_executed(fresh_state, monkeypatch):
+    import psycopg
+    from fastapi import HTTPException
+
+    from siteline import db
+
+    _triage_demo()
+
+    def down(records):
+        raise psycopg.OperationalError("pooler down")
+
+    monkeypatch.setattr(db, "enabled", lambda: True)
+    monkeypatch.setattr(db, "post_completed", down)
+    monkeypatch.setattr(db, "precedents_for_site", lambda site: [])
+    with pytest.raises(HTTPException) as e:
+        _resolve_and_complete()
+    assert e.value.status_code == 503
+    assert store.state()["agreements"]["site-07"]["status"] != "executed"

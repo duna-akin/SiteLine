@@ -91,18 +91,24 @@ async def _line_for(client: httpx.AsyncClient, handle: str) -> str:
 
 
 async def send_text(phone: str, text: str) -> dict:
-    """Send `text` to `phone` from the line assigned to it. Returns {"messageId", "spaceId"}."""
+    """Send `text` to `phone` from the line assigned to it. Returns {"messageId", "spaceId"}.
+    Every failure, including network errors and unexpected replies, raises PhotonError."""
     handle = e164(phone)
-    async with httpx.AsyncClient(timeout=20) as client:
-        agent_id = await _user_id(client, await _line_for(client, handle))
-        approver_id = await _user_id(client, handle)
-        space_id = await _space_id(client, agent_id, approver_id)
-        msg = await _post(
-            client,
-            "messages",
-            {"spaceId": space_id, "senderId": agent_id, "content": {"type": "text", "format": "plain", "text": text}},
-            idempotent=True,
-        )
+    try:
+        async with httpx.AsyncClient(timeout=20) as client:
+            agent_id = await _user_id(client, await _line_for(client, handle))
+            approver_id = await _user_id(client, handle)
+            space_id = await _space_id(client, agent_id, approver_id)
+            msg = await _post(
+                client,
+                "messages",
+                {"spaceId": space_id, "senderId": agent_id, "content": {"type": "text", "format": "plain", "text": text}},
+                idempotent=True,
+            )
+    except httpx.HTTPError as e:
+        raise PhotonError(f"Could not reach Photon: {e!r}") from e
+    except (ValueError, KeyError, TypeError) as e:  # a body that is not the JSON we expect
+        raise PhotonError(f"Unexpected Photon response: {e!r}") from e
     return {"messageId": msg.get("id"), "spaceId": space_id}
 
 

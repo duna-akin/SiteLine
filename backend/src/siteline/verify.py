@@ -27,3 +27,39 @@ def verify_quote(quote: str, change: dict, context: str = "") -> bool:
     if len(q) < 3:
         return False
     return any(q in s for s in sources(change, context))
+
+
+# Fields whose value is a number; that number must appear in the value's own quote.
+NUMERIC_FIELDS = {"net_days", "start_up_fee_pct", "survival_years", "review_days", "site_notice_days", "patent_delay_days"}
+_ONES = "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen".split()
+_TENS = "_ _ twenty thirty forty fifty sixty seventy eighty ninety".split()
+
+
+def _words(n: int) -> str:
+    if n < 20:
+        return _ONES[n]
+    if n < 100:
+        return _TENS[n // 10] + ("" if n % 10 == 0 else "-" + _ONES[n % 10])
+    rest = n % 100
+    return f"{_ONES[n // 100]} hundred" + (f" {_words(rest)}" if rest else "")
+
+
+def number_in_quote(value: str, quote: str) -> bool:
+    """True when the number in `value` appears in `quote`, as digits or spelled out."""
+    m = re.search(r"-?\d+(?:\.\d+)?", str(value))
+    if not m:
+        return False
+    num = float(m.group())
+    q = normalize(quote).lower()
+    if any(float(d) == num for d in re.findall(r"\d+(?:\.\d+)?", q)):
+        return True
+    if num.is_integer() and 0 <= num < 1000:
+        return re.search(rf"(?<![a-z-]){re.escape(_words(int(num)))}(?![a-z-])", q) is not None
+    return False
+
+
+def verify_value(v: dict, change: dict, context: str = "") -> bool:
+    """The value's quote is verbatim in the change and, for a numeric field, states that number."""
+    if not verify_quote(v["quote"], change, context):
+        return False
+    return v["field"] not in NUMERIC_FIELDS or number_in_quote(v["value"], v["quote"])

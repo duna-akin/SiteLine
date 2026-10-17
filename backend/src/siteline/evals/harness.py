@@ -2,9 +2,9 @@
 
 1. Pack the labeled changes into Word redlines (one per shard) and parse every shard in its
    own Daytona sandbox, in parallel (local parser when Daytona is off).
-2. Siteline: Claude extraction → quote verification → rules engine → precedent (for items
+2. Siteline: OpenAI extraction → quote verification → rules engine → precedent (for items
    that carry a site history).
-   Baseline: the same Claude model reads the playbook and picks the outcome directly.
+   Baseline: the same OpenAI model reads the playbook and picks the outcome directly.
 3. Score: unsafe accept rate, escalation recall, triage accuracy, quote pass rate, latency.
 """
 
@@ -16,8 +16,6 @@ import time
 from datetime import UTC, datetime
 from typing import Any
 
-import openai
-
 from siteline import events, precedent
 from siteline.config import DATA_DIR, settings
 from siteline.demo import build_redline
@@ -26,9 +24,9 @@ from siteline.evals.dataset import load_dataset
 from siteline.extraction import ExtractionError, complete_json, extract_live
 from siteline.playbook import playbook_text
 from siteline.priority import MAX_SHARE
-from siteline.rules import decide
+from siteline.rules import Verdict, decide
 from siteline.sandbox import SandboxError, parse_in_daytona
-from siteline.verify import verify_quote
+from siteline.verify import verify_quote, verify_value
 
 OUTCOMES = ["accept", "fallback", "escalate", "human_review", "novel"]
 # Both tiers: every row is also decided for a high-priority site at the widest allowed leniency
@@ -68,15 +66,24 @@ async def baseline(change: dict, context: str) -> dict:
 
     started = time.perf_counter()
     try:
-        r = await complete_json(_baseline_system(), _user_prompt(change, context), BASELINE_SCHEMA, "baseline", 8000)
-    except openai.APIError as e:
+        data, _ = await complete_json(_baseline_system(), _user_prompt(change, context), BASELINE_SCHEMA, "baseline", 8000)
+    except ExtractionError as e:
         return {"error": str(e), "latencyMs": round((time.perf_counter() - started) * 1000)}
-    choice = r.choices[0]
-    if choice.message.refusal or choice.finish_reason == "length":
-        return {"error": "refusal" if choice.message.refusal else "max_tokens", "latencyMs": round((time.perf_counter() - started) * 1000)}
-    data = json.loads(choice.message.content or "")
     data["latencyMs"] = round((time.perf_counter() - started) * 1000)
     return data
+
+
+def siteline_verdict(change: dict, ex: dict, context: str, item: dict, lenient: dict | None = None) -> tuple[Verdict, list[bool]]:
+    """Siteline's outcome for one labeled change: quote check, rules, then the item's site history
+    (when it carries one). Shared by this harness and the Chalk evaluation."""
+    quotes = [verify_value(v, change, context) for v in ex.get("values", [])] if not ex.get("error") else []
+    verdict = decide(change, ex, all(quotes), lenient)
+    if item.get("precedents"):
+        values = {v["field"]: v["value"] for v in ex.get("values", [])} if not ex.get("error") else {}
+        clause = ex.get("clause_type") or item["clause_type"]
+        verdict, _ = precedent.review(verdict, clause, values, item["siteName"], item["agreementId"], item["precedents"],
+                                      ex.get("novel_issue"))
+    return verdict, quotes
 
 
 def shard_docx(items: list[dict]) -> bytes:
@@ -152,7 +159,7 @@ def score(rows: list[dict]) -> dict[str, Any]:
          "siteline": acc("siteline"), "baseline": acc("baseline"), "unit": "%", "lowerIsBetter": False, "target": "Report both"},
         {"key": "quotes", "label": "Quote pass rate", "description": "Quotes found verbatim in the redline",
          "siteline": _rate(sum(s_q), len(s_q)), "baseline": _rate(sum(b_q), len(b_q)), "unit": "%", "lowerIsBetter": False, "target": "Near 100%"},
-        {"key": "latency", "label": "Latency per change", "description": "Mean Claude call time per change",
+        {"key": "latency", "label": "Latency per change", "description": "Mean model call time per change",
          "siteline": lat("siteline_ms"), "baseline": lat("baseline_ms"), "unit": "s", "lowerIsBetter": True},
     ]
     if rows and all("siteline_high" in r for r in rows):
@@ -167,7 +174,7 @@ def score(rows: list[dict]) -> dict[str, Any]:
 
 async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = 8) -> dict:
     if not settings.claude_enabled:
-        raise RuntimeError("The eval needs Claude: set OPENAI_API_KEY in backend/.env")
+        raise RuntimeError("The eval needs OPENAI_API_KEY in backend/.env")
     items = load_dataset()
     if limit:
         items = items[:limit]
@@ -191,15 +198,9 @@ async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = 8) ->
             except ExtractionError as e:
                 ex = {"error": str(e), "latencyMs": 0}
             b = await baseline(change, it["context"])
-        quotes = [verify_quote(v["quote"], change, it["context"]) for v in ex.get("values", [])] if not ex.get("error") else []
-        verdict = decide(change, ex, all(quotes))
+        verdict, quotes = siteline_verdict(change, ex, it["context"], it)
         # The same reading decided for a high-priority site at the widest leniency the config allows
-        high = decide(change, ex, all(quotes), HIGH_TIER)
-        if it.get("precedents"):
-            values = {v["field"]: v["value"] for v in ex.get("values", [])} if not ex.get("error") else {}
-            clause = ex.get("clause_type") or it["clause_type"]
-            verdict, _ = precedent.review(verdict, clause, values, it["siteName"], it["agreementId"], records=it["precedents"])
-            high, _ = precedent.review(high, clause, values, it["siteName"], it["agreementId"], records=it["precedents"])
+        high, _ = siteline_verdict(change, ex, it["context"], it, HIGH_TIER)
         b_out = b.get("outcome") if not b.get("error") else "human_review"
         done += 1
         events.publish("eval.progress", {"runId": run_id, "done": done, "total": len(items)})

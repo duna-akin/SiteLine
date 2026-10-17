@@ -80,19 +80,28 @@ def _decode(value: str | None) -> str:
     return str(make_header(decode_header(value))) if value else ""
 
 
+def _connect() -> imaplib.IMAP4_SSL:
+    imap = imaplib.IMAP4_SSL(settings.imap_host)
+    imap.login(settings.imap_user, settings.imap_password)
+    imap.select(settings.imap_folder)
+    return imap
+
+
 def _fetch_unseen() -> list[dict]:
+    """Unread emails with a .docx attachment, each with its IMAP uid. They are read with
+    BODY.PEEK so they stay unread until poll_once has recorded them; an email without a .docx
+    is marked read here."""
     out = []
-    with imaplib.IMAP4_SSL(settings.imap_host) as imap:
-        imap.login(settings.imap_user, settings.imap_password)
-        imap.select(settings.imap_folder)
-        status, data = imap.search(None, "UNSEEN")
+    with _connect() as imap:
+        status, data = imap.uid("search", None, "UNSEEN")
         if status != "OK":
             return out
-        for num in data[0].split():
-            status, msg_data = imap.fetch(num, "(RFC822)")
+        for uid in data[0].split():
+            status, msg_data = imap.uid("fetch", uid, "(BODY.PEEK[])")
             if status != "OK" or not msg_data or not isinstance(msg_data[0], tuple):
                 continue
             msg = email.message_from_bytes(msg_data[0][1])
+            found = None
             for part in msg.walk():
                 name = _decode(part.get_filename())
                 if name.lower().endswith(".docx"):
@@ -103,17 +112,26 @@ def _fetch_unseen() -> list[dict]:
                             received = parsedate_to_datetime(msg.get("Date")).isoformat()
                         except (TypeError, ValueError):
                             received = store.iso_now()
-                        out.append({
+                        found = {
+                            "uid": uid.decode(),
                             "from": sender[1],
                             "siteName": sender[0] or sender[1].split("@")[-1],
                             "subject": _decode(msg.get("Subject")),
                             "attachment": name,
                             "receivedAt": received,
                             "data": payload,
-                        })
+                        }
                         break
-            imap.store(num, "+FLAGS", "\\Seen")
+            if found:
+                out.append(found)
+            else:
+                imap.uid("store", uid, "+FLAGS", "\\Seen")
     return out
+
+
+def _mark_seen(uid: str) -> None:
+    with _connect() as imap:
+        imap.uid("store", uid, "+FLAGS", "\\Seen")
 
 
 async def receive(meta: dict, data: bytes, triage_now: bool = True) -> dict:
@@ -144,14 +162,32 @@ async def triage_email(email_id: str) -> dict:
     return agreement
 
 
+async def poll_once() -> None:
+    """Record and triage each unread redline. Each email is marked read once it is recorded, and
+    one that fails (say, a .docx with no tracked changes) never stops the rest of the batch."""
+    try:
+        batch = await asyncio.to_thread(_fetch_unseen)
+    except (imaplib.IMAP4.error, OSError) as e:
+        log.warning("IMAP poll failed: %s", e)
+        return
+    for msg in batch:
+        uid, data = msg.pop("uid"), msg.pop("data")
+        try:
+            record = await receive(msg, data, triage_now=False)
+        except Exception:  # noqa: BLE001 - left unread, so the next poll tries it again
+            log.exception("Could not record inbound email %r", msg.get("subject"))
+            continue
+        try:
+            await asyncio.to_thread(_mark_seen, uid)
+        except (imaplib.IMAP4.error, OSError) as e:
+            log.warning("Could not mark email %s read: %s", uid, e)
+        try:
+            await triage_email(record["id"])
+        except Exception:  # noqa: BLE001 - it stays in the inbox, untriaged, for a person to look at
+            log.exception("Inbound email triage failed for %s", record["id"])
+
+
 async def poll_forever(interval: float = 30) -> None:
     while True:
-        try:
-            for msg in await asyncio.to_thread(_fetch_unseen):
-                data = msg.pop("data")
-                await receive(msg, data)
-        except (imaplib.IMAP4.error, OSError) as e:
-            log.warning("IMAP poll failed: %s", e)
-        except Exception:  # keep polling after a bad message
-            log.exception("Inbound email triage failed")
+        await poll_once()
         await asyncio.sleep(interval)

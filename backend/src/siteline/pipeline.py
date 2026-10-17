@@ -1,4 +1,4 @@
-"""Upload → parse (Daytona or local) → Claude extraction → quote check → rules → decisions."""
+"""Upload → parse (Daytona or local) → OpenAI extraction → quote check → rules → decisions."""
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ from siteline.extraction import extract_all, extract_document
 from siteline.playbook import load_playbook, owner_for
 from siteline.rules import WIDENED_CLAUSES, Verdict, decide
 from siteline.sandbox import SandboxError, parse_in_daytona, parse_local
-from siteline.verify import verify_quote
+from siteline.verify import verify_value
 
 
 @dataclass
@@ -103,16 +103,17 @@ class Job:
 
 
 def _verdict(change: dict, ex: dict, values: list[dict], clause: str, site_name: str, agreement_id: str,
-             history: list[dict], lenient: dict | None) -> tuple[Verdict, dict | None]:
+             history: list[dict], lenient: dict | None, round_started: str | None = None) -> tuple[Verdict, dict | None]:
     quotes_ok = all(v["verified"] for v in values)
     verdict = decide(change, ex, quotes_ok, lenient)
     # After the rules and their fail-safes: has this site been granted this before? Always checked,
     # including widened accepts, so the reviewer sees the precedent next to the suggestion.
-    return precedent.review(verdict, clause, {v["field"]: v["value"] for v in values}, site_name, agreement_id, history)
+    return precedent.review(verdict, clause, {v["field"]: v["value"] for v in values}, site_name, agreement_id, history,
+                            ex.get("novel_issue"), round_started)
 
 
 def build_decisions(agreement_id: str, parsed: dict, extractions: list[dict], site_name: str = "",
-                    lenient: dict | None = None) -> list[dict]:
+                    lenient: dict | None = None, round_started: str | None = None) -> list[dict]:
     rules = load_playbook()
     context = preamble(parsed)
     prefix = agreement_id.replace("site-", "s")
@@ -121,10 +122,10 @@ def build_decisions(agreement_id: str, parsed: dict, extractions: list[dict], si
     for change, ex in zip(parsed["changes"], extractions, strict=True):
         values = []
         for v in ex.get("values", []) if not ex.get("error") else []:
-            values.append({**v, "verified": verify_quote(v["quote"], change, context)})
+            values.append({**v, "verified": verify_value(v, change, context)})
         quotes_ok = all(v["verified"] for v in values)
         clause = ex.get("clause_type") or guess_clause(change["section"])
-        verdict, prec = _verdict(change, ex, values, clause, site_name, agreement_id, history, lenient)
+        verdict, prec = _verdict(change, ex, values, clause, site_name, agreement_id, history, lenient, round_started)
         primary = next((v for v in values if not v["verified"]), values[0] if values else None)
         out.append(
             {
@@ -178,7 +179,8 @@ def redecide_open(agreement_id: str, lenient: dict, dry_run: bool = False) -> li
             continue
         ex = {"clause_type": d["extractedClauseType"], "values": [{k: v[k] for k in ("field", "value", "quote")} for v in d["extracted"]],
               "confidence": d["confidence"], "novel_issue": d["novelIssue"], "error": d["extractionError"], "rationale": d["rationale"]}
-        verdict, prec = _verdict(d, ex, d["extracted"], d["clauseType"], a.get("siteName", ""), agreement_id, history, lenient)
+        verdict, prec = _verdict(d, ex, d["extracted"], d["clauseType"], a.get("siteName", ""), agreement_id, history, lenient,
+                                 a.get("roundStartedAt"))
         if verdict.rule_id != d["ruleId"]:
             changed.append({"agreementId": agreement_id, "changeId": d["id"], "section": d["section"],
                             "from": {"outcome": d["outcome"], "ruleId": d["ruleId"]},
@@ -244,6 +246,7 @@ async def triage(data: bytes, file_name: str, options: TriageOptions, source: st
     meta = site_meta(parsed, file_name)
     job.agreement_id = meta["agreementId"]
 
+    # "Anthropic Claude" stays the step's sponsor key until the frontend's sponsor chips are redone
     job.step("extract", "active", f"{len(parsed['changes'])} changes in parallel", "Anthropic Claude")
     text = priority.document_text(parsed)
     extractions, figures = await asyncio.gather(
@@ -260,6 +263,16 @@ async def triage(data: bytes, file_name: str, options: TriageOptions, source: st
     job.step("extract", "done", detail, "Anthropic Claude")
 
     existing = store.state()["agreements"].get(meta["agreementId"], {})
+    previous = existing.get("previousRounds", [])
+    if existing.get("status") == "executed":
+        # A new redline from a site whose last round was signed: start the next round and keep
+        # the signed one on record, so its final document and precedents stay as they were
+        rnd, round_started = existing.get("round", 1) + 1, store.iso_now()
+        previous = [*previous, {k: existing.get(k) for k in ("fileName", "finalDocumentKey", "completedAt")} | {"round": rnd - 1}]
+        new_round = True
+    else:
+        rnd, round_started = existing.get("round", 1), existing.get("roundStartedAt") or store.iso_now()
+        new_round = False
     inputs = priority.inputs_from_extraction(figures, text)
     if priority.assess(inputs)["level"] == "unknown" and (existing.get("priorityInputs") or {}).get("source") == "study plan":
         inputs = existing["priorityInputs"]  # the contract is silent: keep the study-plan figures on file
@@ -268,7 +281,7 @@ async def triage(data: bytes, file_name: str, options: TriageOptions, source: st
     prio = priority.assess(inputs)
     job.log(f"Priority: {prio['level']} · {prio['reason']} Leniency: {lenient['share']:.0%} of the gap ({lenient['bucket']} waiting).")
 
-    decisions = build_decisions(meta["agreementId"], parsed, extractions, meta["siteName"], lenient)
+    decisions = build_decisions(meta["agreementId"], parsed, extractions, meta["siteName"], lenient, round_started)
     bad = sum(1 for d in decisions if not d["quoteVerified"] and not d["extractionError"])
     total_q = sum(len(d["extracted"]) for d in decisions)
     ok_q = sum(1 for d in decisions for v in d["extracted"] if v["verified"])
@@ -287,17 +300,20 @@ async def triage(data: bytes, file_name: str, options: TriageOptions, source: st
         "siteName": meta["siteName"],
         "city": meta["city"],
         "status": "awaiting_approval",
-        "daysOpen": existing.get("daysOpen", 0),
+        "daysOpen": 0 if new_round else existing.get("daysOpen", 0),
         "changes": len(decisions),
         "stuckClauses": [],
         "outcomeMix": mix,
         "source": source,
-        "receivedAt": existing.get("receivedAt") or store.iso_now(),
+        "receivedAt": (None if new_round else existing.get("receivedAt")) or store.iso_now(),
         "fileName": file_name,
         "triageSeconds": seconds,
         "sandboxId": sandbox_id,
         "parser": "daytona" if use_daytona else "local",
         "log": job.log_lines,
+        "round": rnd,
+        "roundStartedAt": round_started,
+        "previousRounds": previous,
         **prio_agreement,
     }
     approvals.cancel_for_agreement(meta["agreementId"])

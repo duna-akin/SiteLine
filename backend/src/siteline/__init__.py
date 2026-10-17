@@ -15,7 +15,7 @@ def main() -> None:
     serve.add_argument("--port", type=int, default=8000)
     serve.add_argument("--reload", action="store_true")
     sub.add_parser("make-demo", help="Write the Site 07 demo redline and its seed extraction cache")
-    sub.add_parser("cache-demo", help="Extract the demo file with Claude and save it as the seed cache")
+    sub.add_parser("cache-demo", help="Extract the demo file with OpenAI and save it as the seed cache")
     parse = sub.add_parser("parse", help="Print the tracked changes in a .docx as JSON")
     parse.add_argument("file")
     sub.add_parser("reset", help="Clear agreements, decisions and approvals back to the seed portfolio")

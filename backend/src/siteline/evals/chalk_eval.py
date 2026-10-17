@@ -1,10 +1,11 @@
 """Run the Siteline vs baseline comparison on Chalk Agent Evals (PRD P2).
 
 Two evaluations over the same pinned dataset revision, in one suite:
-  - task `siteline_triage`: Claude extraction → quote check → rules engine
-  - task `baseline_triage`: Claude picks the outcome directly from the playbook
+  - task `siteline_triage`: OpenAI extraction → quote check → rules engine → precedent
+  - task `baseline_triage`: the same model picks the outcome directly from the playbook
 Scorers: exact match on the outcome, and "safe" (0 when a labeled escalation was
-accepted or countered, so 1 - mean(safe) is the unsafe accept rate).
+accepted or countered, and 0 for a row with no output, so a failed task never looks safe;
+1 - mean(safe) is the unsafe accept rate).
 
 Needs Evaluations enabled on the Chalk environment, `chalk login`, and OPENAI_API_KEY in
 your shell (uploaded as a Chalk secret at deploy time). Run from backend/:
@@ -24,7 +25,8 @@ import chalkcompute
 
 IMAGE = (
     chalkcompute.Image.debian_slim("3.12")
-    .pip_install(["openai>=1.100", "python-dotenv", "httpx", "pydantic"])
+    # psycopg: the precedent and store modules the tasks import load it at import time
+    .pip_install(["openai>=1.100", "python-dotenv", "httpx", "pydantic", "psycopg[binary]>=3.3"])
     .add_local_python_source("siteline")
     .add_local_dir("data", "/app/data")
     .env({"SITELINE_DATA_DIR": "/app/data", "SITELINE_RUNTIME_DIR": "/tmp/siteline"})
@@ -33,18 +35,16 @@ SECRETS = [chalkcompute.Secret.from_local_env("OPENAI_API_KEY")]
 
 
 @chalkcompute.function(image=IMAGE, secrets=SECRETS, concurrency=8, cpu="500m", memory="1Gi")
-def siteline_triage(change: str, context: str) -> str:
+def siteline_triage(change: str, context: str, item: str) -> str:
+    from siteline.evals.harness import siteline_verdict
     from siteline.extraction import ExtractionError, extract_live
-    from siteline.rules import decide
-    from siteline.verify import verify_quote
 
     ch = json.loads(change)
     try:
         ex = asyncio.run(extract_live(ch, context))
     except ExtractionError as e:
         ex = {"error": str(e)}
-    quotes = [verify_quote(v["quote"], ch, context) for v in ex.get("values", [])]
-    return decide(ch, ex, all(quotes)).outcome
+    return siteline_verdict(ch, ex, context, json.loads(item))[0].outcome
 
 
 @chalkcompute.function(image=IMAGE, secrets=SECRETS, concurrency=8, cpu="500m", memory="1Gi")
@@ -58,8 +58,14 @@ def baseline_triage(change: str, context: str) -> str:
 outcome_match = chalkcompute.scorers.exact_match(name="outcome-match")
 safe = chalkcompute.scorers.sql(
     "safe",
-    '''CASE WHEN "expected" = 'escalate' AND "output" IN ('accept', 'fallback') THEN 0.0 ELSE 1.0 END''',
+    '''CASE WHEN "output" IS NULL OR "output" = '' THEN 0.0
+          WHEN "expected" = 'escalate' AND "output" IN ('accept', 'fallback') THEN 0.0 ELSE 1.0 END''',
 )
+
+
+def item_column(it: dict) -> str:
+    """What siteline_triage needs from a labeled item beyond the change: its site history."""
+    return json.dumps({k: it.get(k) for k in ("clause_type", "siteName", "agreementId", "precedents")}, ensure_ascii=False)
 
 
 def dataset_rows() -> list[dict]:
@@ -69,7 +75,8 @@ def dataset_rows() -> list[dict]:
     items = load_dataset()
     changes, _ = asyncio.run(parse_shards(items, sandboxes=0, log=print))
     return [
-        {"item_id": it["id"], "change": json.dumps(ch, ensure_ascii=False), "context": it["context"], "expected": it["gold"], "note": it["note"]}
+        {"item_id": it["id"], "change": json.dumps(ch, ensure_ascii=False), "context": it["context"], "item": item_column(it),
+         "expected": it["gold"], "note": it["note"]}
         for it, ch in zip(items, changes, strict=True)
     ]
 

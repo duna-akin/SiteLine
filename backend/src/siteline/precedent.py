@@ -40,19 +40,31 @@ def _value_ok(field: str, ask: str, past: str) -> bool:
 
 
 def _covers(values: dict, record: dict, clause_type: str) -> bool:
-    """The record accepted an ask no better for the sponsor than `values`, on every field."""
-    fields = [f for f in values if f != "no_substantive_change"]
-    past = record["values"]
-    return bool(fields) and record["clauseType"] == clause_type and all(f in past and _value_ok(f, values[f], past[f]) for f in fields)
+    """The record accepted an ask no better for the sponsor than `values`, on every field. Both must
+    cover the same fields: a past acceptance that also had, say, a refundable fee says nothing about
+    an ask that leaves refundability out."""
+    fields = {f for f in values if f != "no_substantive_change"}
+    past = {f: v for f, v in record["values"].items() if f != "no_substantive_change"}
+    return (bool(fields) and record["clauseType"] == clause_type and fields == set(past)
+            and all(_value_ok(f, values[f], past[f]) for f in fields))
 
 
-def find(clause_type: str, values: dict, site_name: str, agreement_id: str, records: list[dict] | None = None) -> list[dict]:
+def _same_round(r: dict, agreement_id: str, round_started: str | None) -> bool:
+    """A record from this agreement's current round (or from this agreement at all, when the round
+    start is unknown). Earlier rounds with the same site, already confirmed, count as precedent.
+    Strictly later: a round's own records are written when it is confirmed, which is always after
+    its triage, so a record in the same second as the round start belongs to the round before."""
+    return r["agreementId"] == agreement_id and (round_started is None or r["decidedAt"] > round_started)
+
+
+def find(clause_type: str, values: dict, site_name: str, agreement_id: str, records: list[dict] | None = None,
+         round_started: str | None = None) -> list[dict]:
     """This institution's acceptances that cover this ask, newest first."""
     site = normalize_site(site_name)
     hits = [
         {k: r.get(k) for k in KEEP}
         for r in (store.precedents_for_site(site_name) if records is None else records)
-        if normalize_site(r["siteName"]) == site and r["agreementId"] != agreement_id and _covers(values, r, clause_type)
+        if normalize_site(r["siteName"]) == site and not _same_round(r, agreement_id, round_started) and _covers(values, r, clause_type)
     ]
     return sorted(hits, key=lambda m: m["decidedAt"], reverse=True)
 
@@ -63,14 +75,16 @@ def _describe(m: dict) -> str:
 
 
 def review(verdict: Verdict, clause_type: str, values: dict, site_name: str, agreement_id: str,
-           records: list[dict] | None = None) -> tuple[Verdict, dict | None]:
-    """Return the (possibly downgraded) verdict and the precedent shown with it."""
+           records: list[dict] | None = None, novel_issue: str | None = None,
+           round_started: str | None = None) -> tuple[Verdict, dict | None]:
+    """Return the (possibly downgraded) verdict and the precedent shown with it. An escalation that
+    also carries a novel issue is never downgraded: the precedent covers the term, not the new issue."""
     if verdict.outcome not in ("accept", "fallback", "escalate"):
         return verdict, None
-    matches = find(clause_type, values, site_name, agreement_id, records)
+    matches = find(clause_type, values, site_name, agreement_id, records, round_started)
     if not matches:
         return verdict, None
-    downgrade = verdict.outcome == "escalate"
+    downgrade = verdict.outcome == "escalate" and not novel_issue
     precedent = {
         "sameSite": matches,
         "downgraded": downgrade,
@@ -101,13 +115,15 @@ def completed_records(agreement_id: str, source_key: str) -> list[dict]:
     accepted and whose quotes were verified, citing the final document under `source_key`."""
     a = store.state()["agreements"][agreement_id]
     decided = store.iso_now()
+    rnd = a.get("round", 1)
+    prefix = f"{agreement_id}:" if rnd == 1 else f"{agreement_id}:r{rnd}:"  # round 1 keeps its original IDs
     out = []
     for d in store.get_decisions(agreement_id):
         values = {v["field"]: v["value"] for v in d.get("extracted", []) if v["field"] != "no_substantive_change"}
         if not values or not d.get("quoteVerified") or final_text(d)[0] != "accepted":
             continue
         out.append({
-            "id": f"{agreement_id}:{d['id']}",
+            "id": f"{prefix}{d['id']}",
             "siteName": a.get("siteName", ""),
             "agreementId": agreement_id,
             "siteNumber": a.get("siteNumber", ""),

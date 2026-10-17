@@ -23,6 +23,9 @@ OUTCOMES = ("accept", "fallback", "escalate", "human_review", "novel")
 
 _lock = threading.RLock()
 _state: dict[str, Any] = {}
+# Photon webhook IDs already handled (newest last), so a redelivery is not applied twice
+_webhook_ids: dict[str, None] = {}
+WEBHOOK_IDS_KEPT = 1000
 
 
 def now_ms() -> int:
@@ -247,12 +250,19 @@ def precedents_for_site(site_name: str) -> list[dict]:
     return [r for r in _state.get("precedents", []) if db.normalize_site(r["siteName"]) == key]
 
 
+class PrecedentStoreError(Exception):
+    pass
+
+
 def post_completed(records: list[dict]) -> None:
+    """Save a confirmed agreement's precedents. Raises PrecedentStoreError when the database
+    write fails, so the agreement is not reported as saved."""
     if db.enabled():
         try:
             db.post_completed(records)
         except psycopg.Error as e:
             log.error("Could not save %d precedents: %s", len(records), e)
+            raise PrecedentStoreError(str(e)) from e
         return
     with _lock:
         known = {r["id"] for r in _state.setdefault("precedents", [])}
@@ -282,6 +292,17 @@ def update_email(email_id: str, **fields: Any) -> None:
 
 
 # ---- integration bookkeeping ---------------------------------------------------------
+
+
+def seen_webhook(msg_id: str) -> bool:
+    """True when `msg_id` was handled before; otherwise remember it and return False."""
+    with _lock:
+        if msg_id in _webhook_ids:
+            return True
+        _webhook_ids[msg_id] = None
+        if len(_webhook_ids) > WEBHOOK_IDS_KEPT:
+            del _webhook_ids[next(iter(_webhook_ids))]
+        return False
 
 
 def photon_map() -> dict[str, dict]:
