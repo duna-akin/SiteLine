@@ -1,13 +1,16 @@
+import { useEffect } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowRight, RotateCw } from 'lucide-react'
+import { ArrowRight, LoaderCircle, RotateCw } from 'lucide-react'
 
 import { PriorityBadge } from '@/components/siteline/PriorityBadge'
 import { byPriority, openSites, priorityPill, priorityShort, usd } from '@/components/siteline/priority-style'
 import { RadarLegend, SiteRadar } from '@/components/siteline/SiteRadar'
+import { RedlineDocument } from '@/components/siteline/RedlineDocument'
 import { agreementPath, notTriaged } from '@/lib/sites'
 import { cn } from '@/lib/utils'
 import { clauseLabel } from '@/mocks/playbook'
 import { statusLabel } from '@/mocks/portfolio'
+import { useDemo } from '@/state/demo'
 import { useDesk } from '@/state/desk'
 
 const TARGET_DAYS = 90
@@ -18,6 +21,42 @@ function Stat({ value, label, tone }: { value: string; label: string; tone?: str
       <dt>{label}</dt>
       <dd className={tone}>{value}</dd>
     </div>
+  )
+}
+
+/** The selected site's redline, loaded into the same store the Review page uses so overrides stay in step. */
+function SiteRedline({ id }: { id: string }) {
+  const { agreement, decisions, loading, loadError, loadAgreement } = useDemo()
+  const current = agreement?.id === id
+
+  useEffect(() => {
+    if (agreement?.id !== id) void loadAgreement(id)
+  }, [id, agreement?.id, loadAgreement])
+
+  const open = decisions.filter((d) => (d.outcome === 'human_review' || d.outcome === 'novel') && !d.override).length
+
+  return (
+    <section aria-labelledby="redline-h" className="mt-5">
+      <h3 id="redline-h" className="eyebrow font-sans">
+        Redline{current && !loading && open > 0 && <span className="ml-2 normal-case text-high">{open} need a reviewer</span>}
+      </h3>
+      {loadError && !loading ? (
+        <p className="mt-2 text-sm text-high" role="alert">
+          Couldn’t load the redline: {loadError}{' '}
+          <button type="button" className="link min-h-0 text-sm" onClick={() => void loadAgreement(id)}>Try again</button>
+        </p>
+      ) : loading || !current ? (
+        <p className="mt-2 text-sm text-muted" role="status">
+          <LoaderCircle aria-hidden className="mr-1.5 inline size-4 animate-spin" /> Loading the redline…
+        </p>
+      ) : decisions.length === 0 ? (
+        <p className="empty mt-2">No tracked changes found in this redline.</p>
+      ) : (
+        <div tabIndex={0} aria-label={`Site redline, ${decisions.length} changes`} className="well mt-2 max-h-[28rem] overflow-y-auto p-4">
+          <RedlineDocument decisions={decisions} />
+        </div>
+      )}
+    </section>
   )
 }
 
@@ -105,7 +144,10 @@ export function SitesPage() {
                 <p className="mt-1 text-sm text-muted">Nothing blocking activation.</p>
               )}
               {pick.fileName ? (
-                <Link to={`/review/${pick.id}`} className="btn btn-primary mt-5">Open Site {pick.siteNumber} review <ArrowRight aria-hidden className="size-4" /></Link>
+                <>
+                  <SiteRedline id={pick.id} />
+                  <Link to={`/review/${pick.id}`} className="btn btn-primary mt-5">Open Site {pick.siteNumber} review <ArrowRight aria-hidden className="size-4" /></Link>
+                </>
               ) : (
                 <p className="empty mt-5">
                   {notTriaged(pick) ? 'This site’s redline hasn’t been triaged in Siteline yet.' : 'Tracked from the study plan; its redline wasn’t triaged in Siteline.'}
