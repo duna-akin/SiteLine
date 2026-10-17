@@ -3,6 +3,18 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · Backend fixes from the full code review
+
+### Fixed
+
+- **No unsafe auto-accepts:** a precedent covers an ask only when both have the same fields, and never downgrades an escalation that carries a novel issue. The payment rule checks net days and the start-up fee together and keeps the stricter verdict. Governing law with no governing-law facts is `SYS-NORULE`. Conflicting values for one field go to human review (`SYS-CONFLICT`), and a numeric value must be stated in its own quote.
+- **OpenAI migration finished:** `extract_document` uses the OpenAI client (it still called the removed Anthropic one and failed every upload without cached figures). `complete_json` checks every answer (refusal, cut off, content filter, empty, invalid JSON), so the eval baseline records a row error instead of aborting the run. `SITELINE_OPENAI_EFFORT=off` leaves `reasoning_effort` out for non-reasoning models; `SITELINE_OPENAI_TIMEOUT` (default 180s); timeouts say so; one client per event loop for the Chalk tasks. A leftover `ANTHROPIC_API_KEY` logs a warning.
+- **Approver replies:** a reply naming a code that is not open (or open on two sites) is never applied to another escalation; the approver gets one clarification text and can answer "Site 12 C04 1". Approvers sharing a phone can answer each other's escalations. Photon webhook redeliveries are applied once.
+- **Calls:** a reply recorded while a call is being placed is kept, the timer and "Call now" place one call, and an override cancels (or resumes) the no-reply call. Photon and Twilio network errors are caught, and a failing timer call is logged.
+- **Rounds:** a new redline from a site whose agreement was executed starts round 2 under the same agreement ID, keeps the signed round in `previousRounds`, applies the site's earlier precedents, and stores its precedents and final document under round-tagged IDs and keys. A failed precedent save returns 503 instead of marking the agreement executed.
+- Export filenames are ASCII (no 500 when the site number is unknown), author names with quotes no longer corrupt the Word file, and one failing inbound email no longer drops the rest of the IMAP batch.
+- The Chalk evaluation installs `psycopg`, runs the same precedent step as the local harness (`siteline_verdict`), and scores a row with no output as unsafe.
+
 ## [Unreleased] · Site priority and cost of delay (issue #2)
 
 ### Added
