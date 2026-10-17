@@ -14,13 +14,13 @@ function Item({ e, agreement, busy, onTriage }: { e: InboundEmail; agreement?: A
   const prio = agreement?.priority
   return (
     <li id={`email-${e.id}`} className="scroll-mt-24">
-      <span className="blob" style={done ? { background: 'var(--mint)', color: 'var(--mint-ink)' } : { background: 'var(--peach)', color: 'var(--tangerine-ink)' }}>
-        {done ? <Check aria-hidden className="size-5" /> : <Mail aria-hidden className="size-5" />}
+      <span className="blob" style={done ? { color: 'var(--ok)' } : undefined}>
+        {done ? <Check aria-hidden className="size-[18px]" /> : <Mail aria-hidden className="size-[18px]" />}
         <span className="sr-only">{done ? 'Triaged' : 'Waiting for triage'}</span>
       </span>
       <div className="min-w-0">
         <div className="name">
-          {done && agreement ? <Link to={`/review/${agreement.id}`} className="hover:underline">{e.subject}</Link> : e.subject}
+          {done && agreement ? <Link to={`/review/${agreement.id}`} className="text-ink hover:text-accent hover:underline">{e.subject}</Link> : e.subject}
         </div>
         <div className="meta">
           {done && agreement
@@ -30,7 +30,7 @@ function Item({ e, agreement, busy, onTriage }: { e: InboundEmail; agreement?: A
       </div>
       <div className="act">
         {!done && (
-          <button type="button" className="btn btn-orange btn-sm" disabled={busy} onClick={onTriage}>
+          <button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={onTriage}>
             {busy && <LoaderCircle aria-hidden className="size-4 animate-spin" />} Triage now
           </button>
         )}
@@ -40,7 +40,7 @@ function Item({ e, agreement, busy, onTriage }: { e: InboundEmail; agreement?: A
           </span>
         )}
         {done && agreement && agreement.changes > 0 && (
-          <span className="pill p-cream">{agreement.confirmed ?? 0} of {agreement.changes} confirmed</span>
+          <span className="pill s-neutral">{agreement.confirmed ?? 0} of {agreement.changes} confirmed</span>
         )}
       </div>
     </li>

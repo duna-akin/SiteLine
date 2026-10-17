@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, CheckCheck, FileDown, FileText, LoaderCircle, RotateCw, Timer } from 'lucide-react'
 
@@ -6,9 +6,7 @@ import { ApproverPhone } from '@/components/siteline/ApproverPhone'
 import { DecisionCard } from '@/components/siteline/DecisionCard'
 import { PriorityBadge } from '@/components/siteline/PriorityBadge'
 import { outcomeBg, outcomeIcon, outcomeVar } from '@/components/siteline/outcome-style'
-import { Confetti, type ConfettiRef } from '@/components/ui/confetti'
 import { useHashScroll } from '@/hooks/useHashScroll'
-import { token } from '@/lib/tokens'
 import { cn } from '@/lib/utils'
 import { outcomeLabel, outcomeOrder } from '@/mocks/playbook'
 import { effectiveOutcome, isConfirmed, isWaiting } from '@/state/decision'
@@ -23,8 +21,6 @@ export function ReviewPage() {
   const { agreementId } = useParams()
   const { decisions, agreement, loading, loadError, loadAgreement, confirmAll } = useDemo()
   const [filter, setFilter] = useState<Outcome | 'all'>('all')
-  const confetti = useRef<ConfettiRef>(null)
-  const celebrated = useRef(false)
   const current = agreement?.id === agreementId
 
   useEffect(() => {
@@ -42,26 +38,14 @@ export function ReviewPage() {
 
   useHashScroll(current && !loading && decisions.length > 0)
 
-  useEffect(() => {
-    if (escalations.length === 0 || answered < escalations.length || celebrated.current) return
-    celebrated.current = true
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
-    void confetti.current?.fire({
-      particleCount: 140,
-      spread: 90,
-      origin: { y: 0.3 },
-      colors: ['--tangerine', '--marker', '--blue', '--radar-ok', '--rose-ink'].map(token),
-    })
-  }, [answered, escalations.length])
-
   if (loadError && !loading) {
     return (
       <div className="wrap pb-12">
         <BackLink />
         <div className="tile mx-auto mt-6 max-w-xl text-center" role="alert">
-          <h1 className="text-3xl">Couldn’t load this agreement</h1>
+          <h1 className="text-[26px]">Couldn’t load this agreement</h1>
           <p className="mt-3 text-muted">{loadError}</p>
-          <button type="button" className="btn btn-orange mt-5" onClick={() => agreementId && void loadAgreement(agreementId)}>
+          <button type="button" className="btn btn-primary mt-5" onClick={() => agreementId && void loadAgreement(agreementId)}>
             <RotateCw aria-hidden className="size-4" /> Try again
           </button>
         </div>
@@ -82,16 +66,16 @@ export function ReviewPage() {
       <div className="wrap pb-12">
         <BackLink />
         <div className="tile mx-auto mt-6 max-w-2xl text-center">
-          <FileText aria-hidden className="mx-auto size-10 text-tangerine-ink" />
-          <h1 className="mt-4 text-4xl">No decision list yet</h1>
+          <FileText aria-hidden className="mx-auto size-8 text-faint" />
+          <h1 className="mt-4 text-[28px]">No decision list yet</h1>
           <p className="mt-3 text-muted">
             {agreement
               ? `Site ${agreement.siteNumber} (${agreement.siteName}) is in the portfolio, but its redline hasn’t been triaged in Siteline.`
               : 'Upload a redline to triage it. The Site 07 demo file takes a few seconds.'}
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Link to="/upload" className="btn btn-orange">Upload redline</Link>
-            <Link to="/sites" className="btn btn-soft">Back to sites</Link>
+            <Link to="/upload" className="btn btn-primary">Upload redline</Link>
+            <Link to="/sites" className="btn btn-secondary">Back to sites</Link>
           </div>
         </div>
       </div>
@@ -100,12 +84,12 @@ export function ReviewPage() {
 
   return (
     <div className="wrap pb-12">
-      <Confetti ref={confetti} manualstart className="pointer-events-none fixed inset-0 z-50 size-full" />
       <BackLink />
 
       <section className="hello pt-2 pb-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div className="min-w-0">
+            <span className="eyebrow">Decision list · {decisions.length} changes</span>
             <h1>Site {agreement.siteNumber} · {agreement.siteName}</h1>
             <p className="flex flex-wrap items-center gap-x-4 gap-y-1 !text-sm">
               {agreement.fileName && <span><FileText aria-hidden className="mr-1 inline size-4" />{agreement.fileName}</span>}
@@ -117,15 +101,15 @@ export function ReviewPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
-            <button type="button" className="btn btn-soft" disabled={bulk === 0} onClick={() => void confirmAll(agreement.id)}>
+            <button type="button" className="btn btn-secondary" disabled={bulk === 0} onClick={() => void confirmAll(agreement.id)}>
               <CheckCheck aria-hidden className="size-4" /> Confirm all suggested ({bulk})
             </button>
             {toConfirm.length > 0 ? (
-              <span className="btn btn-orange" aria-disabled="true" title="Every suggestion needs a person’s confirmation first">
+              <span className="btn btn-primary" aria-disabled="true" title="Every suggestion needs a person’s confirmation first">
                 <FileDown aria-hidden className="size-4" /> Export counter-proposal
               </span>
             ) : (
-              <Link to={`/review/${agreement.id}/export`} className="btn btn-orange">
+              <Link to={`/review/${agreement.id}/export`} className="btn btn-primary">
                 <FileDown aria-hidden className="size-4" /> Export counter-proposal
               </Link>
             )}
@@ -134,12 +118,12 @@ export function ReviewPage() {
       </section>
 
       {agreement.priority && (
-        <div className="tile mb-[18px] bg-butter py-5">
+        <div className="tile mb-6 py-5">
           <PriorityBadge priority={agreement.priority} detail className="max-w-3xl" />
           {agreement.daysWaiting !== undefined && (
             <p className="mt-1 text-xs text-muted">
               Redline waiting {agreement.daysWaiting} day{agreement.daysWaiting === 1 ? '' : 's'}.{' '}
-              <Link to="/playbook#priority" className="font-extrabold text-blue hover:underline">Priority settings</Link>
+              <Link to="/playbook#priority" className="font-medium text-accent hover:underline">Priority settings</Link>
             </p>
           )}
         </div>
@@ -150,10 +134,10 @@ export function ReviewPage() {
           type="button"
           aria-pressed={filter === 'all'}
           onClick={() => setFilter('all')}
-          className={cn('panel min-h-11 p-4 text-left transition-shadow', filter === 'all' && 'shadow-[inset_0_0_0_3px_var(--ink)]')}
+          className={cn('min-h-11 rounded-[6px] border bg-surface px-4 py-3 text-left transition-colors', filter === 'all' ? 'border-ink-2 shadow-[inset_0_0_0_1px_var(--ink-2)]' : 'border-line hover:border-line-strong')}
         >
-          <span className="eyebrow">All</span>
-          <span className="mt-1 block font-display text-3xl font-semibold tabular">{decisions.length}</span>
+          <span className="text-[13px] font-medium text-muted">All changes</span>
+          <span className="mt-1 block font-serif text-[26px] leading-tight font-medium tabular">{decisions.length}</span>
         </button>
         {outcomeOrder.map((o) => {
           const Icon = outcomeIcon[o]
@@ -164,26 +148,26 @@ export function ReviewPage() {
               type="button"
               aria-pressed={filter === o}
               onClick={() => setFilter(filter === o ? 'all' : o)}
-              className="min-h-11 rounded-[20px] p-4 text-left transition-shadow"
-              style={{ background: outcomeBg[o], color: outcomeVar[o], boxShadow: filter === o ? `inset 0 0 0 3px ${outcomeVar[o]}` : undefined }}
+              className={cn('min-h-11 rounded-[6px] border px-4 py-3 text-left transition-colors', filter === o ? '' : 'border-line bg-surface hover:border-line-strong')}
+              style={filter === o ? { background: outcomeBg[o], borderColor: outcomeVar[o], boxShadow: `inset 0 0 0 1px ${outcomeVar[o]}` } : undefined}
             >
-              <span className="flex items-center gap-1.5 text-[13px] font-extrabold"><Icon aria-hidden className="size-3.5" /> {outcomeLabel[o]}</span>
-              <span className="mt-1 block font-display text-3xl font-semibold text-ink tabular">{n}</span>
+              <span className="flex items-center gap-1.5 text-[13px] font-medium" style={{ color: outcomeVar[o] }}><Icon aria-hidden className="size-3.5" /> {outcomeLabel[o]}</span>
+              <span className="mt-1 block font-serif text-[26px] leading-tight font-medium text-ink tabular">{n}</span>
             </button>
           )
         })}
       </div>
 
       <div className="mt-4 flex flex-wrap gap-x-6 gap-y-1 text-sm text-muted" aria-live="polite">
-        <span><span className="font-extrabold text-ink tabular">{answered}/{escalations.length}</span> escalations answered by phone{viaPhoton ? ' (live Photon texts)' : ''}</span>
-        <span><span className="font-extrabold text-ink tabular">{needsHuman}</span> need a human decision</span>
+        <span><span className="font-semibold text-ink tabular">{answered}/{escalations.length}</span> escalations answered by phone{viaPhoton ? ' (live Photon texts)' : ''}</span>
+        <span><span className="font-semibold text-ink tabular">{needsHuman}</span> need a human decision</span>
         <span>
-          <span className="font-extrabold text-ink tabular">{confirmedCount} of {decisions.length}</span> confirmed by a person
+          <span className="font-semibold text-ink tabular">{confirmedCount} of {decisions.length}</span> confirmed by a person
           {toConfirm.length > 0 && ` · ${toConfirm.length} suggestion${toConfirm.length === 1 ? '' : 's'} to confirm before export`}
         </span>
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-[18px] lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="order-2 flex flex-col gap-4 lg:order-1">
           {shown.length === 0 && <p className="tile text-muted">No changes with this outcome.</p>}
           {shown.map((d) => <DecisionCard key={d.id} d={d} />)}

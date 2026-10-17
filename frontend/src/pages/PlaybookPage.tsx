@@ -2,7 +2,7 @@ import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react'
 import { CircleHelp, Download, LoaderCircle, RotateCcw, Save, Upload } from 'lucide-react'
 
 import * as api from '@/api'
-import { outcomeBg, outcomeVar } from '@/components/siteline/outcome-style'
+import { outcomeVar } from '@/components/siteline/outcome-style'
 import { PrioritySettings } from '@/components/siteline/PrioritySettings'
 import { useHashScroll } from '@/hooks/useHashScroll'
 import { playbook as defaultPlaybook, ownerLabel } from '@/mocks/playbook'
@@ -38,27 +38,27 @@ function RuleEditor({ rule, onChange }: { rule: PlaybookRule; onChange: (r: Play
       <header className="tile-head">
         <h2 id={`${id}-name`}>{rule.label}</h2>
         <div className="flex items-center gap-2">
-          <label htmlFor={`${id}-owner`} className="text-sm font-bold text-muted">Owner</label>
+          <label htmlFor={`${id}-owner`} className="text-sm font-medium text-muted">Owner</label>
           <select
             id={`${id}-owner`}
             value={rule.owner}
             onChange={(e) => onChange({ ...rule, owner: e.target.value as Owner })}
-            className="field w-auto py-1 font-bold"
+            className="field w-auto py-1"
           >
             {OWNERS.map((o) => <option key={o} value={o}>{ownerLabel[o]}</option>)}
           </select>
         </div>
       </header>
       {rule.openQuestion && (
-        <p className="mt-3 flex items-start gap-2 rounded-[16px] bg-butter px-3 py-2 text-sm text-amber-ink">
-          <CircleHelp aria-hidden className="mt-0.5 size-4 shrink-0" />
-          <span><span className="font-extrabold">Open question:</span> {rule.openQuestion}</span>
+        <p className="mt-3 flex items-start gap-2 rounded-[6px] border border-line border-l-[3px] border-l-elevated bg-surface px-3 py-2 text-sm">
+          <CircleHelp aria-hidden className="mt-0.5 size-4 shrink-0 text-elevated" />
+          <span><span className="font-semibold">Open question:</span> {rule.openQuestion}</span>
         </p>
       )}
       <div className="mt-4 grid gap-4 md:grid-cols-3">
         {fields.map((f) => (
-          <div key={f.key} className="rounded-[18px] p-3" style={{ background: outcomeBg[f.outcome] }}>
-            <label htmlFor={`${id}-${f.key}`} className="text-sm font-extrabold" style={{ color: outcomeVar[f.outcome] }}>{f.label}</label>
+          <div key={f.key} className="rounded-[6px] border border-line bg-subtle p-3" style={{ borderTop: `2px solid ${outcomeVar[f.outcome]}` }}>
+            <label htmlFor={`${id}-${f.key}`} className="text-sm font-medium" style={{ color: outcomeVar[f.outcome] }}>{f.label}</label>
             <textarea
               id={`${id}-${f.key}`}
               value={rule[f.key]}
@@ -134,23 +134,24 @@ export function PlaybookPage() {
 
   return (
     <div className="wrap pb-12">
-      <section className="hello pt-7 pb-6">
+      <section className="hello pt-9 pb-6">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
+            <span className="eyebrow">Negotiation positions</span>
             <h1>Playbook</h1>
             <p>
               The rules engine reads these positions. Each change maps to one clause type, then lands on accept, fallback or escalate. Anything the rules don’t cover is novel.{' '}
-              <a href="#priority" className="font-extrabold text-blue hover:underline">Priority settings</a> widen a few accept lines for sites that cost the most to wait on.
+              <a href="#priority" className="font-medium text-accent hover:underline">Priority settings</a> widen a few accept lines for sites that cost the most to wait on.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <input ref={fileRef} type="file" accept="application/json,.json" className="sr-only" onChange={importJson} aria-label="Load playbook JSON" tabIndex={-1} />
-            <button type="button" className="btn btn-soft btn-sm" onClick={() => fileRef.current?.click()}><Upload aria-hidden className="size-4" /> Load JSON</button>
-            <button type="button" className="btn btn-soft btn-sm" onClick={exportJson} disabled={!rules}><Download aria-hidden className="size-4" /> Export JSON</button>
-            <button type="button" className="btn btn-soft btn-sm" onClick={() => { setRules(structuredClone(defaultPlaybook)); setDirty(true) }}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => fileRef.current?.click()}><Upload aria-hidden className="size-4" /> Load JSON</button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={exportJson} disabled={!rules}><Download aria-hidden className="size-4" /> Export JSON</button>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => { setRules(structuredClone(defaultPlaybook)); setDirty(true) }}>
               <RotateCcw aria-hidden className="size-4" /> Reset
             </button>
-            <button type="button" className="btn btn-orange btn-sm" onClick={save} disabled={!rules || !dirty || saving}>
+            <button type="button" className="btn btn-primary btn-sm" onClick={save} disabled={!rules || !dirty || saving}>
               {saving ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Save aria-hidden className="size-4" />}
               {dirty ? 'Save playbook' : 'Saved'}
             </button>
@@ -158,16 +159,16 @@ export function PlaybookPage() {
         </div>
       </section>
 
-      {importError && <p role="alert" className="mb-4 rounded-[20px] bg-rose px-4 py-3 text-sm font-bold text-rose-ink">{importError}</p>}
+      {importError && <p role="alert" className="alert mb-6">{importError}</p>}
 
-      <div className="flex flex-col gap-[18px]">
+      <div className="flex flex-col gap-6">
         {!rules && Array.from({ length: 3 }, (_, i) => <div key={i} className="tile h-48 animate-pulse" aria-hidden />)}
         {rules?.map((r, i) => <RuleEditor key={r.clauseType} rule={r} onChange={(next) => edit(i, next)} />)}
       </div>
 
-      <section id="priority" className="mt-10 scroll-mt-6" aria-labelledby="priority-h">
+      <section id="priority" className="mt-14 scroll-mt-6" aria-labelledby="priority-h">
         <div className="hello pb-5">
-          <h2 id="priority-h" className="text-[clamp(28px,3.4vw,40px)]">Priority settings</h2>
+          <h2 id="priority-h" className="text-[clamp(24px,2.6vw,30px)]">Priority settings</h2>
           <p>How much money at risk makes a site a priority, and how much leeway each level gets on site asks. Escalate floors never move, and every suggestion still needs a person’s confirmation.</p>
         </div>
         <PrioritySettings />
