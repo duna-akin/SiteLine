@@ -24,7 +24,7 @@ from siteline.evals.dataset import load_dataset
 from siteline.extraction import ExtractionError, complete_json, extract_live
 from siteline.playbook import playbook_text
 from siteline.priority import MAX_SHARE
-from siteline.rules import decide
+from siteline.rules import Verdict, decide
 from siteline.sandbox import SandboxError, parse_in_daytona
 from siteline.verify import verify_quote, verify_value
 
@@ -71,6 +71,19 @@ async def baseline(change: dict, context: str) -> dict:
         return {"error": str(e), "latencyMs": round((time.perf_counter() - started) * 1000)}
     data["latencyMs"] = round((time.perf_counter() - started) * 1000)
     return data
+
+
+def siteline_verdict(change: dict, ex: dict, context: str, item: dict, lenient: dict | None = None) -> tuple[Verdict, list[bool]]:
+    """Siteline's outcome for one labeled change: quote check, rules, then the item's site history
+    (when it carries one). Shared by this harness and the Chalk evaluation."""
+    quotes = [verify_value(v, change, context) for v in ex.get("values", [])] if not ex.get("error") else []
+    verdict = decide(change, ex, all(quotes), lenient)
+    if item.get("precedents"):
+        values = {v["field"]: v["value"] for v in ex.get("values", [])} if not ex.get("error") else {}
+        clause = ex.get("clause_type") or item["clause_type"]
+        verdict, _ = precedent.review(verdict, clause, values, item["siteName"], item["agreementId"], item["precedents"],
+                                      ex.get("novel_issue"))
+    return verdict, quotes
 
 
 def shard_docx(items: list[dict]) -> bytes:
@@ -185,16 +198,9 @@ async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = 8) ->
             except ExtractionError as e:
                 ex = {"error": str(e), "latencyMs": 0}
             b = await baseline(change, it["context"])
-        quotes = [verify_value(v, change, it["context"]) for v in ex.get("values", [])] if not ex.get("error") else []
-        verdict = decide(change, ex, all(quotes))
+        verdict, quotes = siteline_verdict(change, ex, it["context"], it)
         # The same reading decided for a high-priority site at the widest leniency the config allows
-        high = decide(change, ex, all(quotes), HIGH_TIER)
-        if it.get("precedents"):
-            values = {v["field"]: v["value"] for v in ex.get("values", [])} if not ex.get("error") else {}
-            clause = ex.get("clause_type") or it["clause_type"]
-            novel = ex.get("novel_issue")
-            verdict, _ = precedent.review(verdict, clause, values, it["siteName"], it["agreementId"], it["precedents"], novel)
-            high, _ = precedent.review(high, clause, values, it["siteName"], it["agreementId"], it["precedents"], novel)
+        high, _ = siteline_verdict(change, ex, it["context"], it, HIGH_TIER)
         b_out = b.get("outcome") if not b.get("error") else "human_review"
         done += 1
         events.publish("eval.progress", {"runId": run_id, "done": done, "total": len(items)})
