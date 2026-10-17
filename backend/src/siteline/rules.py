@@ -1,6 +1,6 @@
 """Rules engine: one outcome per change, from extracted values and the playbook.
 
-Order: system checks (failed quote, low confidence, extraction error), then novel terms,
+Order: system checks (failed quote, low confidence, extraction error, conflicting values), then novel terms,
 then the clause rules. Every outcome carries the ID and text of the rule that fired.
 Counter-proposal text comes from fixed substitutions on the site's own wording; Siteline
 does not draft new legal language (PRD non-goal).
@@ -312,6 +312,11 @@ def decide(change: dict, extraction: dict, quotes_ok: bool, lenient: dict | None
             "SYS-LOWCONF",
             f"Extraction confidence {confidence:.2f} < {LOW_CONFIDENCE:.2f} → human review. {extraction.get('rationale', '')}".strip(),
         )
+    seen: dict[str, set[str]] = {}
+    for v in extraction.get("values", []):
+        seen.setdefault(v["field"], set()).add(str(v["value"]).strip().lower())
+    if conflicts := sorted(f for f, vals in seen.items() if len(vals) > 1):
+        return Verdict("human_review", "SYS-CONFLICT", f"The extraction gave conflicting values for {', '.join(conflicts)} → human review.")
     values = {v["field"]: v["value"] for v in extraction.get("values", [])}
     if _bool(values.pop("no_substantive_change", None)) and not values and not extraction.get("novel_issue"):
         return Verdict("accept", "SYS-COSMETIC", "Wording or formatting edit with no change to rights or obligations → accept.")

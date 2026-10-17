@@ -28,7 +28,7 @@ from siteline.playbook import playbook_text
 from siteline.priority import MAX_SHARE
 from siteline.rules import decide
 from siteline.sandbox import SandboxError, parse_in_daytona
-from siteline.verify import verify_quote
+from siteline.verify import verify_quote, verify_value
 
 OUTCOMES = ["accept", "fallback", "escalate", "human_review", "novel"]
 # Both tiers: every row is also decided for a high-priority site at the widest allowed leniency
@@ -191,7 +191,7 @@ async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = 8) ->
             except ExtractionError as e:
                 ex = {"error": str(e), "latencyMs": 0}
             b = await baseline(change, it["context"])
-        quotes = [verify_quote(v["quote"], change, it["context"]) for v in ex.get("values", [])] if not ex.get("error") else []
+        quotes = [verify_value(v, change, it["context"]) for v in ex.get("values", [])] if not ex.get("error") else []
         verdict = decide(change, ex, all(quotes))
         # The same reading decided for a high-priority site at the widest leniency the config allows
         high = decide(change, ex, all(quotes), HIGH_TIER)

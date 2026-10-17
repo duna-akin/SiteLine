@@ -36,14 +36,14 @@ SECRETS = [chalkcompute.Secret.from_local_env("OPENAI_API_KEY")]
 def siteline_triage(change: str, context: str) -> str:
     from siteline.extraction import ExtractionError, extract_live
     from siteline.rules import decide
-    from siteline.verify import verify_quote
+    from siteline.verify import verify_value
 
     ch = json.loads(change)
     try:
         ex = asyncio.run(extract_live(ch, context))
     except ExtractionError as e:
         ex = {"error": str(e)}
-    quotes = [verify_quote(v["quote"], ch, context) for v in ex.get("values", [])]
+    quotes = [verify_value(v, ch, context) for v in ex.get("values", [])]
     return decide(ch, ex, all(quotes)).outcome
 
 

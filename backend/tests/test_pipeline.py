@@ -82,6 +82,26 @@ def test_governing_law_needs_a_governing_law_fact():
     assert decide(ch, home, True).rule_id == "GOV-A1"
 
 
+def test_conflicting_values_go_to_human_review():
+    ch = {"kind": "replacement", "original": "a fee of ten percent (10%)", "revised": "a fee of twenty-five percent (25%)"}
+    vals = [{"field": "start_up_fee_pct", "value": "25", "quote": "twenty-five percent (25%)"},
+            {"field": "start_up_fee_pct", "value": "10", "quote": "ten percent (10%)"}]
+    v = decide(ch, {"clause_type": "payment_terms", "confidence": 0.95, "values": vals}, True)
+    assert (v.outcome, v.rule_id) == ("human_review", "SYS-CONFLICT")
+
+
+def test_numeric_value_must_be_stated_in_its_quote():
+    from siteline.verify import verify_value
+
+    ch = {"original": "", "revised": "a non-refundable start-up fee of twenty-five percent (25%)", "segments": []}
+    assert verify_value({"field": "start_up_fee_pct", "value": "25", "quote": "twenty-five percent (25%)"}, ch)
+    assert verify_value({"field": "start_up_fee_pct", "value": "25", "quote": "twenty-five percent"}, ch)
+    assert not verify_value({"field": "start_up_fee_pct", "value": "8", "quote": "twenty-five percent (25%)"}, ch)
+    assert not verify_value({"field": "start_up_fee_pct", "value": "5", "quote": "twenty-five percent"}, ch)
+    # Non-numeric fields only need the verbatim quote
+    assert verify_value({"field": "start_up_fee_refundable", "value": "false", "quote": "non-refundable"}, ch)
+
+
 def test_export_diff_tracks_only_the_changed_words():
     segs = diff_segments("survive for four (4) years", "survive for five (5) years", "S", "2026-01-01T00:00:00Z")
     assert [s["type"] for s in segs] == ["text", "del", "ins", "text"]

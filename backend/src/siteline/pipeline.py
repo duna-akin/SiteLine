@@ -14,7 +14,7 @@ from siteline.extraction import extract_all, extract_document
 from siteline.playbook import load_playbook, owner_for
 from siteline.rules import WIDENED_CLAUSES, Verdict, decide
 from siteline.sandbox import SandboxError, parse_in_daytona, parse_local
-from siteline.verify import verify_quote
+from siteline.verify import verify_value
 
 
 @dataclass
@@ -122,7 +122,7 @@ def build_decisions(agreement_id: str, parsed: dict, extractions: list[dict], si
     for change, ex in zip(parsed["changes"], extractions, strict=True):
         values = []
         for v in ex.get("values", []) if not ex.get("error") else []:
-            values.append({**v, "verified": verify_quote(v["quote"], change, context)})
+            values.append({**v, "verified": verify_value(v, change, context)})
         quotes_ok = all(v["verified"] for v in values)
         clause = ex.get("clause_type") or guess_clause(change["section"])
         verdict, prec = _verdict(change, ex, values, clause, site_name, agreement_id, history, lenient)
