@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Siteline UI Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&family=Fredoka:wght@600&family=Nunito:wght@500&family=Bricolage+Grotesque:opsz,wght@12..96,600&family=DM+Sans:opsz,wght@9..40,400&display=swap" rel="stylesheet">
+<style>
+  :root { --bg: #F6F4EF; --card: #fff; --ink: #1C1917; --muted: #6B635A; --line: #E4DED3; }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 400 16px/1.6 "Plus Jakarta Sans", system-ui, sans-serif; }
+  .wrap { max-width: 1160px; margin: 0 auto; padding: 48px clamp(16px, 4vw, 40px) 72px; }
+  h1 { font-size: clamp(32px, 4vw, 44px); line-height: 1.1; letter-spacing: -.025em; margin: 0; font-weight: 800; }
+  h2 { font-size: 22px; letter-spacing: -.015em; margin: 48px 0 6px; }
+  .lede { color: var(--muted); max-width: 680px; margin: 12px 0 0; font-size: 18px; }
+  .sub { color: var(--muted); margin: 0 0 18px; }
+  .grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; display: flex; flex-direction: column; text-decoration: none; color: inherit; transition: transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s; }
+  a.card:hover { transform: translateY(-3px); box-shadow: 0 16px 32px -20px rgba(28,25,23,.35); }
+  .spec { padding: 22px 20px; min-height: 150px; }
+  .spec .big { font-size: 34px; line-height: 1.05; }
+  .spec .small { margin-top: 8px; font-size: 15px; }
+  .body { padding: 16px 20px 20px; border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .body h3 { margin: 0; font-size: 18px; }
+  .body p { margin: 0; color: var(--muted); font-size: 14.5px; }
+  .sw { display: flex; gap: 6px; }
+  .sw span { flex: 1; height: 28px; border-radius: 8px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.06); }
+  .open { margin-top: auto; font-weight: 700; font-size: 14px; }
+  table { width: 100%; border-collapse: collapse; background: var(--card); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; font-size: 14.5px; }
+  th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-size: 13px; color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: 0; }
+  code { font: 500 13px ui-monospace, Menlo, monospace; background: #EFEBE3; padding: 1px 6px; border-radius: 6px; }
+  .tw { overflow-x: auto; }
+  ul.clean { margin: 0; padding-left: 18px; color: var(--ink); }
+  ul.clean li { margin: 6px 0; }
+  .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .box { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 18px 20px; }
+  .box h3 { margin: 0 0 8px; font-size: 16px; }
+  .src { font-size: 13.5px; color: var(--muted); }
+  .src a { color: var(--muted); }
+  @media (max-width: 900px) { .grid, .cols { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Siteline: three calmer directions</h1>
+  <p class="lede">Each mockup answers the same three questions without scrolling past marketing copy: what came in, which sites are open, and where each agreement's data lives.</p>
+
+  <h2>The mockups</h2>
+  <p class="sub">Open each one full screen. All are static HTML and work at phone width.</p>
+  <div class="grid">
+    <a class="card" href="a-clear-desk.html">
+      <div class="spec" style="background:#FAF8F4;font-family:'Plus Jakarta Sans'">
+        <div class="big" style="font-weight:800;letter-spacing:-.03em">Clear Desk</div>
+        <div class="small" style="color:#6B635A">Plus Jakarta Sans for everything, JetBrains Mono for file paths.</div>
+      </div>
+      <div class="body">
+        <h3>A · Inbox-first</h3>
+        <p>Sidebar, a "Today" page with inbound documents and a priority-sorted sites table, plus a drawer showing the selected site as a file tree of where its data lives.</p>
+        <div class="sw"><span style="background:#FAF8F4"></span><span style="background:#1C1917"></span><span style="background:#0F766E"></span><span style="background:#B23A0A"></span><span style="background:#E3F1EF"></span></div>
+        <span class="open">Open mockup A →</span>
+      </div>
+    </a>
+    <a class="card" href="b-sunday-morning.html">
+      <div class="spec" style="background:#FFF8EE;color:#3A2A1E">
+        <div class="big" style="font-family:Fredoka;font-weight:600">Sunday Morning</div>
+        <div class="small" style="font-family:Nunito;color:#75614F">Fredoka headings with Nunito body text. Rounded, warm, readable.</div>
+      </div>
+      <div class="body">
+        <h3>B · Overview bento</h3>
+        <p>A greeting that says what needs you, then four cards: Needs you, Inbound, Open sites with day rings, and a data-flow map from email to storage.</p>
+        <div class="sw"><span style="background:#FFF8EE"></span><span style="background:#3A2A1E"></span><span style="background:#F97316"></span><span style="background:#2563EB"></span><span style="background:#FFF1C9"></span></div>
+        <span class="open">Open mockup B →</span>
+      </div>
+    </a>
+    <a class="card" href="c-night-shift.html">
+      <div class="spec" style="background:#131116;color:#F4F1E4">
+        <div class="big" style="font-family:'Bricolage Grotesque';font-weight:600;color:#FFDD00">Night Shift</div>
+        <div class="small" style="font-family:'DM Sans';color:rgba(244,241,228,.66)">Bricolage Grotesque headings with DM Sans. Keeps the Siteline yellow.</div>
+      </div>
+      <div class="body">
+        <h3>C · Site-first</h3>
+        <p>A rail of open sites, then one page per site with a stage tracker, the decisions waiting, every document version, and the path its data took.</p>
+        <div class="sw"><span style="background:#131116"></span><span style="background:#F4F1E4"></span><span style="background:#FFDD00"></span><span style="background:#7DFFAA"></span><span style="background:#FF8A7A"></span></div>
+        <span class="open">Open mockup C →</span>
+      </div>
+    </a>
+  </div>
+
+  <h2>Per-site priority and leniency</h2>
+  <p class="sub">Mocked for issue #2. Money at risk per week = patients per week × per-patient amount, using 52/12 weeks a month. Site 07: 48 subjects over 18 months × $18,200 = ≈$11,200/week, high priority. Days waiting counts from the site's current redline.</p>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Surface</th><th>Where to look</th></tr></thead>
+    <tbody>
+      <tr><td>1. Priority badge with money at risk and source quote</td><td><a href="a-clear-desk.html">A</a> table and drawer, <a href="c-night-shift.html">C</a> header and "Why high priority"</td></tr>
+      <tr><td>2. Waiting on us, sorted by money at risk, then days open, with a reason line</td><td><a href="a-clear-desk.html">A</a> "Waiting on us", <a href="c-night-shift.html">C</a> site rail</td></tr>
+      <tr><td>3. Radar: size = money at risk, color = stuck clauses, distance = days open</td><td><a href="b-sunday-morning.html">B</a> "Open sites"</td></tr>
+      <tr><td>4. Escalation queue by money at risk, then oldest</td><td><a href="b-sunday-morning.html">B</a> "Escalation queue"</td></tr>
+      <tr><td>5. Approver text gets "Site 07 = high priority, ≈$11,200/week at risk."</td><td><a href="b-sunday-morning.html">B</a> "What Maya sees"</td></tr>
+      <tr><td>6. Leniency outcomes with their own -P rule IDs (PAY-A3P)</td><td><a href="a-clear-desk.html">A</a> drawer, <a href="c-night-shift.html">C</a> Decisions</td></tr>
+      <tr><td>7. Confirm every decision, Confirm all suggested, export locked with a count</td><td><a href="a-clear-desk.html">A</a> drawer, <a href="c-night-shift.html">C</a> Decisions</td></tr>
+      <tr><td>8. Precedent source shown and confirmed separately</td><td><a href="a-clear-desk.html">A</a> drawer, <a href="c-night-shift.html">C</a> Decisions</td></tr>
+      <tr><td>9. Priority settings with thresholds, buckets, matrix, change preview and change log</td><td><a href="a-priority-settings.html">A · Priority settings</a></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>Font and color research</h2>
+  <p class="sub">Shortlisted from the ui-ux-pro-max database (57 pairings, 161 palettes), then checked against current recommendations.</p>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Pairing</th><th>Mood</th><th>Why it fits Siteline</th><th>Used in</th></tr></thead>
+    <tbody>
+      <tr><td><b>Plus Jakarta Sans</b> (single family)</td><td>Friendly, modern, clean</td><td>The database's "Friendly SaaS" pick for dashboards. Warm but holds up in dense tables.</td><td>A</td></tr>
+      <tr><td><b>Fredoka</b> + <b>Nunito</b></td><td>Playful, rounded, warm</td><td>The most casual option that stays legible at 14 px. Keep Fredoka to headings only.</td><td>B</td></tr>
+      <tr><td><b>Bricolage Grotesque</b> + <b>DM Sans</b></td><td>Characterful, editorial</td><td>A bold heading voice with a neutral body. Replaces the current custom serif without losing personality.</td><td>C</td></tr>
+      <tr><td>Varela Round + Nunito Sans</td><td>Soft, gentle</td><td>Runner-up. Close to B but quieter, if B feels too playful.</td><td>—</td></tr>
+      <tr><td>Nunito + DM Sans</td><td>Bubbly, tactile</td><td>Runner-up. Good for a claymorphism look, but too toy-like for contract work.</td><td>—</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="tw" style="margin-top:14px">
+  <table>
+    <thead><tr><th>Palette</th><th>Roles</th><th>Lowest text contrast</th></tr></thead>
+    <tbody>
+      <tr><td><b>Paper + teal + action orange</b></td><td>Teal for progress and "safe", orange only for things that need you</td><td>4.72 : 1 (teal chip). Body text 16.5 : 1</td></tr>
+      <tr><td><b>Cream + tangerine + trust blue</b></td><td>Tangerine for actions, blue for links, pastel fills for card types</td><td>5.13 : 1 (rose chip). Body text 13.0 : 1</td></tr>
+      <tr><td><b>Warm dark + Siteline yellow</b></td><td>Yellow for brand and the one primary action, coral for overdue, mint for kept</td><td>7.61 : 1 (coral). Body text 16.6 : 1</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <h2>What changed from the current UI</h2>
+  <div class="cols">
+    <div class="box">
+      <h3>Removed or moved</h3>
+      <ul class="clean">
+        <li>The marketing hero on the Inbox. The first screen is now work.</li>
+        <li>Star field, nova glows and spotlight cards. Decorative motion is cut to one element per screen.</li>
+        <li>Sponsor chips in the inbox and footer. They belong on an About or Evals page.</li>
+        <li>Six top-level tabs. Reduced to Today, Inbound, Sites, Data and Playbook, with Evals tucked below.</li>
+        <li>Radar as a separate page. It now sits on the home screen in B (sized by money at risk), and A and C show days open inline.</li>
+      </ul>
+    </div>
+    <div class="box">
+      <h3>Added</h3>
+      <ul class="clean">
+        <li>One "needs you" count at the top of every layout.</li>
+        <li>Sites sorted by priority, with the next step written out.</li>
+        <li>A "where this lives" view: mailbox, sandbox (deleted), Claude extraction, Postgres and S3, with what is kept and what is not.</li>
+        <li>Document versions per site, newest first.</li>
+        <li>Status always as text plus color, never color alone.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2>Magic UI components used</h2>
+  <p class="sub">Found through the Magic UI MCP server. Each one installs with <code>npx shadcn@latest add "https://magicui.design/r/&lt;name&gt;.json"</code>. The app already uses Animated List, Border Beam and Animated Beam.</p>
+  <div class="tw">
+  <table>
+    <thead><tr><th>Component</th><th>Job in the mockups</th><th>Where</th></tr></thead>
+    <tbody>
+      <tr><td><code>file-tree</code></td><td>Shows where an agreement's files and records live</td><td>A drawer</td></tr>
+      <tr><td><code>animated-list</code></td><td>New inbound documents slide in at the top</td><td>A, B</td></tr>
+      <tr><td><code>bento-grid</code></td><td>Four-card home layout</td><td>B</td></tr>
+      <tr><td><code>animated-beam</code></td><td>Data flowing from email or upload to Postgres and S3</td><td>B map, C path</td></tr>
+      <tr><td><code>animated-circular-progress-bar</code></td><td>Days open against the 90-day target</td><td>B site tiles</td></tr>
+      <tr><td><code>avatar-circles</code></td><td>Which approvers are on call</td><td>B</td></tr>
+      <tr><td><code>highlighter</code></td><td>Marks the one number that matters in the greeting</td><td>B</td></tr>
+      <tr><td><code>border-beam</code></td><td>Draws the eye to the only card that needs a decision</td><td>C</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p class="src" style="margin-top:40px">Research sources: ui-ux-pro-max typography and color databases;
+    <a href="https://dev.to/mike_andreuzza/best-new-sans-serif-google-fonts-for-2026-released-in-2025-588j">DEV: best new sans-serif Google Fonts for 2026</a>;
+    <a href="https://madegooddesigns.com/best-new-google-fonts-2026/">Made Good Designs: best new Google Fonts of 2026</a>;
+    <a href="https://mantlr.com/blog/google-fonts-pairing-cheat-sheet">Mantlr: Google Fonts pairing cheat sheet</a>;
+    <a href="https://contra.com/community/ahtKuyuC-best-fonts-and-font-pairings-for">Contra: best fonts and font pairings for modern web design</a>.
+    All site, person and file names in the mockups are fictional.</p>
+</div>
+</body>
+</html>
