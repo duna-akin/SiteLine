@@ -3,6 +3,23 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · Site priority and cost of delay (issue #2)
+
+### Added
+
+- **Priority from the contract** (`priority.py`, `extraction.extract_document`): one whole-agreement Claude pass reads the site's enrollment target, enrollment period and per-patient amount, each with a verbatim quote checked against the document. Code computes money at risk per week (patients per week × per-patient amount, 52/12 weeks a month) and a level: high, elevated, standard, or unknown (missing, unverified or low-confidence figures; treated as standard). Seeded sites carry study-plan figures.
+- **Leniency from priority and days waiting**: a share of the gap between a band's standard and its escalate floor, from a level × days-waiting matrix (defaults: high 50/50/75%, elevated 25/25/50%, standard 0/0/25%; capped at 75%). Only three accept lines widen: start-up fee (10% → up to 17.5%), confidentiality survival (5 → down to 3.5 years) and publication review (60 → down to 37.5 days). New rule IDs `PAY-A3P`, `CONF-A2P`, `PUB-A2P` state the level, money at risk, days waiting and band. Escalate floors and every fail-safe are unchanged.
+- **Human confirmation of every suggestion**: accept and fallback outcomes need a person's confirm (per decision, or "Confirm all suggested") before export or completion; a suggestion with a precedent needs its own confirm. Overrides and answered escalations count as confirmed.
+- **Editable metrics** in `backend/data/priority_config.json` (UI edits saved to `var/`, with a change log), `GET/PUT /api/priority-config`, a dry-run `POST /api/priority-config/preview`, and a Priority settings page. Saving re-decides only unconfirmed suggestions.
+- Priority badge and money-at-risk line in the inbox, review header and radar (blip size = money at risk); inbox and radar table sorted by money at risk, then days open; `GET /api/escalations` queue sorted the same way (reply matching stays oldest-first); approver texts and calls add "Site 07 = high priority, ≈$11,200/week at risk (14% of planned enrollment)."
+- Eval harness also decides every row for a high-priority site at the widest leniency and reports its unsafe-accept rate next to the standard one.
+- `tests/test_priority.py`: money math, thresholds, unknown cases, a sweep showing no leniency ever lifts an escalation, key vs standard outcomes, the confirmation gate, config bounds and re-deciding.
+
+### Changed
+
+- The Site 07 demo redline and the seeded email attachments state enrollment and per-patient figures (Site 07: 48 subjects over 18 months, USD 18,200 per subject → ≈$11,200/week, high). With high priority, its 15% start-up fee and 4-year confidentiality are accepted (`PAY-A3P`, `CONF-A2P`) instead of countered.
+- Tests never text a real approver phone.
+
 ## [Unreleased] · Backend
 
 The product now runs end to end. A new `backend/` (Python, FastAPI) replaces every stub in `frontend/src/api/index.ts`.

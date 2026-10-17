@@ -12,8 +12,17 @@ import re
 from dataclasses import dataclass
 
 from siteline.playbook import SPONSOR
+from siteline.priority import describe
 
 LOW_CONFIDENCE = 0.80
+
+# The bands site priority may widen. Leniency moves only the accept line, by a share of the
+# gap between standard and escalate floor (priority.py caps the share at 0.75); floors never move.
+BANDS = {
+    "start_up_fee_pct": {"clause": "payment_terms", "label": "Start-up fee", "unit": "%", "standard": 10, "floor": 20, "ruleId": "PAY-A3P"},
+    "survival_years": {"clause": "confidentiality", "label": "Confidentiality survival", "unit": " years", "standard": 5, "floor": 3, "ruleId": "CONF-A2P"},
+    "review_days": {"clause": "publication", "label": "Publication review", "unit": " days", "standard": 60, "floor": 30, "ruleId": "PUB-A2P"},
+}
 
 
 @dataclass
@@ -48,6 +57,27 @@ def _norm(v: str | None) -> str:
     return (v or "").strip().lower().replace(" ", "_").replace("-", "_")
 
 
+def band_limit(field: str, share: float) -> float:
+    b = BANDS[field]
+    return round(b["standard"] + share * (b["floor"] - b["standard"]), 2)
+
+
+def _widened(field: str, value: float, lenient: dict | None) -> Verdict | None:
+    """Accept `value` when site priority widens this band far enough to cover it."""
+    if not lenient or lenient["share"] <= 0:
+        return None
+    b, limit = BANDS[field], band_limit(field, lenient["share"])
+    if not (value <= limit if b["floor"] > b["standard"] else value >= limit):
+        return None
+    why = describe(lenient)
+    return Verdict(
+        "accept",
+        b["ruleId"],
+        f"{why[0].upper()}{why[1:]} → {b['label'].lower()} of {value:g}{b['unit']} is within the widened "
+        f"{limit:g}{b['unit']} band (standard {b['standard']}{b['unit']}; escalate floor {b['floor']}{b['unit']} unchanged).",
+    )
+
+
 # ---- counter-text substitutions on the site's revised wording -----------------------
 
 _NUMWORD = r"(?:[A-Za-z]+(?:-[A-Za-z]+)?\s+)?\(\d+\)|\d+"
@@ -76,7 +106,7 @@ def _drop_phrase(text: str, pattern: str) -> str | None:
 # ---- clause rules -------------------------------------------------------------------
 
 
-def _payment(v: dict, ch: dict) -> Verdict | None:
+def _payment(v: dict, ch: dict, lenient: dict | None = None) -> Verdict | None:
     net = _num(v.get("net_days"))
     if net is not None:
         if net < 30:
@@ -94,12 +124,14 @@ def _payment(v: dict, ch: dict) -> Verdict | None:
         if fee > 20 and refundable is not True:
             return Verdict("escalate", "PAY-E2", f"Non-refundable start-up fee of {fee:g}% is above 20% → escalate to Finance.", ch["original"], counter)
         if fee > 10:
+            if widened := _widened("start_up_fee_pct", fee, lenient):
+                return widened
             return Verdict("fallback", "PAY-F2", f"Start-up fee of {fee:g}% is above 10% → counter at 10%, refundable pro rata if no subject is enrolled.", counter)
         return Verdict("accept", "PAY-A3", f"Start-up fee of {fee:g}% is within the 10% standard.")
     return None
 
 
-def _confidentiality(v: dict, ch: dict) -> Verdict | None:
+def _confidentiality(v: dict, ch: dict, lenient: dict | None = None) -> Verdict | None:
     if _bool(v.get("trade_secrets_perpetual")) is False:
         return Verdict("escalate", "CONF-E2", "Trade secrets lose perpetual protection → escalate to Legal.", ch["original"])
     years = _num(v.get("survival_years"))
@@ -109,6 +141,8 @@ def _confidentiality(v: dict, ch: dict) -> Verdict | None:
         fb = _replace_quantity(ch["revised"], "years", "five (5)")
         return Verdict("escalate", "CONF-E1", f"Survival of {years:g} years is under 3 → escalate to Legal.", ch["original"], fb)
     if years < 5:
+        if widened := _widened("survival_years", years, lenient):
+            return widened
         return Verdict("fallback", "CONF-F1", f"Survival of {years:g} years is between 3 and 5 → counter with the 5-year fallback.", _replace_quantity(ch["revised"], "years", "five (5)"))
     if years < 7:
         return Verdict("accept", "CONF-A2", f"Survival of {years:g} years meets the pre-approved 5-year fallback.")
@@ -145,7 +179,7 @@ def _subject_injury(v: dict, ch: dict) -> Verdict | None:
     return None
 
 
-def _publication(v: dict, ch: dict) -> Verdict | None:
+def _publication(v: dict, ch: dict, lenient: dict | None = None) -> Verdict | None:
     if _norm(v.get("patent_delay")) == "removed":
         return Verdict("escalate", "PUB-E1", "Patent delay removed → escalate to Legal.", ch["original"])
     days = _num(v.get("review_days"))
@@ -157,6 +191,8 @@ def _publication(v: dict, ch: dict) -> Verdict | None:
         return Verdict("escalate", "PUB-E3", "Open-ended review window (“or as otherwise agreed”) → escalate to Legal.", ch["original"])
     if days is not None:
         if days < 60:
+            if widened := _widened("review_days", days, lenient):
+                return widened
             counter = _replace_quantity(ch["revised"], "days", "sixty (60)")
             return Verdict("fallback", "PUB-F1", f"Review window of {days:g} days is under the 60-day standard → counter at 60 days.", counter)
         if days <= 75:
@@ -240,7 +276,11 @@ CLAUSE_RULES = {
 }
 
 
-def decide(change: dict, extraction: dict, quotes_ok: bool) -> Verdict:
+WIDENED_CLAUSES = {b["clause"] for b in BANDS.values()}
+
+
+def decide(change: dict, extraction: dict, quotes_ok: bool, lenient: dict | None = None) -> Verdict:
+    """`lenient` (priority.leniency_for) widens only the BANDS accept lines; every fail-safe runs first."""
     if extraction.get("error"):
         return Verdict("human_review", "SYS-ERROR", f"Extraction failed ({extraction['error']}) → human review.")
     if not quotes_ok:
@@ -255,8 +295,9 @@ def decide(change: dict, extraction: dict, quotes_ok: bool) -> Verdict:
     values = {v["field"]: v["value"] for v in extraction.get("values", [])}
     if _bool(values.pop("no_substantive_change", None)) and not values and not extraction.get("novel_issue"):
         return Verdict("accept", "SYS-COSMETIC", "Wording or formatting edit with no change to rights or obligations → accept.")
-    fn = CLAUSE_RULES.get(extraction.get("clause_type", ""))
-    verdict = fn(values, change) if fn else None
+    clause = extraction.get("clause_type", "")
+    fn = CLAUSE_RULES.get(clause)
+    verdict = (fn(values, change, lenient) if clause in WIDENED_CLAUSES else fn(values, change)) if fn else None
     novel = extraction.get("novel_issue")
     if novel and (verdict is None or verdict.outcome in ("accept", "fallback")):
         return Verdict("novel", "NONE", f"No playbook rule covers this → flagged as novel. {novel}")

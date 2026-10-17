@@ -12,6 +12,7 @@ const ExportPage = lazy(() => import('@/pages/ExportPage').then((m) => ({ defaul
 const PortfolioPage = lazy(() => import('@/pages/PortfolioPage').then((m) => ({ default: m.PortfolioPage })))
 const EvalsPage = lazy(() => import('@/pages/EvalsPage').then((m) => ({ default: m.EvalsPage })))
 const PlaybookPage = lazy(() => import('@/pages/PlaybookPage').then((m) => ({ default: m.PlaybookPage })))
+const PriorityPage = lazy(() => import('@/pages/PriorityPage').then((m) => ({ default: m.PriorityPage })))
 
 function PageFallback() {
   return <div className="wrap py-16 text-muted" role="status">Loading…</div>
@@ -31,6 +32,7 @@ export default function App() {
               <Route path="portfolio" element={<PortfolioPage />} />
               <Route path="evals" element={<EvalsPage />} />
               <Route path="playbook" element={<PlaybookPage />} />
+              <Route path="priority" element={<PriorityPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>

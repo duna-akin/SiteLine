@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import { BookOpenCheck, FileUp, FlaskConical, Inbox, ListChecks, Menu, Radar, X, type LucideIcon } from 'lucide-react'
+import { BookOpenCheck, FileUp, FlaskConical, Gauge, Inbox, ListChecks, Menu, Radar, X, type LucideIcon } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 
 import { SponsorChip } from '@/components/siteline/SponsorChip'
@@ -15,6 +15,7 @@ const nav: { to: string; label: string; icon: LucideIcon }[] = [
   { to: '/portfolio', label: 'Radar', icon: Radar },
   { to: '/evals', label: 'Evals', icon: FlaskConical },
   { to: '/playbook', label: 'Playbook', icon: BookOpenCheck },
+  { to: '/priority', label: 'Priority', icon: Gauge },
 ]
 
 export function Wordmark() {

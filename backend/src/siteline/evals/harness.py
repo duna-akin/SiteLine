@@ -25,11 +25,14 @@ from siteline.docx_redline import parse_docx
 from siteline.evals.dataset import load_dataset
 from siteline.extraction import ExtractionError, client, extract_live
 from siteline.playbook import playbook_text
+from siteline.priority import MAX_SHARE
 from siteline.rules import decide
 from siteline.sandbox import SandboxError, parse_in_daytona
 from siteline.verify import verify_quote
 
 OUTCOMES = ["accept", "fallback", "escalate", "human_review", "novel"]
+# Both tiers: every row is also decided for a high-priority site at the widest allowed leniency
+HIGH_TIER = {"level": "high", "share": MAX_SHARE, "days": 120, "bucket": "eval", "moneyAtRiskPerWeek": 25000}
 RESULTS_DIR = DATA_DIR / "evals"
 LATEST = RESULTS_DIR / "latest.json"
 
@@ -159,6 +162,13 @@ def score(rows: list[dict]) -> dict[str, Any]:
         {"key": "latency", "label": "Latency per change", "description": "Mean Claude call time per change",
          "siteline": lat("siteline_ms"), "baseline": lat("baseline_ms"), "unit": "s", "lowerIsBetter": True},
     ]
+    if rows and all("siteline_high" in r for r in rows):
+        metrics.insert(1, {
+            "key": "unsafeHigh", "label": "Unsafe accept rate, high-priority site",
+            "description": f"Same readings decided with the widest leniency ({MAX_SHARE:.0%} of the gap)",
+            "siteline": unsafe("siteline_high"), "baseline": unsafe("baseline"), "unit": "%", "lowerIsBetter": True,
+            "target": "Equal to the standard-site rate",
+        })
     return {"metrics": metrics, "confusion": confusion("siteline"), "baselineConfusion": confusion("baseline"), "shouldEscalate": len(esc)}
 
 
@@ -190,16 +200,20 @@ async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = 8) ->
             b = await baseline(change, it["context"])
         quotes = [verify_quote(v["quote"], change, it["context"]) for v in ex.get("values", [])] if not ex.get("error") else []
         verdict = decide(change, ex, all(quotes))
+        # The same reading decided for a high-priority site at the widest leniency the config allows
+        high = decide(change, ex, all(quotes), HIGH_TIER)
         if it.get("precedents"):
             values = {v["field"]: v["value"] for v in ex.get("values", [])} if not ex.get("error") else {}
             clause = ex.get("clause_type") or it["clause_type"]
             verdict, _ = precedent.review(verdict, clause, values, it["siteName"], it["agreementId"], records=it["precedents"])
+            high, _ = precedent.review(high, clause, values, it["siteName"], it["agreementId"], records=it["precedents"])
         b_out = b.get("outcome") if not b.get("error") else "human_review"
         done += 1
         events.publish("eval.progress", {"runId": run_id, "done": done, "total": len(items)})
         return {
             "id": it["id"], "gold": it["gold"], "note": it["note"],
             "siteline": verdict.outcome, "rule": verdict.rule_id, "siteline_quotes": quotes,
+            "siteline_high": high.outcome, "rule_high": high.rule_id,
             "siteline_ms": ex.get("latencyMs", 0), "extraction": ex,
             "baseline": b_out, "baseline_quote_ok": verify_quote(b["quote"], change, it["context"]) if b.get("quote") else None,
             "baseline_ms": b.get("latencyMs", 0), "baseline_rationale": b.get("rationale") or b.get("error"),

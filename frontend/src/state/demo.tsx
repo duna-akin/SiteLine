@@ -93,6 +93,9 @@ interface DemoApi extends DemoState {
   loadAgreement: (id: string) => Promise<void>
   override: (id: string, outcome: Outcome, reason: string) => Promise<void>
   clearOverride: (id: string) => Promise<void>
+  confirm: (id: string) => Promise<void>
+  unconfirm: (id: string) => Promise<void>
+  confirmAll: (agreementId: string) => Promise<void>
   reply: (id: string, reply: ApprovalReply, channel: ApprovalChannel) => Promise<void>
   callNow: (id: string) => Promise<void>
   setFlag: (flag: 'localParser' | 'useCache', value: boolean) => void
@@ -179,6 +182,18 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       loadAgreement,
       override: (id, outcome, reason) => run(() => api.overrideDecision(id, outcome, reason), 'Override saved with reason'),
       clearOverride: (id) => run(() => api.clearOverride(id), 'Override removed'),
+      confirm: (id) => run(() => api.confirmDecision(id), 'Confirmed'),
+      unconfirm: (id) => run(() => api.unconfirmDecision(id), 'Confirmation removed'),
+      confirmAll: async (aid) => {
+        try {
+          const r = await api.confirmAllSuggested(aid)
+          dispatch({ type: 'agreement', agreement: r.agreement })
+          notify(`Confirmed ${r.confirmed} suggestion${r.confirmed === 1 ? '' : 's'}` +
+            (r.needOwnConfirm ? `; ${r.needOwnConfirm} with a precedent need their own confirm` : ''))
+        } catch (e) {
+          notify(message(e))
+        }
+      },
       reply: (id, r, channel) => run(() => api.recordApprovalReply(id, r, channel)),
       callNow: (id) => run(() => api.placeApprovalCall(id)),
       setFlag: (flag, v) => dispatch({ type: 'setFlag', flag, value: v }),

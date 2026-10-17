@@ -127,9 +127,98 @@ export interface Change {
   cached?: boolean
 }
 
+export type PriorityLevel = 'high' | 'elevated' | 'standard' | 'unknown'
+
+/** One figure Claude read from the contract (or the study plan), with its quote. */
+export interface PriorityFigure {
+  field: 'enrollment_target_subjects' | 'enrollment_period_months' | 'per_patient_amount_usd'
+  value: string
+  quote: string
+  verified: boolean
+}
+
+/** Money at risk per week of delay, computed by the backend from the figures and the config. */
+export interface SitePriority {
+  level: PriorityLevel
+  moneyAtRiskPerWeek: number | null
+  patientsPerWeek?: number
+  shareOfPlanned?: number
+  reason: string
+  source?: 'contract' | 'study plan' | null
+  figures: PriorityFigure[]
+}
+
+/** The leniency a decision was made with: share of the gap between standard and escalate floor. */
+export interface Leniency {
+  level: PriorityLevel
+  share: number
+  days: number
+  bucket: string
+  moneyAtRiskPerWeek: number | null
+}
+
+export interface Confirmation {
+  by: string
+  at: number
+}
+
 export interface Decision extends Change {
   override?: Override
   approval: ApprovalStatus
+  leniency?: Leniency | null
+  /** A person signed off on this suggestion; export waits for every one. */
+  confirmation?: Confirmation | null
+}
+
+export interface PriorityConfig {
+  plannedEnrollment: number
+  /** Dollars at risk per week: at or above high → high, at or above elevated → elevated. */
+  thresholds: { high: number; elevated: number }
+  /** Upper bounds of the first two days-waiting buckets, e.g. [30, 90]. */
+  daysBuckets: [number, number]
+  /** Share of the gap per level, one per days-waiting bucket, each 0 to maxShare. */
+  leniency: Record<'high' | 'elevated' | 'standard', [number, number, number]>
+}
+
+export interface PriorityBand {
+  field: string
+  clause: ClauseType
+  label: string
+  unit: string
+  standard: number
+  floor: number
+  ruleId: string
+}
+
+export interface PriorityConfigChange {
+  at: number
+  by: string
+  old: PriorityConfig
+  new: PriorityConfig
+}
+
+export interface PrioritySettings {
+  config: PriorityConfig
+  bands: PriorityBand[]
+  maxShare: number
+  weeksPerMonth: number
+  log: PriorityConfigChange[]
+}
+
+export interface RedecidedChange {
+  agreementId: string
+  changeId: string
+  section: string
+  from: { outcome: Outcome; ruleId: string }
+  to: { outcome: Outcome; ruleId: string }
+}
+
+export interface EscalationQueueItem {
+  agreementId: string
+  siteNumber: string
+  siteName: string
+  priority: Pick<SitePriority, 'level' | 'moneyAtRiskPerWeek' | 'reason'>
+  decision: Decision
 }
 
 export type AgreementStatus = 'triaging' | 'awaiting_approval' | 'ready_to_export' | 'sent_to_site' | 'executed'
@@ -152,6 +241,12 @@ export interface Agreement {
   sandboxId?: string | null
   /** Set once the agreement is confirmed: the stored final document (see api.sourceUrl). */
   finalDocumentKey?: string
+  priority?: SitePriority
+  /** Days since the site's current redline arrived (drives leniency with the priority). */
+  daysWaiting?: number
+  /** Decisions a person has signed off on, and suggestions still waiting for that. */
+  confirmed?: number
+  toConfirm?: number
 }
 
 export interface InboundEmail {

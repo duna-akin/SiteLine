@@ -3,11 +3,15 @@ import type {
   Agreement,
   ApprovalReply,
   Decision,
+  EscalationQueueItem,
   EvalResults,
   InboundEmail,
   Integrations,
   Outcome,
   PlaybookRule,
+  PriorityConfig,
+  PrioritySettings,
+  RedecidedChange,
 } from '@/types'
 
 export class ApiError extends Error {
@@ -102,7 +106,10 @@ export async function exportCounterProposal(agreementId: string) {
   } catch {
     throw new ApiError(0, 'Can’t reach the Siteline API.')
   }
-  if (!res.ok) throw new ApiError(res.status, res.status === 404 ? 'Triage this agreement before exporting it.' : `Export failed (${res.status})`)
+  if (!res.ok) {
+    const detail = await res.json().then((b: { detail?: unknown }) => (typeof b.detail === 'string' ? b.detail : null), () => null)
+    throw new ApiError(res.status, detail ?? (res.status === 404 ? 'Triage this agreement before exporting it.' : `Export failed (${res.status})`))
+  }
   const name = /filename="([^"]+)"/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? 'counter-proposal.docx'
   const url = URL.createObjectURL(await res.blob())
   const a = document.createElement('a')
@@ -148,5 +155,27 @@ export const savePlaybook = (rules: PlaybookRule[]) => request<{ saved: number; 
 export const getInboundEmails = () => request<{ address: string; imap: boolean; emails: InboundEmail[] }>('/inbound-emails')
 
 export const triageEmail = (emailId: string) => request<{ agreement: Agreement }>(`/inbound-emails/${emailId}/triage`, { method: 'POST' })
+
+export const confirmDecision = (changeId: string, by = 'Reviewer') =>
+  request<Decision>(`/decisions/${changeId}/confirm`, json('POST', { by }))
+
+export const unconfirmDecision = (changeId: string) => request<Decision>(`/decisions/${changeId}/confirm`, { method: 'DELETE' })
+
+/** Confirms ready suggestions; ones resting on a precedent still need their own confirm. */
+export const confirmAllSuggested = (agreementId: string, by = 'Reviewer') =>
+  request<{ confirmed: number; needOwnConfirm: number; agreement: Agreement }>(
+    `/agreements/${encodeURIComponent(agreementId)}/confirm-all`,
+    json('POST', { by }),
+  )
+
+export const getEscalationQueue = () => request<EscalationQueueItem[]>('/escalations')
+
+export const getPrioritySettings = () => request<PrioritySettings>('/priority-config')
+
+export const previewPriorityConfig = (config: PriorityConfig) =>
+  request<{ changes: RedecidedChange[] }>('/priority-config/preview', json('POST', { config }))
+
+export const savePriorityConfig = (config: PriorityConfig, by = 'Reviewer') =>
+  request<PrioritySettings & { changes: RedecidedChange[] }>('/priority-config', json('PUT', { config, by }))
 
 export const resetDemo = () => request<{ ok: boolean }>('/demo/reset', { method: 'POST' })

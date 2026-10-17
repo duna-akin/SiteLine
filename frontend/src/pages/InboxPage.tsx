@@ -5,6 +5,8 @@ import { ArrowRight, AtSign, Copy, FileUp, LoaderCircle, Mail, Paperclip } from 
 import * as api from '@/api'
 import { useServerEvent } from '@/api/events'
 import { outcomeVar } from '@/components/siteline/outcome-style'
+import { PriorityBadge } from '@/components/siteline/PriorityBadge'
+import { byPriority, usd } from '@/components/siteline/priority-style'
 import { SponsorChip } from '@/components/siteline/SponsorChip'
 import { AnimatedList } from '@/components/ui/animated-list'
 import { BlurFade } from '@/components/ui/blur-fade'
@@ -15,7 +17,7 @@ import { cn } from '@/lib/utils'
 import { outcomeLabel, outcomeOrder } from '@/mocks/playbook'
 import { statusLabel } from '@/mocks/portfolio'
 import { useDemo } from '@/state/demo'
-import type { Agreement, AgreementStatus, InboundEmail } from '@/types'
+import type { Agreement, AgreementStatus, EscalationQueueItem, InboundEmail } from '@/types'
 
 const statusTone: Record<AgreementStatus, string> = {
   triaging: 'var(--blue-l)',
@@ -52,12 +54,14 @@ export function InboxPage() {
   const navigate = useNavigate()
   const [agreements, setAgreements] = useState<Agreement[] | null>(null)
   const [emails, setEmails] = useState<InboundEmail[]>([])
+  const [queue, setQueue] = useState<EscalationQueueItem[]>([])
   const [triaging, setTriaging] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(() => {
     api.listAgreements().then(setAgreements, (e: Error) => setError(e.message))
     api.getInboundEmails().then((r) => setEmails(r.emails), (e: Error) => setError(e.message))
+    api.getEscalationQueue().then(setQueue, (e: Error) => setError(e.message))
   }, [])
   useEffect(refresh, [refresh])
   useServerEvent('triage.done', refresh)
@@ -140,7 +144,7 @@ export function InboxPage() {
             <ul className="mt-4 flex flex-col gap-3">
               {!agreements &&
                 Array.from({ length: 4 }, (_, i) => <li key={i} className="panel h-24 animate-pulse" aria-hidden />)}
-              {agreements?.map((a) => {
+              {agreements && byPriority(agreements).map((a) => {
                 const isLive = Boolean(a.fileName)
                 const body = (
                   <>
@@ -155,6 +159,10 @@ export function InboxPage() {
                         )}
                       </div>
                       <p className="text-sm text-muted">{a.city} · received {formatDate(a.receivedAt)} · {a.changes} changes</p>
+                      <PriorityBadge priority={a.priority} className="mt-1" />
+                      {a.priority?.moneyAtRiskPerWeek != null && (
+                        <p className="text-xs text-muted">{a.priority.reason}</p>
+                      )}
                       <div className="mt-1 max-w-sm"><OutcomeMix mix={a.outcomeMix} /></div>
                     </div>
                     <div className="flex shrink-0 items-center gap-4 sm:flex-col sm:items-end sm:gap-1">
@@ -189,6 +197,30 @@ export function InboxPage() {
                 )
               })}
             </ul>
+
+            {queue.length > 0 && (
+              <section aria-labelledby="queue-heading" className="mt-8">
+                <h2 id="queue-heading" className="text-2xl">Escalation queue</h2>
+                <p className="mt-1 text-sm text-muted">Highest money at risk first, then oldest. Approvers’ bare 1/2/3 replies still answer the oldest text they got.</p>
+                <ol className="mt-3 flex flex-col gap-2">
+                  {queue.map((q) => (
+                    <li key={q.decision.id}>
+                      <Link
+                        to={`/review/${q.agreementId}#change-${q.decision.id}`}
+                        className="panel flex flex-wrap items-center gap-x-3 gap-y-1 p-3 text-sm transition-colors duration-200 hover:border-yellow"
+                      >
+                        <span className="font-serif text-lg text-yellow">Site {q.siteNumber}</span>
+                        <span className="font-bold">{q.decision.section}</span>
+                        <code className="text-xs text-muted">{q.decision.ruleId}</code>
+                        <span className="ml-auto tabular text-muted">
+                          {q.priority.moneyAtRiskPerWeek != null ? `≈${usd(q.priority.moneyAtRiskPerWeek)}/week` : 'priority unknown'}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ol>
+              </section>
+            )}
           </section>
 
           <section aria-labelledby="email-heading" className="panel h-fit p-5">

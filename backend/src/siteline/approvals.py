@@ -10,7 +10,7 @@ import asyncio
 import logging
 import re
 
-from siteline import events, photon, store, voice
+from siteline import events, photon, priority, store, voice
 from siteline.config import is_fictional_phone, settings
 from siteline.playbook import SPONSOR, approvers
 
@@ -39,12 +39,24 @@ def _short(text: str, n: int = 220) -> str:
     return text if len(text) <= n else text[: n - 1].rstrip() + "…"
 
 
+def priority_line(agreement_id: str) -> str:
+    """'Site 07 = high priority, ≈$11,200/week at risk (14% of planned enrollment).' or ''."""
+    a = store.state()["agreements"].get(agreement_id, {})
+    prio = priority.assess(a.get("priorityInputs"))
+    if prio["moneyAtRiskPerWeek"] is None:
+        return ""
+    return (f"Site {a.get('siteNumber', '?')} = {prio['level']} priority, ≈{priority.money(prio['moneyAtRiskPerWeek'])}/week at risk"
+            f" ({prio['shareOfPlanned']:.0%} of planned enrollment).")
+
+
 def message_text(agreement_id: str, d: dict) -> str:
     changed = d["revised"] or f"deletes: {d['original']}"
     prec = d.get("precedent")
+    stakes = priority_line(agreement_id)
     return (
         f"Siteline · {SPONSOR['protocol']} {_site_label(agreement_id)}\n"
-        f"{_code(d)} · {d['section']}\n"
+        + (f"{stakes}\n" if stakes else "")
+        + f"{_code(d)} · {d['section']}\n"
         f"Site’s edit: “{_short(changed)}”\n"
         f"Rule {d['ruleId']}: {d['ruleText']}\n"
         + (f"Precedent: {prec['summary']}\n" if prec else "")
@@ -58,7 +70,8 @@ def call_script(agreement_id: str, d: dict) -> str:
     a = store.state()["agreements"].get(agreement_id, {})
     return (
         f"This is Siteline for {SPONSOR['name']}. You have an escalation on site {a.get('siteNumber', '')}, "
-        f"change {d['index']}, {d['section'].replace('§', 'section ')}. {d['ruleText'].replace('→', '.')} "
+        f"change {d['index']}, {d['section'].replace('§', 'section ')}. {priority_line(agreement_id).replace('≈', 'about ')} "
+        f"{d['ruleText'].replace('→', '.')} "
         "Press 1 to approve the site's language. Press 2 to counter with the playbook fallback. "
         "Press 3 to reject and hold the standard."
     )

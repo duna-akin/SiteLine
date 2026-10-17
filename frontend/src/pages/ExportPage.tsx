@@ -6,7 +6,7 @@ import * as api from '@/api'
 import { OutcomeBadge } from '@/components/siteline/outcome'
 import { BlurFade } from '@/components/ui/blur-fade'
 import { SPONSOR, approvers, replyMeaning } from '@/mocks/playbook'
-import { effectiveOutcome } from '@/state/decision'
+import { effectiveOutcome, isConfirmed, isWaiting } from '@/state/decision'
 import { useDemo } from '@/state/demo'
 import type { Decision } from '@/types'
 
@@ -46,6 +46,7 @@ export function ExportPage() {
   }, [agreementId, agreement?.id, loadAgreement])
   const entries = decisions.map(toEntry)
   const pending = entries.filter((e) => e.pending).length
+  const unconfirmed = decisions.filter((d) => !isWaiting(d) && !isConfirmed(d)).length
 
   async function download() {
     if (!agreementId) return
@@ -85,9 +86,15 @@ export function ExportPage() {
           <div>
             <h1 className="text-4xl sm:text-5xl">Counter-proposal</h1>
             <p className="mt-2 text-muted">Word file with tracked changes and one comment per decision.</p>
+            {unconfirmed > 0 && (
+              <p role="status" className="mt-2 text-sm font-bold text-butter">
+                {unconfirmed} suggestion{unconfirmed === 1 ? '' : 's'} not yet confirmed by a person.{' '}
+                <Link to={`/review/${agreementId}`} className="text-blue-l hover:underline">Confirm them in review</Link> before exporting.
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn btn-primary" onClick={download} disabled={busy || decisions.length === 0}>
+            <button type="button" className="btn btn-primary" onClick={download} disabled={busy || decisions.length === 0 || unconfirmed > 0}>
               {busy ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Download aria-hidden className="size-4" />}
               Download .docx
             </button>
@@ -95,8 +102,8 @@ export function ExportPage() {
               type="button"
               className="btn btn-ghost"
               onClick={confirm}
-              disabled={busy || decisions.length === 0 || pending > 0 || agreement?.status === 'executed'}
-              title={pending > 0 ? 'Resolve every pending item first' : undefined}
+              disabled={busy || decisions.length === 0 || pending > 0 || unconfirmed > 0 || agreement?.status === 'executed'}
+              title={pending > 0 ? 'Resolve every pending item first' : unconfirmed > 0 ? 'Confirm every suggestion first' : undefined}
             >
               <BadgeCheck aria-hidden className="size-4" />
               {agreement?.status === 'executed' ? 'Agreement confirmed' : 'Confirm agreement'}

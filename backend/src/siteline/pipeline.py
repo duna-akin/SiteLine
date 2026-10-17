@@ -2,16 +2,17 @@
 
 from __future__ import annotations
 
+import asyncio
 import re
 import time
 import uuid
 from dataclasses import dataclass
 
-from siteline import events, precedent, store
+from siteline import events, precedent, priority, store
 from siteline.config import settings
-from siteline.extraction import extract_all
+from siteline.extraction import extract_all, extract_document
 from siteline.playbook import load_playbook, owner_for
-from siteline.rules import decide
+from siteline.rules import WIDENED_CLAUSES, Verdict, decide
 from siteline.sandbox import SandboxError, parse_in_daytona, parse_local
 from siteline.verify import verify_quote
 
@@ -101,7 +102,17 @@ class Job:
         events.publish("triage.log", {"jobId": self.id, "line": line})
 
 
-def build_decisions(agreement_id: str, parsed: dict, extractions: list[dict], site_name: str = "") -> list[dict]:
+def _verdict(change: dict, ex: dict, values: list[dict], clause: str, site_name: str, agreement_id: str,
+             history: list[dict], lenient: dict | None) -> tuple[Verdict, dict | None]:
+    quotes_ok = all(v["verified"] for v in values)
+    verdict = decide(change, ex, quotes_ok, lenient)
+    # After the rules and their fail-safes: has this site been granted this before? Always checked,
+    # including widened accepts, so the reviewer sees the precedent next to the suggestion.
+    return precedent.review(verdict, clause, {v["field"]: v["value"] for v in values}, site_name, agreement_id, history)
+
+
+def build_decisions(agreement_id: str, parsed: dict, extractions: list[dict], site_name: str = "",
+                    lenient: dict | None = None) -> list[dict]:
     rules = load_playbook()
     context = preamble(parsed)
     prefix = agreement_id.replace("site-", "s")
@@ -112,10 +123,8 @@ def build_decisions(agreement_id: str, parsed: dict, extractions: list[dict], si
         for v in ex.get("values", []) if not ex.get("error") else []:
             values.append({**v, "verified": verify_quote(v["quote"], change, context)})
         quotes_ok = all(v["verified"] for v in values)
-        verdict = decide(change, ex, quotes_ok)
         clause = ex.get("clause_type") or guess_clause(change["section"])
-        # After the rules and their fail-safes: has this site been granted this before?
-        verdict, prec = precedent.review(verdict, clause, {v["field"]: v["value"] for v in values}, site_name, agreement_id, history)
+        verdict, prec = _verdict(change, ex, values, clause, site_name, agreement_id, history, lenient)
         primary = next((v for v in values if not v["verified"]), values[0] if values else None)
         out.append(
             {
@@ -125,6 +134,7 @@ def build_decisions(agreement_id: str, parsed: dict, extractions: list[dict], si
                 "kind": change["kind"],
                 "section": change["section"] or "Unnumbered section",
                 "clauseType": clause,
+                "extractedClauseType": ex.get("clause_type"),
                 "original": change["original"],
                 "revised": change["revised"],
                 "segments": change["segments"],
@@ -146,14 +156,61 @@ def build_decisions(agreement_id: str, parsed: dict, extractions: list[dict], si
                 "counterText": verdict.counter_text,
                 "fallbackText": verdict.fallback_text,
                 "precedent": prec,
+                "leniency": lenient,
                 "approval": {"state": "none"},
+                "confirmation": None,
             }
         )
     return out
 
 
-async def triage(data: bytes, file_name: str, options: TriageOptions, source: str = "upload", job: Job | None = None) -> dict:
-    """Run the full pipeline and store the agreement. Returns the agreement summary."""
+def redecide_open(agreement_id: str, lenient: dict, dry_run: bool = False) -> list[dict]:
+    """Re-run the rules on suggestions nobody has acted on yet (no confirmation, override or
+    approval) in the widened clauses, with new leniency. Returns the outcomes that change;
+    with dry_run nothing is saved (the settings preview)."""
+    a = store.state()["agreements"].get(agreement_id, {})
+    history = store.precedents_for_site(a.get("siteName", ""))
+    changed = []
+    for d in store.get_decisions(agreement_id):
+        if d.get("confirmation") or d.get("override") or d["approval"]["state"] != "none":
+            continue
+        if "extractedClauseType" not in d or d["extractedClauseType"] not in WIDENED_CLAUSES:
+            continue
+        ex = {"clause_type": d["extractedClauseType"], "values": [{k: v[k] for k in ("field", "value", "quote")} for v in d["extracted"]],
+              "confidence": d["confidence"], "novel_issue": d["novelIssue"], "error": d["extractionError"], "rationale": d["rationale"]}
+        verdict, prec = _verdict(d, ex, d["extracted"], d["clauseType"], a.get("siteName", ""), agreement_id, history, lenient)
+        if verdict.rule_id != d["ruleId"]:
+            changed.append({"agreementId": agreement_id, "changeId": d["id"], "section": d["section"],
+                            "from": {"outcome": d["outcome"], "ruleId": d["ruleId"]},
+                            "to": {"outcome": verdict.outcome, "ruleId": verdict.rule_id}})
+        if dry_run:
+            continue
+        store.update_decision(d["id"], outcome=verdict.outcome, ruleId=verdict.rule_id, ruleText=verdict.rule_text,
+                              counterText=verdict.counter_text, fallbackText=verdict.fallback_text, precedent=prec, leniency=lenient)
+    return changed
+
+
+def leniency_now(agreement: dict, cfg: dict | None = None) -> dict:
+    """Leniency from the agreement's priority (current config) and days its redline has waited."""
+    cfg = cfg or priority.load_config()
+    prio = priority.assess(agreement.get("priorityInputs"), cfg)
+    return priority.leniency_for(prio, priority.days_since(agreement.get("redlineReceivedAt")), cfg)
+
+
+def reprioritize_all(cfg: dict | None = None, dry_run: bool = False) -> list[dict]:
+    """Re-decide open suggestions on every live agreement under `cfg` (default: the saved config)."""
+    out: list[dict] = []
+    for agreement_id in list(store.state()["decisions"]):
+        a = store.state()["agreements"].get(agreement_id)
+        if a and a.get("status") not in ("sent_to_site", "executed"):
+            out += redecide_open(agreement_id, leniency_now(a, cfg), dry_run)
+    return out
+
+
+async def triage(data: bytes, file_name: str, options: TriageOptions, source: str = "upload", job: Job | None = None,
+                 received_at: str | None = None) -> dict:
+    """Run the full pipeline and store the agreement. Returns the agreement summary.
+    `received_at` is when the redline arrived (an email's timestamp); days waiting count from it."""
     from siteline import approvals  # circular: approvals reads decisions
 
     job = job or Job("pending", file_name)
@@ -188,7 +245,11 @@ async def triage(data: bytes, file_name: str, options: TriageOptions, source: st
     job.agreement_id = meta["agreementId"]
 
     job.step("extract", "active", f"{len(parsed['changes'])} changes in parallel", "Anthropic Claude")
-    extractions = await extract_all(parsed["changes"], preamble(parsed), options.use_cache)
+    text = priority.document_text(parsed)
+    extractions, figures = await asyncio.gather(
+        extract_all(parsed["changes"], preamble(parsed), options.use_cache),
+        extract_document(text, options.use_cache),
+    )
     cached = sum(1 for e in extractions if e.get("cached"))
     failed = sum(1 for e in extractions if e.get("error"))
     detail = "JSON-schema output, one verbatim quote per value"
@@ -198,7 +259,16 @@ async def triage(data: bytes, file_name: str, options: TriageOptions, source: st
         detail += f" · {failed} failed → human review"
     job.step("extract", "done", detail, "Anthropic Claude")
 
-    decisions = build_decisions(meta["agreementId"], parsed, extractions, meta["siteName"])
+    existing = store.state()["agreements"].get(meta["agreementId"], {})
+    inputs = priority.inputs_from_extraction(figures, text)
+    if priority.assess(inputs)["level"] == "unknown" and (existing.get("priorityInputs") or {}).get("source") == "study plan":
+        inputs = existing["priorityInputs"]  # the contract is silent: keep the study-plan figures on file
+    prio_agreement = {"priorityInputs": inputs, "redlineReceivedAt": received_at or store.iso_now()}
+    lenient = leniency_now(prio_agreement)
+    prio = priority.assess(inputs)
+    job.log(f"Priority: {prio['level']} · {prio['reason']} Leniency: {lenient['share']:.0%} of the gap ({lenient['bucket']} waiting).")
+
+    decisions = build_decisions(meta["agreementId"], parsed, extractions, meta["siteName"], lenient)
     bad = sum(1 for d in decisions if not d["quoteVerified"] and not d["extractionError"])
     total_q = sum(len(d["extracted"]) for d in decisions)
     ok_q = sum(1 for d in decisions for v in d["extracted"] if v["verified"])
@@ -211,7 +281,6 @@ async def triage(data: bytes, file_name: str, options: TriageOptions, source: st
     job.step("teardown", "done" if use_daytona else "skipped", "Only JSON left the sandbox" if use_daytona else "No sandbox to delete", "Daytona" if use_daytona else None)
 
     seconds = round(time.perf_counter() - job.started, 1)
-    existing = store.state()["agreements"].get(meta["agreementId"], {})
     agreement = {
         "id": meta["agreementId"],
         "siteNumber": meta["siteNumber"],
@@ -229,6 +298,7 @@ async def triage(data: bytes, file_name: str, options: TriageOptions, source: st
         "sandboxId": sandbox_id,
         "parser": "daytona" if use_daytona else "local",
         "log": job.log_lines,
+        **prio_agreement,
     }
     approvals.cancel_for_agreement(meta["agreementId"])
     store.put_document(meta["agreementId"], parsed)
