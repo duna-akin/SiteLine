@@ -1,41 +1,56 @@
-@font-face { font-family: "Makcasa"; src: url("../assets/fonts/Makcasa-Regular.woff2") format("woff2"); font-weight: 400; unicode-range: U+0000-002F, U+003A-10FFFF; font-display: swap; }
-@font-face { font-family: "Estiana"; src: url("../assets/fonts/AVEstiana-Light.woff2") format("woff2"); font-weight: 300; font-display: swap; }
-@font-face { font-family: "Estiana"; src: url("../assets/fonts/AVEstiana-LightOblique.woff2") format("woff2"); font-weight: 300; font-style: italic; font-display: swap; }
-@font-face { font-family: "Estiana"; src: url("../assets/fonts/AVEstiana-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
-@font-face { font-family: "Estiana"; src: url("../assets/fonts/AVEstiana-Medium.woff2") format("woff2"); font-weight: 500; font-display: swap; }
-@font-face { font-family: "Estiana"; src: url("../assets/fonts/AVEstiana-MediumOblique.woff2") format("woff2"); font-weight: 500; font-style: italic; font-display: swap; }
-@font-face { font-family: "Estiana"; src: url("../assets/fonts/AVEstiana-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
-@font-face { font-family: "Estiana"; src: url("../assets/fonts/AVEstiana-BoldOblique.woff2") format("woff2"); font-weight: 700; font-style: italic; font-display: swap; }
-@font-face { font-family: "Estiana"; src: url("../assets/fonts/AVEstiana-Black.woff2") format("woff2"); font-weight: 900; font-display: swap; }
-@font-face { font-family: "Estiana"; src: url("../assets/fonts/AVEstiana-BlackOblique.woff2") format("woff2"); font-weight: 900; font-style: italic; font-display: swap; }
-
+/* Sunday Morning (mockups/b-sunday-morning.html): cream, tangerine + trust blue, pastel card fills.
+   Fredoka (display) and Nunito (body) load from Google Fonts in index.html. */
 :root {
-  /* Theme palette ("on season") */
-  --space: #01151e;       /* matches the illustration background */
-  --space-2: #062230;
-  --ink: #0a0f1c;
-  --yellow: #ffdd00;      /* wordmark */
-  --magenta: #ff0aa8;
-  --green: #0ca550;
-  --lime: #5aff00;
-  --mint: #7dffaa;
-  --blue: #0b4a9a;
-  --blue-l: #5686bb;
-  --cream: #f2e9b0;
-  --red: #e41e2d;         /* main brand red */
-  --glow: #dbeec2;        /* pale core of orbs and novas */
-  --butter: #fecd6d;      /* warm mid-tone of glows and domes */
-  --wine: #5b1030;        /* deep mauve shadow end of gradients */
+  --bg: #FFF8EE;
+  --card: #FFFFFF;
+  --ink: #3A2A1E;
+  --muted: #75614F;
+  --line: #F0E4D3;
+  --tangerine: #F97316;
+  --tangerine-ink: #C2410C;
+  --blue: #2563EB;
+  --butter: #FFF1C9;
+  --sky: #E6EFFF;
+  --mint: #DDF5E6;
+  --mint-ink: #166534;
+  --peach: #FFE6D5;
+  --rose: #FFE1E4;
+  --rose-ink: #BE123C;
+  --amber-ink: #92400E;
 
-  --text: #f4f1e4;
-  --muted: rgba(244, 241, 228, .62);
-  --line: rgba(244, 241, 228, .14);
+  /* Accents used by single elements */
+  --on-ink: #FFF8EE;          /* text on ink-filled controls */
+  --on-orange: #2B1608;       /* text on the tangerine button */
+  --marker: #FFD27A;          /* highlighter behind key numbers, logo sun */
+  --phone: #FFFDF9;
+  --bubble: #ECE6DC;
+  --bubble-new: #FFD9BF;
+  --beam-base: #D6E2FA;
+  --radar-ok: #22C55E;        /* no stuck clauses */
+  --radar-warn: #F5B83D;      /* 1–2 stuck */
+  --radar-bad: #F43F5E;       /* 3+ stuck */
 
-  --serif: "Makcasa", "Estiana", serif;
-  --sans: "Estiana", sans-serif;
-
-  --gutter: clamp(16px, 4vw, 56px);
-  --max: 1320px;
+  --display: "Fredoka", system-ui, sans-serif;
+  --body: "Nunito", system-ui, sans-serif;
+  --shadow: 0 1px 0 rgba(58, 42, 30, .05), 0 12px 28px -16px rgba(58, 42, 30, .22);
   --ease: cubic-bezier(.2, .8, .2, 1);
   --ease-in-out: cubic-bezier(.7, 0, .2, 1);
+  --max: 1240px;
+  --gutter: clamp(16px, 3vw, 32px);
+
+  /* Legacy names from the dark theme, mapped onto Sunday Morning until every page is restyled */
+  --space: var(--bg);
+  --space-2: var(--card);
+  --text: var(--ink);
+  --yellow: var(--tangerine);
+  --magenta: var(--tangerine-ink);
+  --red: var(--rose-ink);
+  --blue-l: var(--blue);
+  --cream: var(--bg);
+  --glow: var(--marker);
+  --wine: var(--ink);
+  --lime: var(--radar-ok);
+  --green: var(--mint-ink);
+  --serif: var(--display);
+  --sans: var(--body);
 }

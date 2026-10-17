@@ -4,8 +4,9 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from '@/components/siteline/AppShell'
 import { InboxPage } from '@/pages/InboxPage'
 import { DemoProvider } from '@/state/demo'
+import { DeskProvider } from '@/state/desk'
 
-// Route-level code splitting: only the inbox ships in the first bundle.
+// Route-level code splitting: only Home ships in the first bundle.
 const UploadPage = lazy(() => import('@/pages/UploadPage').then((m) => ({ default: m.UploadPage })))
 const ReviewPage = lazy(() => import('@/pages/ReviewPage').then((m) => ({ default: m.ReviewPage })))
 const ExportPage = lazy(() => import('@/pages/ExportPage').then((m) => ({ default: m.ExportPage })))
@@ -21,23 +22,28 @@ function PageFallback() {
 export default function App() {
   return (
     <DemoProvider>
-      <BrowserRouter>
-        <Suspense fallback={<PageFallback />}>
-          <Routes>
-            <Route element={<AppShell />}>
-              <Route index element={<InboxPage />} />
-              <Route path="upload" element={<UploadPage />} />
-              <Route path="review/:agreementId" element={<ReviewPage />} />
-              <Route path="review/:agreementId/export" element={<ExportPage />} />
-              <Route path="portfolio" element={<PortfolioPage />} />
-              <Route path="evals" element={<EvalsPage />} />
-              <Route path="playbook" element={<PlaybookPage />} />
-              <Route path="priority" element={<PriorityPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
+      <DeskProvider>
+        <BrowserRouter>
+          <Suspense fallback={<PageFallback />}>
+            <Routes>
+              <Route element={<AppShell />}>
+                <Route index element={<InboxPage />} />
+                <Route path="inbound" element={<InboxPage />} />
+                <Route path="upload" element={<UploadPage />} />
+                <Route path="sites" element={<PortfolioPage />} />
+                <Route path="review/:agreementId" element={<ReviewPage />} />
+                <Route path="review/:agreementId/export" element={<ExportPage />} />
+                <Route path="data" element={<EvalsPage />} />
+                <Route path="playbook" element={<PlaybookPage />} />
+                <Route path="priority" element={<PriorityPage />} />
+                <Route path="portfolio" element={<Navigate to="/sites" replace />} />
+                <Route path="evals" element={<Navigate to="/data" replace />} />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
+            </Routes>
+          </Suspense>
+        </BrowserRouter>
+      </DeskProvider>
     </DemoProvider>
   )
 }
