@@ -12,7 +12,7 @@ from typing import Any
 
 import psycopg
 
-from siteline import db
+from siteline import db, priority
 from siteline.config import DATA_DIR, RUNTIME_DIR
 
 log = logging.getLogger("siteline.store")
@@ -112,29 +112,50 @@ def effective_outcome(d: dict) -> str:
     return (d.get("override") or {}).get("outcome") or d["outcome"]
 
 
+def is_waiting(d: dict) -> bool:
+    """Blocked on an approver's reply or a reviewer's decision."""
+    o = effective_outcome(d)
+    return (o == "escalate" and d["approval"]["state"] != "answered") or (o in ("human_review", "novel") and not d.get("override"))
+
+
+def is_confirmed(d: dict) -> bool:
+    """A person has signed off: confirmed the suggestion, overridden it, or answered its escalation."""
+    if d.get("confirmation") or d.get("override"):
+        return True
+    return effective_outcome(d) == "escalate" and d["approval"]["state"] == "answered"
+
+
+def unconfirmed(agreement_id: str) -> int:
+    """Suggestions (accept or fallback) still waiting for a person to confirm them."""
+    return sum(1 for d in get_decisions(agreement_id) if not is_waiting(d) and not is_confirmed(d))
+
+
 def summarize(a: dict) -> dict:
-    """Live agreements derive status, mix and stuck clauses from their decisions."""
+    """Live agreements derive status, mix and stuck clauses from their decisions; every agreement
+    gets its priority under the current config."""
+    out = dict(a)
+    out["priority"] = priority.assess(a.get("priorityInputs"))
+    out["daysWaiting"] = priority.days_since(a.get("redlineReceivedAt") or a.get("receivedAt"))
     decisions = _state["decisions"].get(a["id"])
     if decisions is None:
-        return dict(a)
-    out = dict(a)
+        return out
     mix = {o: 0 for o in OUTCOMES}
     stuck: list[str] = []
     pending = False
     for d in decisions:
-        o = effective_outcome(d)
-        mix[o] += 1
-        waiting = (o == "escalate" and d["approval"]["state"] != "answered") or (o in ("human_review", "novel") and not d.get("override"))
-        if waiting:
+        mix[effective_outcome(d)] += 1
+        if is_waiting(d):
             pending = True
             if d["clauseType"] not in stuck:
                 stuck.append(d["clauseType"])
     out["outcomeMix"] = mix
     out["changes"] = len(decisions)
     out["stuckClauses"] = stuck
+    out["confirmed"] = sum(1 for d in decisions if is_confirmed(d))
+    out["toConfirm"] = sum(1 for d in decisions if not is_waiting(d) and not is_confirmed(d))
     if a.get("status") in ("triaging", "sent_to_site", "executed"):
         return out
-    out["status"] = "awaiting_approval" if pending else "ready_to_export"
+    out["status"] = "awaiting_approval" if pending or out["toConfirm"] else "ready_to_export"
     received = datetime.fromisoformat(a["receivedAt"].replace("Z", "+00:00"))
     if received.tzinfo is None:
         received = received.replace(tzinfo=UTC)
@@ -182,6 +203,20 @@ def pending_escalations(owner: str | None = None) -> list[dict]:
                 if owner is None or d["owner"] == owner:
                     out.append(d)
     return sorted(out, key=lambda d: d["approval"].get("sentAt", 0))
+
+
+def escalation_queue() -> list[dict]:
+    """Every unanswered escalation, highest money at risk first, then oldest. For display only:
+    reply matching (pending_escalations) stays oldest-first so a bare "1" answers the first text."""
+    rows = []
+    for agreement_id, decisions in _state["decisions"].items():
+        a = _state["agreements"].get(agreement_id, {})
+        prio = priority.assess(a.get("priorityInputs"))
+        for d in decisions:
+            if effective_outcome(d) == "escalate" and d["approval"]["state"] != "answered":
+                rows.append({"agreementId": agreement_id, "siteNumber": a.get("siteNumber"), "siteName": a.get("siteName"),
+                             "priority": {k: prio.get(k) for k in ("level", "moneyAtRiskPerWeek", "reason")}, "decision": d})
+    return sorted(rows, key=lambda r: (-(r["priority"]["moneyAtRiskPerWeek"] or 0), r["decision"]["approval"].get("sentAt") or 0))
 
 
 # ---- precedent ----------------------------------------------------------------------

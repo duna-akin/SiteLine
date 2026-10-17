@@ -13,12 +13,13 @@ from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel, Field
 
-from siteline import approvals, events, export, inbound_email, photon, precedent, storage, store, voice
+from siteline import approvals, events, export, inbound_email, photon, precedent, priority, storage, store, voice
 from siteline.config import is_fictional_phone, settings
 from siteline.demo import DEMO_FILE_NAME, ensure_demo
 from siteline.extraction import SEED_CACHE
 from siteline.playbook import SPONSOR, approvers, load_playbook, save_playbook, validate_playbook
-from siteline.pipeline import Job, TriageOptions, triage
+from siteline.pipeline import Job, TriageOptions, reprioritize_all, triage
+from siteline.rules import BANDS
 
 log = logging.getLogger("siteline.api")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -177,6 +178,68 @@ async def override(change_id: str, body: OverrideBody) -> dict:
     return d
 
 
+class ConfirmBody(BaseModel):
+    by: str = Field(default="Reviewer", min_length=1, max_length=80)
+
+
+def _confirmation(body: ConfirmBody | None) -> dict:
+    return {"by": (body.by if body else "Reviewer").strip() or "Reviewer", "at": store.now_ms()}
+
+
+@app.post("/api/decisions/{change_id}/confirm")
+async def confirm_decision(change_id: str, body: ConfirmBody | None = None) -> dict:
+    """A person signs off on Siteline's suggestion (and any precedent shown with it)."""
+    hit = store.find_decision(change_id)
+    if not hit:
+        raise HTTPException(404, "No such change")
+    agreement_id, d = hit
+    if store.is_waiting(d):
+        raise HTTPException(409, "This change needs an approver's reply or your decision first.")
+    d = store.update_decision(change_id, confirmation=_confirmation(body))
+    events.publish("decision.updated", {"agreementId": agreement_id, "decision": d})
+    events.publish("agreement.updated", {"agreement": store.get_agreement(agreement_id)})
+    return d
+
+
+@app.delete("/api/decisions/{change_id}/confirm")
+async def unconfirm_decision(change_id: str) -> dict:
+    hit = store.find_decision(change_id)
+    if not hit:
+        raise HTTPException(404, "No such change")
+    agreement_id, _ = hit
+    d = store.update_decision(change_id, confirmation=None)
+    events.publish("decision.updated", {"agreementId": agreement_id, "decision": d})
+    events.publish("agreement.updated", {"agreement": store.get_agreement(agreement_id)})
+    return d
+
+
+@app.post("/api/agreements/{agreement_id}/confirm-all")
+async def confirm_all(agreement_id: str, body: ConfirmBody | None = None) -> dict:
+    """Confirm every ready suggestion. Escalations and reviews still need their answer, and a
+    suggestion that rests on a precedent needs its own confirm so someone reads the precedent."""
+    _agreement_or_404(agreement_id)
+    who = _confirmation(body)
+    done, own = 0, 0
+    for d in store.get_decisions(agreement_id):
+        if store.is_waiting(d) or store.is_confirmed(d):
+            continue
+        if d.get("precedent"):
+            own += 1
+            continue
+        d = store.update_decision(d["id"], confirmation=who)
+        events.publish("decision.updated", {"agreementId": agreement_id, "decision": d})
+        done += 1
+    summary = store.get_agreement(agreement_id)
+    events.publish("agreement.updated", {"agreement": summary})
+    return {"confirmed": done, "needOwnConfirm": own, "agreement": summary}
+
+
+@app.get("/api/escalations")
+async def escalations() -> list[dict]:
+    """Unanswered escalations across agreements, highest money at risk first."""
+    return store.escalation_queue()
+
+
 @app.delete("/api/decisions/{change_id}/override")
 async def clear_override(change_id: str) -> dict:
     hit = store.find_decision(change_id)
@@ -259,6 +322,8 @@ async def export_docx(agreement_id: str) -> Response:
         data, meta = export.build_export(agreement_id)
     except KeyError:
         raise HTTPException(404, "Triage this agreement before exporting it") from None
+    if n := store.unconfirmed(agreement_id):
+        raise HTTPException(409, f"{n} suggestion(s) not yet confirmed by a person. Confirm them before exporting.")
     return Response(
         data,
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -279,6 +344,8 @@ async def complete_agreement(agreement_id: str) -> dict:
         raise HTTPException(404, "Triage this agreement before confirming it") from None
     if meta["pending"]:
         raise HTTPException(409, f"{meta['pending']} item(s) still pending. Resolve them before confirming.")
+    if n := store.unconfirmed(agreement_id):
+        raise HTTPException(409, f"{n} suggestion(s) not yet confirmed by a person. Confirm them before completing.")
     file_name = re.sub(r"[^\w.-]", "_", meta["fileName"].replace("_counter-proposal", "_final"))
     key = f"{agreement_id}/{file_name}"
     try:
@@ -325,6 +392,54 @@ async def put_playbook(rules: list[dict]) -> dict:
         return JSONResponse({"errors": errors}, status_code=422)
     save_playbook(rules)
     return {"saved": len(rules), "at": store.now_ms()}
+
+
+# ---- site priority ----------------------------------------------------------------------
+
+
+def _priority_settings() -> dict:
+    return {
+        "config": priority.load_config(),
+        "bands": [{"field": f, **b} for f, b in BANDS.items()],
+        "maxShare": priority.MAX_SHARE,
+        "weeksPerMonth": priority.WEEKS_PER_MONTH,
+        "log": priority.config_log()[-20:][::-1],
+    }
+
+
+class PriorityConfigBody(BaseModel):
+    config: dict
+    by: str = Field(default="Reviewer", min_length=1, max_length=80)
+
+
+@app.get("/api/priority-config")
+async def get_priority_config() -> dict:
+    return _priority_settings()
+
+
+@app.post("/api/priority-config/preview")
+async def preview_priority_config(body: PriorityConfigBody) -> dict:
+    """What saving `config` would change: open suggestions only, nothing is saved."""
+    errors = priority.validate_config(body.config)
+    if errors:
+        return JSONResponse({"errors": errors}, status_code=422)
+    return {"changes": reprioritize_all(body.config, dry_run=True)}
+
+
+@app.put("/api/priority-config")
+async def put_priority_config(body: PriorityConfigBody) -> dict:
+    errors = priority.validate_config(body.config)
+    if errors:
+        return JSONResponse({"errors": errors}, status_code=422)
+    priority.save_config(body.config, body.by.strip())
+    changes = reprioritize_all()
+    for a in store.list_agreements():
+        events.publish("agreement.updated", {"agreement": a})
+    for c in changes:
+        hit = store.find_decision(c["changeId"])
+        if hit:
+            events.publish("decision.updated", {"agreementId": hit[0], "decision": hit[1]})
+    return {**_priority_settings(), "changes": changes}
 
 
 # ---- inbound email ------------------------------------------------------------------------
