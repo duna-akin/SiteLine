@@ -260,11 +260,13 @@ export interface InboundEmail {
   agreementId?: string
 }
 
+/** Approvers are shown by role, never by name. */
 export interface Approver {
   owner: Owner
-  name: string
+  /** "Legal approver" */
+  title: string
+  /** The function behind the role, e.g. "Contracts counsel" */
   role: string
-  phone: string
 }
 
 export interface EvalMetric {

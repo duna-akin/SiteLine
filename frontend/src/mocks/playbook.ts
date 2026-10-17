@@ -105,9 +105,9 @@ export const ownerLabel: Record<Owner, string> = {
 }
 
 export const approvers: Record<Owner, Approver> = {
-  legal: { owner: 'legal', name: 'Tuna Akin', role: 'Contracts counsel', phone: '+1 (555) 010-4417' },
-  finance: { owner: 'finance', name: 'Brian Soon', role: 'Clinical finance', phone: '+1 (555) 010-2290' },
-  privacy: { owner: 'privacy', name: 'Michael Boneta', role: 'Privacy officer', phone: '+1 (555) 010-7731' },
+  legal: { owner: 'legal', title: 'Legal approver', role: 'Contracts counsel' },
+  finance: { owner: 'finance', title: 'Finance approver', role: 'Clinical finance' },
+  privacy: { owner: 'privacy', title: 'Privacy approver', role: 'Privacy officer' },
 }
 
 export const replyMeaning: Record<1 | 2 | 3, string> = {
