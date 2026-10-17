@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
 
 import * as api from '@/api'
+import { PriorityBadge } from '@/components/siteline/PriorityBadge'
+import { byPriority, priorityLabel, usd } from '@/components/siteline/priority-style'
 import { BlurFade } from '@/components/ui/blur-fade'
 import { cn } from '@/lib/utils'
 import { clauseLabel } from '@/mocks/playbook'
@@ -19,6 +21,12 @@ const TARGET_DAYS = 90
 /** Inner offset keeps brand-new sites from piling up on the center point. */
 const INNER = 26
 const radiusFor = (days: number) => INNER + (Math.min(days, MAX_DAYS) / MAX_DAYS) * (R - INNER)
+
+/** Blip area grows with money at risk per week; sites with no figures get the smallest blip. */
+function blipSize(a: Agreement, maxRisk: number) {
+  const risk = a.priority?.moneyAtRiskPerWeek ?? 0
+  return Math.round(12 + 22 * Math.sqrt(maxRisk ? risk / maxRisk : 0))
+}
 
 function blipColor(a: Agreement) {
   if (a.stuckClauses.length >= 3) return 'var(--red)'
@@ -40,6 +48,8 @@ export function PortfolioPage() {
   const pick = sites.find((s) => s.id === selected)
   const blocked = sites.filter((s) => s.stuckClauses.length > 0)
   const overTarget = sites.filter((s) => s.daysOpen > TARGET_DAYS)
+  const maxRisk = Math.max(0, ...sites.map((s) => s.priority?.moneyAtRiskPerWeek ?? 0))
+  const atRisk = sites.reduce((n, s) => n + (s.status === 'executed' ? 0 : s.priority?.moneyAtRiskPerWeek ?? 0), 0)
 
   return (
     <div className="wrap py-10 sm:py-14">
@@ -49,7 +59,7 @@ export function PortfolioPage() {
           Portfolio <span className="text-yellow">radar</span>
         </h1>
         <p className="mt-4 max-w-2xl text-lg text-muted">
-          Distance from the center is days open. Color shows how many clauses are stuck. Anything past the dashed ring is over the {TARGET_DAYS}-day start-up target.
+          Distance from the center is days open. Size is money at risk per week of delay. Color shows how many clauses are stuck. Anything past the dashed ring is over the {TARGET_DAYS}-day start-up target.
         </p>
       </BlurFade>
 
@@ -57,6 +67,7 @@ export function PortfolioPage() {
         <span><span className="text-2xl font-bold tabular">{sites.length}</span> <span className="text-muted">open sites</span></span>
         <span><span className="text-2xl font-bold tabular text-butter">{overTarget.length}</span> <span className="text-muted">over {TARGET_DAYS} days</span></span>
         <span><span className="text-2xl font-bold tabular">{blocked.length}</span> <span className="text-muted">blocked by stuck clauses</span></span>
+        <span><span className="text-2xl font-bold tabular text-red">≈{usd(atRisk)}</span> <span className="text-muted">at risk per week across open sites</span></span>
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
@@ -103,15 +114,16 @@ export function PortfolioPage() {
               const r = radiusFor(s.daysOpen)
               const x = ((C + r * Math.cos(angle)) / SIZE) * 100
               const y = ((C + r * Math.sin(angle)) / SIZE) * 100
-              const size = 14 + s.stuckClauses.length * 5
+              const size = blipSize(s, maxRisk)
               const isSel = s.id === selected
+              const risk = s.priority?.moneyAtRiskPerWeek
               return (
                 <motion.button
                   key={s.id}
                   type="button"
                   onClick={() => setSelected(s.id)}
                   aria-pressed={isSel}
-                  aria-label={`Site ${s.siteNumber}, ${s.daysOpen} days open, ${s.stuckClauses.length} stuck clauses`}
+                  aria-label={`Site ${s.siteNumber}, ${s.daysOpen} days open, ${s.stuckClauses.length} stuck clauses, ${risk != null ? `about ${usd(risk)} per week at risk` : 'priority unknown'}`}
                   initial={{ scale: 0, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ delay: 0.05 * i, type: 'spring', stiffness: 260, damping: 20 }}
@@ -133,6 +145,7 @@ export function PortfolioPage() {
             <li className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-butter" /> 1–2 stuck</li>
             <li className="flex items-center gap-1.5"><span className="size-2.5 rounded-full bg-red" /> 3+ stuck</li>
             <li className="flex items-center gap-1.5"><span className="h-0 w-4 border-t border-dashed border-yellow" /> {TARGET_DAYS}-day target</li>
+            <li className="flex items-center gap-1.5"><span className="size-1.5 rounded-full bg-muted" /><span className="size-3 rounded-full bg-muted" /> Bigger = more money at risk</li>
           </ul>
         </section>
 
@@ -143,6 +156,7 @@ export function PortfolioPage() {
               <h2 className="mt-2 text-3xl">Site {pick.siteNumber}</h2>
               <p className="font-bold">{pick.siteName}</p>
               <p className="text-sm text-muted">{pick.city} · {statusLabel[pick.status]}</p>
+              <PriorityBadge priority={pick.priority} detail className="mt-3" />
               <p className="mt-4 text-5xl font-bold tabular">
                 {pick.daysOpen}<span className="text-2xl text-muted"> days open</span>
               </p>
@@ -175,15 +189,20 @@ export function PortfolioPage() {
               <tr className="border-b border-line">
                 <th scope="col" className="px-4 py-3 font-bold">Site</th>
                 <th scope="col" className="px-4 py-3 font-bold">Status</th>
+                <th scope="col" className="px-4 py-3 text-right font-bold">At risk / week</th>
                 <th scope="col" className="px-4 py-3 text-right font-bold">Days open</th>
                 <th scope="col" className="px-4 py-3 font-bold">Stuck clauses</th>
               </tr>
             </thead>
             <tbody>
-              {sites.slice().sort((a, b) => b.daysOpen - a.daysOpen).map((s) => (
+              {byPriority(sites).map((s) => (
                 <tr key={s.id} className="border-b border-line last:border-0">
                   <td className="px-4 py-3"><span className="font-bold">Site {s.siteNumber}</span> <span className="text-muted">{s.siteName}</span></td>
                   <td className="px-4 py-3">{statusLabel[s.status]}</td>
+                  <td className="px-4 py-3 text-right tabular">
+                    {s.priority?.moneyAtRiskPerWeek != null ? `≈${usd(s.priority.moneyAtRiskPerWeek)}` : '—'}
+                    {s.priority && <span className="block text-xs text-muted">{priorityLabel[s.priority.level]}</span>}
+                  </td>
                   <td className={cn('px-4 py-3 text-right tabular', s.daysOpen > TARGET_DAYS && 'font-bold text-butter')}>{s.daysOpen}</td>
                   <td className="px-4 py-3 text-muted">{s.stuckClauses.map((c) => clauseLabel[c]).join(', ') || '—'}</td>
                 </tr>
