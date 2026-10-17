@@ -33,11 +33,12 @@ Other commands:
 | Integration | Key | Without it |
 |---|---|---|
 | OpenAI extraction | `OPENAI_API_KEY` (optional: `SITELINE_OPENAI_MODEL`, `SITELINE_OPENAI_EFFORT` (`off` for non-reasoning models), `SITELINE_OPENAI_TIMEOUT`) | Only cached changes are extracted (the demo file ships with a hand-written seed); anything else goes to human review |
+| Claude Code extraction | `SITELINE_CLAUDE_BACKEND=cli` and no `OPENAI_API_KEY`; a logged-in `claude` CLI or `CLAUDE_CODE_OAUTH_TOKEN` (optional: `SITELINE_CLAUDE_CLI_MODEL` (default `sonnet`), `SITELINE_CLAUDE_CLI_TIMEOUT`, `SITELINE_CLAUDE_CLI_CONCURRENCY` (default 3)) | Extraction runs through `claude -p` on a Claude subscription: same prompts and schema, about 2s per change, 3 at a time. Counts against the plan's usage limits, so run `siteline eval --limit N`; Chalk and Daytona still need an API key |
 | Daytona parsing | `DAYTONA_API_KEY` | Local parser (same code) |
 | Photon texts | `PHOTON_*` + real `APPROVER_*_PHONE` | On-screen phone in the UI |
 | Voice call | `TWILIO_*` + `PUBLIC_BASE_URL` | On-screen call keypad |
 | Inbound email | `IMAP_*` | Seeded inbox emails only |
-| Eval | `OPENAI_API_KEY` | Evals page shows "no run yet" |
+| Eval | `OPENAI_API_KEY` (or the Claude Code backend) | Evals page shows "no run yet" |
 | Precedent history | `DATABASE_URL` | Precedents are kept in `var/state.json` |
 | Source documents | `S3_*` (Supabase Storage) | Final documents are kept in `var/documents/` |
 

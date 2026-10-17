@@ -3,6 +3,12 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · Claude Code extraction fallback
+
+### Added
+
+- **`claude -p` extraction backend** (issue #4): with `SITELINE_CLAUDE_BACKEND=cli` and no `OPENAI_API_KEY`, clause and document extraction run through Claude Code in headless mode on a Claude subscription. Same prompts and JSON schema (`--json-schema`, no tools, no project settings) and the same output shape, so quote checks, rules, cache and UI don't change. At most 3 calls at a time (`SITELINE_CLAUDE_CLI_CONCURRENCY`), a timeout (`SITELINE_CLAUDE_CLI_TIMEOUT`), and the extraction cache still applies. Invalid JSON, a missing structured answer, a usage limit, a timeout or a missing `claude` binary sends the change to human review (`SYS-ERROR`). The Data page shows the model as `claude -p (sonnet)`.
+
 ## [Unreleased] · Sunday Morning frontend
 
 ### Changed
