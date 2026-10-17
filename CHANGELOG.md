@@ -17,7 +17,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 
-- **Faster eval:** each labeled change runs its extraction and baseline calls together, and 16 changes run at once (was 8, one call after the other). Set it with `siteline eval --concurrency` or `POST /api/evals/run?concurrency=`.
+- **Faster eval (about 3s, was about 4 min):** the eval uses its own model, `gpt-4.1-mini` without reasoning (`SITELINE_EVAL_MODEL`, `SITELINE_EVAL_EFFORT`), while uploads keep `gpt-5`. Each labeled change runs its extraction and baseline calls together, and every change runs at once by default (was 8, one call after the other). Limit it with `siteline eval --concurrency` or `POST /api/evals/run?concurrency=`. The result records the eval model and effort.
 
 ## [Unreleased] · Site priority and cost of delay (issue #2)
 
