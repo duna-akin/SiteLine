@@ -2,7 +2,8 @@
 
 1. Pack the labeled changes into Word redlines (one per shard) and parse every shard in its
    own Daytona sandbox, in parallel (local parser when Daytona is off).
-2. Siteline: Claude extraction → quote verification → rules engine.
+2. Siteline: Claude extraction → quote verification → rules engine → precedent (for items
+   that carry a site history).
    Baseline: the same Claude model reads the playbook and picks the outcome directly.
 3. Score: unsafe accept rate, escalation recall, triage accuracy, quote pass rate, latency.
 """
@@ -17,7 +18,7 @@ from typing import Any
 
 import anthropic
 
-from siteline import events
+from siteline import events, precedent
 from siteline.config import DATA_DIR, settings
 from siteline.demo import build_redline
 from siteline.docx_redline import parse_docx
@@ -189,6 +190,10 @@ async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = 8) ->
             b = await baseline(change, it["context"])
         quotes = [verify_quote(v["quote"], change, it["context"]) for v in ex.get("values", [])] if not ex.get("error") else []
         verdict = decide(change, ex, all(quotes))
+        if it.get("precedents"):
+            values = {v["field"]: v["value"] for v in ex.get("values", [])} if not ex.get("error") else {}
+            clause = ex.get("clause_type") or it["clause_type"]
+            verdict, _ = precedent.review(verdict, clause, values, it["siteName"], it["agreementId"], records=it["precedents"])
         b_out = b.get("outcome") if not b.get("error") else "human_review"
         done += 1
         events.publish("eval.progress", {"runId": run_id, "done": done, "total": len(items)})
