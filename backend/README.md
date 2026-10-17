@@ -96,7 +96,7 @@ https://api.photon.codes/openapi.json.
   for sending SMS texts, which Siteline does not do.
 - A reply of `1`, `2` or `3` answers that approver's oldest open escalation; `C04 2` picks one.
 - With all three approver phones set, **every upload texts real people**. Blank the
-  `APPROVER_*_PHONE` lines to rehearse on the on-screen phone.
+  `APPROVER_*_PHONE` lines to rehearse with simulated texts, answered from the Review page.
 
 ## Public URL (ngrok)
 

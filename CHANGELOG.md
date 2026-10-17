@@ -3,6 +3,23 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · The contract is the review screen
+
+### Changed
+
+- **Review shows the whole agreement**, as the site sent it back: title, parties and every article and clause in order, in the document typeface. Each redlined paragraph sits in place, tinted by Siteline's outcome, with deletions struck through, insertions underlined, the site's comment beneath it and what still needs a person (to confirm, needs your decision, awaiting approver, signed off). Clicking a redline unfolds its decision right under it (rule, extracted values, verified quote, precedent, counter text, owner, Confirm, Override and the escalation status), so a change is always judged with the clauses around it. Several can be open at once, and links to `#change-…` open the one they name.
+- A sticky bar counts the changes per outcome; clicking a count jumps to the next redline with that outcome instead of hiding the rest of the contract. Priority, days waiting, escalations answered and sign-offs share one line under the header.
+- Agreements triaged before the full text was stored show their redlined paragraphs alone, with a note.
+- **Sites** shows how the selected site's changes were sorted and an "Open contract" link instead of its own redline excerpt.
+
+### Added
+
+- `GET /api/agreements/{id}/document`: every parsed paragraph of the redline, changed or not (404 when none was stored).
+
+### Removed
+
+- The separate decision cards and outcome filter tiles on Review, and the on-screen approver phone. When escalations aren't going out by Photon, the approver's reply (1 approve, 2 counter, 3 reject) is recorded from the escalation's status line in the unfolded decision.
+
 ## [Unreleased] · Redline on Sites
 
 ### Added
