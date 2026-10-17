@@ -3,7 +3,42 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [Unreleased] · Backend
+
+The product now runs end to end. A new `backend/` (Python, FastAPI) replaces every stub in `frontend/src/api/index.ts`.
+
+### Added
+
+- **`backend/`** (uv project, package `siteline`): API on :8000. See `backend/README.md`.
+  - Word parsing (`docx_redline.py`, stdlib only): reads tracked insertions, deletions, moves, paragraph-mark changes and comments from a `.docx`.
+  - Daytona (`sandbox.py`): each upload is parsed in a fresh ephemeral sandbox with network blocked; only JSON comes back, then the sandbox is deleted. Falls back to the local parser.
+  - Claude extraction (`extraction.py`): one call per change, in parallel, with JSON-schema output (clause type, typed values, one verbatim quote per value, confidence, novel issue). Model `claude-opus-5-5` with server-side refusal fallback. Results are cached per change.
+  - Quote verification (`verify.py`) and a rules engine (`rules.py`) with a rule ID on every outcome. Failed quotes, confidence under 0.80 and extraction errors go to human review. Counter text comes from fixed substitutions on the site's wording, not generated language.
+  - Approvals (`approvals.py`, `photon.py`, `voice.py`): one Photon iMessage per escalation; replies `1`/`2`/`3` come back through a signed Photon webhook; a server-side no-reply timer places a Twilio call through Photon's SIP line and reads the keypad digit. Without credentials, texts and calls go to the on-screen phone.
+  - Word export (`export.py`, `docx_writer.py`): accepted site edits folded in, sponsor counters and holds as tracked changes, one comment per decision, pending items left as the site sent them.
+  - Inbound email (`inbound_email.py`): IMAP poller that triages `.docx` attachments; the two seeded inbox emails carry generated fictional redlines.
+  - Eval (`evals/`): 150 labeled fictional changes (48 should escalate, plus cosmetic, ambiguous and novel cases), a harness that parses them in up to 12 parallel Daytona sandboxes and compares Siteline with an LLM-only baseline, and a Chalk Agent Evals runner.
+  - Site 07 demo redline as a real Word file (`data/demo/`), with a hand-written seed extraction so the demo runs offline. `siteline cache-demo` replaces it with live Claude output.
+  - Live progress over Server-Sent Events (`/api/events`), state saved to `backend/var/`.
+  - 8 offline tests (`uv run pytest`).
+- `frontend/src/api/events.ts`: shared EventSource and a triage runner.
+
+### Changed
+
+- Frontend calls the real API: upload shows the pipeline's actual steps and timings; review, export and the approver phone work for any triaged agreement (`/review/:agreementId`); the phone shows whether a text went out through Photon or only on screen; the inbox triages emails; the evals page shows the last real run or an empty state, and runs the eval; playbook saves are validated server-side.
+- Payment Terms playbook row: the start-up fee thresholds are now explicit (counter above 10%, escalate above 20% non-refundable) so the rules and the demo agree.
+- `vite.config.ts`: `/api` proxy to the backend; `import.meta.dirname` instead of `__dirname`.
+- `.chalkignore`: excludes `backend/` and `frontend/` from `chalk apply`.
+
+### Removed
+
+- Mock agreements, emails and eval numbers from `frontend/src/mocks/` (now served by the backend; the eval no longer shows placeholder numbers).
+
+### Not yet verified
+
+- Live Claude, Daytona, Photon, Twilio, IMAP and Chalk calls: no credentials were available. Each path is written against the provider's current API and falls back safely, but none has run against the real service.
+
+## Frontend prototype
 
 Initial Siteline frontend, built from `PRD.docx` (the only product source for this work). The Chalk scaffold files (`CLAUDE.md`, `README.md`, `chalk.yaml`, `pyproject.toml`, `uv.lock`, `.claude/skills/*`) were not used or modified.
 
