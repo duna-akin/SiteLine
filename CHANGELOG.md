@@ -14,6 +14,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Added
 
+- The main `README.md` now says how to start the project (backend, frontend, optional keys) and walks through using it with the Site 07 demo file.
 - `demo/motion-assets/`: screenshots of every page at 3840×2160, the sandbox strip frame by frame from a real Site 07 run, full-page captures, the logo and wordmarks, and a README with brand colours, the exact numbers to quote, a storyboard and a prompt for Motion.
 
 ## [Unreleased] · The sandbox, step by step
