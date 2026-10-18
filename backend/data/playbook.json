@@ -1,75 +1,801 @@
-[
-  {
-    "clauseType": "indemnification",
-    "label": "Indemnification",
-    "owner": "legal",
-    "standard": "Sponsor indemnifies site for claims arising from the study drug or protocol, except site negligence or protocol deviation.",
-    "fallback": "Carve-out narrowed to gross negligence or willful misconduct.",
-    "escalateWhen": "Site removes the negligence carve-out or adds mutual indemnity."
-  },
-  {
-    "clauseType": "subject_injury",
-    "label": "Subject Injury",
-    "owner": "finance",
-    "standard": "Sponsor reimburses reasonable medical costs for study-related injury, net of subject insurance.",
-    "fallback": "Sponsor pays first, without coordinating with subject insurance.",
-    "escalateWhen": "Site adds lost wages, pain and suffering, or an uncapped reimbursement."
-  },
-  {
-    "clauseType": "publication",
-    "label": "Publication",
-    "owner": "legal",
-    "standard": "Site may publish after multi-site publication or 18 months; sponsor reviews drafts for 60 days.",
-    "fallback": "Review window up to 75 days, including a patent delay.",
-    "escalateWhen": "Site shortens the review below 30 days or removes the patent delay.",
-    "openQuestion": "Is the 75-day fallback reversed? Confirm with legal before the demo."
-  },
-  {
-    "clauseType": "confidentiality",
-    "label": "Confidentiality",
-    "owner": "legal",
-    "standard": "Confidentiality survives 7 years after study close.",
-    "fallback": "5-year survival term.",
-    "escalateWhen": "Term under 3 years, or trade secrets lose perpetual protection."
-  },
-  {
-    "clauseType": "intellectual_property",
-    "label": "Intellectual Property",
-    "owner": "legal",
-    "standard": "Inventions arising from the protocol or study drug belong to sponsor.",
-    "fallback": "Site keeps a non-exclusive research license to study inventions.",
-    "escalateWhen": "Site claims ownership or joint ownership of protocol inventions."
-  },
-  {
-    "clauseType": "data_privacy",
-    "label": "Data Protection",
-    "owner": "privacy",
-    "standard": "Coded data only; site handles HIPAA authorization; sponsor follows applicable privacy law.",
-    "fallback": "Sponsor signs a limited data-use addendum.",
-    "escalateWhen": "Site requires a business associate agreement or blocks secondary research use."
-  },
-  {
-    "clauseType": "payment_terms",
-    "label": "Payment Terms",
-    "owner": "finance",
-    "standard": "Net 45 from invoice; quarterly reconciliation; start-up fee up to 10% of budget.",
-    "fallback": "Net 30; a start-up fee above 10% is countered at 10%, refundable pro rata if no subject enrolls.",
-    "escalateWhen": "Net under 30, or a non-refundable start-up fee above 20% of budget."
-  },
-  {
-    "clauseType": "termination",
-    "label": "Termination",
-    "owner": "legal",
-    "standard": "Either party may terminate on 30 days’ notice; sponsor pays for completed work.",
-    "fallback": "60 days’ notice for the site.",
-    "escalateWhen": "Site adds termination for convenience without paying non-cancellable costs."
-  },
-  {
-    "clauseType": "governing_law",
-    "label": "Governing Law",
-    "owner": "legal",
-    "standard": "Law of the sponsor’s home state; venue in its courts.",
-    "fallback": "Silent on venue, or the site’s state for public institutions.",
-    "escalateWhen": "Mandatory arbitration abroad, or a sovereign immunity waiver demand."
-  }
-]
+{
+  "name": "Northstar Oncology CTA negotiation playbook — NSO-417 (fictional)",
+  "clauses": [
+    {
+      "clauseType": "payment_terms",
+      "label": "Payment Terms",
+      "owner": "finance",
+      "summary": "Payment terms keep site budgets at fair market value and tie money to work actually done. Finance owns every concession on timing, fees and overhead; nothing here is traded against another clause.",
+      "positions": [
+        {
+          "id": "net_days",
+          "issue": "Invoice payment terms",
+          "form": "§6.2",
+          "fields": ["net_days"],
+          "standard": "Undisputed invoices paid within {standard}, reconciled quarterly.",
+          "counter": "No counter needed: anything from {accept_min} up is the pre-approved fallback.",
+          "escalate": "Payment in fewer than {accept_min}.",
+          "rationale": "Net {standard} matches Sponsor’s accounts-payable cycle across all sites. Faster terms for one site create a most-favoured-site problem at the rest of the portfolio.",
+          "talkingPoints": [
+            "Visit payments already follow the electronic data capture entries, so the site is paid for work as it is recorded, not when an invoice is mailed.",
+            "Net {accept_min} is the fastest Sponsor offers any site in this study."
+          ],
+          "limits": {
+            "standard": {"value": 45, "unit": " days", "label": "Form terms"},
+            "accept_min": {"value": 30, "unit": " days", "label": "Fastest accepted"}
+          },
+          "rules": [
+            {"id": "PAY-A1", "outcome": "accept", "when": "{standard} or longer."},
+            {"id": "PAY-A2", "outcome": "accept", "when": "From {accept_min} up to {standard}."},
+            {"id": "PAY-E1", "outcome": "escalate", "when": "Under {accept_min}."}
+          ]
+        },
+        {
+          "id": "start_up_fee",
+          "issue": "Start-up fee",
+          "form": "§6.3",
+          "fields": ["start_up_fee_pct", "start_up_fee_refundable"],
+          "standard": "A non-refundable start-up fee of up to {standard} of the study budget.",
+          "counter": "A fee above {standard}: counter at {standard}, refundable pro rata if no subject enrolls.",
+          "escalate": "A non-refundable fee above {escalate_above}.",
+          "rationale": "The start-up fee covers real one-time costs (IRB preparation, contract and budget review, pharmacy set-up). Above {standard} it stops tracking those costs and starts paying for enrollment that may never happen.",
+          "talkingPoints": [
+            "Sponsor will pay more up front if the excess becomes refundable when the site enrolls no one.",
+            "Pass-through costs such as IRB fees are reimbursed at cost on top of the start-up fee."
+          ],
+          "limits": {
+            "standard": {"value": 10, "unit": "%", "label": "Standard fee"},
+            "escalate_above": {"value": 20, "unit": "%", "label": "Escalate above (non-refundable)"}
+          },
+          "rules": [
+            {"id": "PAY-A3", "outcome": "accept", "when": "At or under {standard}."},
+            {"id": "PAY-A3P", "outcome": "accept", "when": "Above {standard} but within the band site priority widens."},
+            {"id": "PAY-C2", "outcome": "counter", "when": "Above {standard}, up to {escalate_above} or refundable."},
+            {"id": "PAY-E2", "outcome": "escalate", "when": "Non-refundable and above {escalate_above}."}
+          ]
+        },
+        {
+          "id": "overhead",
+          "issue": "Institutional overhead",
+          "form": "Exhibit B",
+          "fields": ["overhead_pct"],
+          "standard": "Indirect costs of up to {standard} of direct costs, built into the per-subject fee.",
+          "counter": "A rate above {standard}: counter at {standard}.",
+          "escalate": "A rate above {escalate_above}.",
+          "rationale": "Industry-sponsored trials carry a lower indirect rate than federal grants because Sponsor pays pass-through costs separately. {standard} is the rate used to build every site budget in this study.",
+          "talkingPoints": [
+            "IRB, pharmacy and archiving costs are already invoiceable at cost, outside the overhead rate.",
+            "A higher negotiated federal rate does not apply to industry-funded research."
+          ],
+          "limits": {
+            "standard": {"value": 25, "unit": "%", "label": "Standard rate"},
+            "escalate_above": {"value": 30, "unit": "%", "label": "Escalate above"}
+          },
+          "rules": [
+            {"id": "PAY-A4", "outcome": "accept", "when": "At or under {standard}."},
+            {"id": "PAY-C3", "outcome": "counter", "when": "Above {standard}, up to {escalate_above}."},
+            {"id": "PAY-E3", "outcome": "escalate", "when": "Above {escalate_above}."}
+          ]
+        },
+        {
+          "id": "holdback",
+          "issue": "Holdback until database lock",
+          "form": "§6.5",
+          "fields": ["holdback_pct"],
+          "standard": "Sponsor withholds {standard} of each payment until the database is locked and queries are resolved.",
+          "counter": "A holdback under {accept_min}, or none: restore the form’s holdback.",
+          "escalate": "No escalation: the counter restores the form.",
+          "rationale": "The holdback is Sponsor’s only lever to get final data cleaned and drug reconciled once enrollment is over.",
+          "talkingPoints": [
+            "The holdback is released in full at database lock; it is a timing term, not a discount.",
+            "Sites that close queries promptly typically see the holdback within weeks of the last visit."
+          ],
+          "limits": {
+            "standard": {"value": 10, "unit": "%", "label": "Form holdback"},
+            "accept_min": {"value": 5, "unit": "%", "label": "Lowest accepted"}
+          },
+          "rules": [
+            {"id": "PAY-A5", "outcome": "accept", "when": "{accept_min} or more withheld."},
+            {"id": "PAY-C4", "outcome": "counter", "when": "Under {accept_min}, or the holdback deleted."}
+          ]
+        },
+        {
+          "id": "screen_failures",
+          "issue": "Screen failures",
+          "form": "Exhibit B",
+          "fields": ["screen_failures_per_enrolled"],
+          "standard": "Screen failures paid at the screening-visit amount, up to {standard} per enrolled subject.",
+          "counter": "Up to {escalate_above} per enrolled subject: hold the form’s ratio.",
+          "escalate": "More than {escalate_above} per enrolled subject, or uncapped.",
+          "rationale": "The ratio reflects the screen-failure rate expected under the protocol’s eligibility criteria. Paying above it funds screening that the protocol does not need.",
+          "talkingPoints": [
+            "If the site’s population genuinely fails screening more often, Sponsor will revisit the ratio with data after the first ten screens.",
+            "Unscheduled visits required by the protocol are paid separately and do not count against the ratio."
+          ],
+          "limits": {
+            "standard": {"value": 0.33, "unit": "", "label": "Paid per enrolled subject"},
+            "escalate_above": {"value": 0.5, "unit": "", "label": "Escalate above"}
+          },
+          "rules": [
+            {"id": "PAY-A6", "outcome": "accept", "when": "Up to {standard} per enrolled subject."},
+            {"id": "PAY-C5", "outcome": "counter", "when": "Above {standard}, up to {escalate_above} per enrolled subject."},
+            {"id": "PAY-E4", "outcome": "escalate", "when": "Above {escalate_above} per enrolled subject, or uncapped."}
+          ]
+        }
+      ]
+    },
+    {
+      "clauseType": "confidentiality",
+      "label": "Confidentiality",
+      "owner": "legal",
+      "summary": "Confidentiality protects the protocol, the investigator’s brochure and unpublished results for as long as they have competitive value, while never limiting what a site must tell its IRB or its subjects.",
+      "positions": [
+        {
+          "id": "survival",
+          "issue": "Survival after study close",
+          "form": "§8.4",
+          "fields": ["survival_years"],
+          "standard": "Obligations survive {standard} after study close.",
+          "counter": "From {escalate_below} up to {accept_min}: counter at {accept_min}.",
+          "escalate": "Survival under {escalate_below}.",
+          "rationale": "Development of the Study Drug continues for years after one site closes. Protection that ends early exposes formulation and dosing data before approval.",
+          "talkingPoints": [
+            "Study results become publishable under Article 12 regardless of this term; survival protects Sponsor’s own information, not the site’s findings.",
+            "Trade secrets are protected separately and without end."
+          ],
+          "limits": {
+            "standard": {"value": 7, "unit": " years", "label": "Form term"},
+            "accept_min": {"value": 5, "unit": " years", "label": "Shortest accepted"},
+            "escalate_below": {"value": 3, "unit": " years", "label": "Escalate below"}
+          },
+          "rules": [
+            {"id": "CONF-A1", "outcome": "accept", "when": "{standard} or longer."},
+            {"id": "CONF-A2", "outcome": "accept", "when": "From {accept_min} up to {standard}."},
+            {"id": "CONF-A2P", "outcome": "accept", "when": "Under {accept_min} but within the band site priority widens."},
+            {"id": "CONF-C1", "outcome": "counter", "when": "From {escalate_below} up to {accept_min}."},
+            {"id": "CONF-E1", "outcome": "escalate", "when": "Under {escalate_below}."}
+          ]
+        },
+        {
+          "id": "trade_secrets",
+          "issue": "Trade secrets",
+          "form": "§8.4",
+          "fields": ["trade_secrets_perpetual"],
+          "standard": "Trade secrets stay protected for as long as they remain trade secrets.",
+          "counter": "No counter: the form already limits the perpetual term to trade secrets.",
+          "escalate": "Perpetual protection for trade secrets removed.",
+          "rationale": "A fixed end date on trade-secret protection can destroy trade-secret status itself, which no later agreement can restore.",
+          "talkingPoints": [
+            "The perpetual term covers only information that qualifies as a trade secret, such as manufacturing processes, not study results.",
+            "Sites already accept the same carve-out in their own technology-transfer agreements."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "CONF-A3", "outcome": "accept", "when": "Trade secrets kept protected without end."},
+            {"id": "CONF-E2", "outcome": "escalate", "when": "Trade secrets lose perpetual protection."}
+          ]
+        },
+        {
+          "id": "affiliates",
+          "issue": "Who may receive Confidential Information",
+          "form": "§8.1",
+          "fields": ["discloses_to_affiliates"],
+          "standard": "Only the site’s employees and agents who need to know, bound by equivalent obligations.",
+          "counter": "Disclosure widened to affiliates or outside collaborators: restore the form.",
+          "escalate": "No escalation: the counter restores the form.",
+          "rationale": "Every additional recipient is a party Sponsor has no contract with. Affiliates and collaborators can be added by name when a real need arises.",
+          "talkingPoints": [
+            "Sponsor will consent in writing to a named affiliate or collaborator that needs access for the Study.",
+            "Disclosures to the IRB and to subjects are already allowed under §8.3."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "CONF-C2", "outcome": "counter", "when": "Disclosure widened beyond employees and agents who need to know."}
+          ]
+        },
+        {
+          "id": "marking",
+          "issue": "Marking requirement",
+          "form": "§1.1",
+          "fields": ["marking_required"],
+          "standard": "All non-public information disclosed for the Study is confidential, whether written, oral or observed.",
+          "counter": "Protection limited to information marked confidential: restore the form.",
+          "escalate": "No escalation: the counter restores the form.",
+          "rationale": "Monitors share information orally at every visit. A marking requirement leaves most of what a site learns about the Study Drug unprotected.",
+          "talkingPoints": [
+            "The definition already excludes public and independently developed information.",
+            "Sponsor can confirm key oral disclosures in writing on request; it cannot mark everything said during a monitoring visit."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "CONF-C3", "outcome": "counter", "when": "Protection limited to marked information."}
+          ]
+        },
+        {
+          "id": "public_records",
+          "issue": "Public-records disclosure",
+          "form": "§8.2",
+          "fields": ["public_records_disclosure", "public_records_notice", "institution_is_public"],
+          "standard": "A public institution may disclose what its public-records law requires, after notice to Sponsor.",
+          "counter": "No counter: either the conditions hold or the term escalates.",
+          "escalate": "A public-records right claimed by a private institution, or one that gives Sponsor no notice before disclosure.",
+          "rationale": "State institutions cannot contract out of public-records statutes, so Sponsor accepts the obligation; notice lets Sponsor seek redaction of trade secrets before release.",
+          "talkingPoints": [
+            "Sponsor asks only for notice and a chance to request redaction, not a veto.",
+            "A private institution has no public-records obligation to accommodate."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "CONF-A4", "outcome": "accept", "when": "A public institution disclosing under its public-records law, with notice to Sponsor first."},
+            {"id": "CONF-E3", "outcome": "escalate", "when": "A private institution, or no notice to Sponsor."}
+          ]
+        }
+      ]
+    },
+    {
+      "clauseType": "indemnification",
+      "label": "Indemnification",
+      "owner": "legal",
+      "summary": "Sponsor stands behind its drug and its protocol; the site stands behind its own conduct. Indemnification is one-way, Sponsor controls the defense of what it pays for, and the carve-out for site fault is never removed.",
+      "positions": [
+        {
+          "id": "carve_out",
+          "issue": "Carve-out for site fault",
+          "form": "§9.1",
+          "fields": ["carve_out_standard", "adjudication_required"],
+          "standard": "Sponsor indemnifies except to the extent of the site’s negligence.",
+          "counter": "Gross negligence or willful misconduct “as finally adjudicated”: accept the narrower standard and strike the qualifier.",
+          "escalate": "The carve-out removed.",
+          "rationale": "Sponsor cannot insure against a site’s own malpractice. The gross-negligence standard is the market fallback; an adjudication requirement would have Sponsor fund the defense of the site’s fault for years.",
+          "talkingPoints": [
+            "Gross negligence or willful misconduct is accepted without further approval.",
+            "Sponsor will not wait for a final judgment before the carve-out applies; that would make it meaningless in a settlement."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "IND-A1", "outcome": "accept", "when": "Negligence carve-out kept."},
+            {"id": "IND-A2", "outcome": "accept", "when": "Narrowed to gross negligence or willful misconduct."},
+            {"id": "IND-C1", "outcome": "counter", "when": "Gross negligence, but only as finally adjudicated."},
+            {"id": "IND-E1", "outcome": "escalate", "when": "No carve-out."}
+          ]
+        },
+        {
+          "id": "mutual",
+          "issue": "Mutual indemnity",
+          "form": "§9.3",
+          "fields": ["mutual_indemnity"],
+          "standard": "Indemnification runs one way, from Sponsor to the site.",
+          "counter": "No counter: a mutual indemnity changes the risk allocation and goes to Legal.",
+          "escalate": "Indemnification made mutual.",
+          "rationale": "The site’s own conduct is covered by its professional liability insurance. A mutual clause invites cross-claims and, for public sites, often conflicts with state law.",
+          "talkingPoints": [
+            "The negligence carve-out already protects Sponsor from the site’s fault without a mutual clause.",
+            "Legal reviews mutual language case by case, usually for sites whose policy requires it."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "IND-E2", "outcome": "escalate", "when": "Made mutual."}
+          ]
+        },
+        {
+          "id": "claim_notice",
+          "issue": "Notice of claims",
+          "form": "§9.3",
+          "fields": ["claim_notice_days"],
+          "standard": "The site notifies Sponsor of a claim promptly.",
+          "counter": "Notice later than {accept_max} after the site learns of a claim: counter at {accept_max}.",
+          "escalate": "No escalation: the counter restores a workable deadline.",
+          "rationale": "Late notice can forfeit Sponsor’s insurance cover and the chance to settle early.",
+          "talkingPoints": [
+            "{accept_max} is enough time for a site’s risk office to route a claim.",
+            "Sponsor’s insurer requires notice within a fixed period; the site benefits from that cover."
+          ],
+          "limits": {
+            "accept_max": {"value": 30, "unit": " days", "label": "Latest accepted notice"}
+          },
+          "rules": [
+            {"id": "IND-A3", "outcome": "accept", "when": "Notice within {accept_max}."},
+            {"id": "IND-C2", "outcome": "counter", "when": "Notice later than {accept_max}."}
+          ]
+        },
+        {
+          "id": "defense",
+          "issue": "Control of the defense",
+          "form": "§9.3",
+          "fields": ["sponsor_controls_defense"],
+          "standard": "Sponsor controls the defense and settlement of claims it pays for; no settlement admits the site’s fault without its consent.",
+          "counter": "No counter: losing control of a defense Sponsor funds goes to Legal.",
+          "escalate": "Control of the defense or settlement taken from Sponsor.",
+          "rationale": "The party paying for a claim must control it; otherwise Sponsor funds a strategy it cannot steer.",
+          "talkingPoints": [
+            "The site keeps a veto over any settlement that admits its fault.",
+            "The site may join with its own counsel at its own cost."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "IND-E3", "outcome": "escalate", "when": "Sponsor no longer controls the defense."}
+          ]
+        },
+        {
+          "id": "additional_insured",
+          "issue": "Additional insured",
+          "form": "§15.1",
+          "fields": ["additional_insured"],
+          "standard": "Sponsor maintains clinical trial liability insurance.",
+          "counter": "No counter: naming the site as additional insured is accepted.",
+          "escalate": "No escalation.",
+          "rationale": "Sponsor’s policy already allows additional insureds at no cost, and a certificate is routine.",
+          "talkingPoints": [
+            "A certificate of insurance can be issued at signature."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "IND-A4", "outcome": "accept", "when": "The site named as additional insured."}
+          ]
+        }
+      ]
+    },
+    {
+      "clauseType": "subject_injury",
+      "label": "Subject Injury",
+      "owner": "finance",
+      "summary": "Subjects injured by the Study Drug or a protocol procedure get their medical care paid for. Sponsor does not insure income, pain and suffering, or the course of the underlying disease.",
+      "positions": [
+        {
+          "id": "covered_costs",
+          "issue": "Costs covered",
+          "form": "§10.2",
+          "fields": ["covers_lost_wages", "covers_pain_and_suffering", "covers_travel"],
+          "standard": "Reasonable and necessary medical expenses to diagnose and treat a Study Injury.",
+          "counter": "No counter: reasonable travel to treatment is accepted; anything beyond medical care goes to Finance.",
+          "escalate": "Lost wages or pain and suffering added.",
+          "rationale": "Medical cost is a predictable, insurable obligation. Lost wages and non-economic damages are liability concepts that belong in a claim, not in a reimbursement clause.",
+          "talkingPoints": [
+            "Travel to and from treatment for a Study Injury is reimbursed.",
+            "A subject keeps every legal right to bring a claim; the clause only sets what Sponsor pays without one."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "SI-A3", "outcome": "accept", "when": "Reasonable travel costs to treatment added."},
+            {"id": "SI-E1", "outcome": "escalate", "when": "Lost wages or pain and suffering added."}
+          ]
+        },
+        {
+          "id": "coordination",
+          "issue": "Coordination with insurance",
+          "form": "§10.4",
+          "fields": ["coordination_with_insurance"],
+          "standard": "Reimbursement is net of what the subject’s insurance pays.",
+          "counter": "No counter: Sponsor paying first is the pre-approved fallback.",
+          "escalate": "No escalation.",
+          "rationale": "Paying first spares subjects insurance disputes over research injuries, at a modest cost Sponsor has already budgeted.",
+          "talkingPoints": [
+            "Medicare secondary-payer rules still apply where they do."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "SI-A1", "outcome": "accept", "when": "Net of the subject’s insurance."},
+            {"id": "SI-A2", "outcome": "accept", "when": "Sponsor pays first, without coordinating."}
+          ]
+        },
+        {
+          "id": "cap",
+          "issue": "Limit on reimbursement",
+          "form": "§10.3",
+          "fields": ["reimbursement_cap"],
+          "standard": "Reimbursement limited to reasonable and necessary costs.",
+          "counter": "No counter: an uncapped obligation goes to Finance.",
+          "escalate": "Reimbursement uncapped.",
+          "rationale": "An uncapped obligation cannot be insured or reserved for.",
+          "talkingPoints": [
+            "“Reasonable and necessary” already covers every cost a treating physician orders for the injury."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "SI-E2", "outcome": "escalate", "when": "Uncapped."}
+          ]
+        },
+        {
+          "id": "exclusions",
+          "issue": "Exclusions",
+          "form": "§10.3",
+          "fields": ["removes_injury_exclusions"],
+          "standard": "Injuries from the underlying disease, standard-of-care treatment or protocol deviations are excluded.",
+          "counter": "No counter: removing the exclusions goes to Finance.",
+          "escalate": "The exclusions deleted.",
+          "rationale": "Without exclusions Sponsor would pay for the progression of the cancer being studied, which is neither a Study Injury nor insurable.",
+          "talkingPoints": [
+            "The exclusions track the definition of Study Injury in §1.1; they take nothing away that the definition gives."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "SI-E3", "outcome": "escalate", "when": "Exclusions deleted."}
+          ]
+        }
+      ]
+    },
+    {
+      "clauseType": "publication",
+      "label": "Publication",
+      "owner": "legal",
+      "summary": "Sites may always publish their results. Sponsor asks only for time to review for its confidential information and patentable inventions, and for the multi-site paper to come first.",
+      "positions": [
+        {
+          "id": "review",
+          "issue": "Sponsor review window",
+          "form": "§12.1",
+          "fields": ["review_days", "review_window_open_ended"],
+          "standard": "Sponsor reviews a proposed publication for {standard}.",
+          "counter": "From {escalate_below} up to {standard}: counter at {standard}.",
+          "escalate": "Under {escalate_below}, or an open-ended window.",
+          "rationale": "{standard} lets Sponsor’s medical, regulatory and patent teams each review a manuscript once. Shorter windows mean filing patents in a hurry or not at all.",
+          "talkingPoints": [
+            "Sponsor cannot veto or delay publication beyond the review window and the patent delay.",
+            "Abstracts and presentations get the same window; Sponsor turns them around faster in practice."
+          ],
+          "limits": {
+            "standard": {"value": 60, "unit": " days", "label": "Standard window"},
+            "escalate_below": {"value": 30, "unit": " days", "label": "Escalate below"}
+          },
+          "rules": [
+            {"id": "PUB-A1", "outcome": "accept", "when": "{standard} or longer."},
+            {"id": "PUB-A2P", "outcome": "accept", "when": "Under {standard} but within the band site priority widens."},
+            {"id": "PUB-C1", "outcome": "counter", "when": "From {escalate_below} up to {standard}."},
+            {"id": "PUB-E2", "outcome": "escalate", "when": "Under {escalate_below}."},
+            {"id": "PUB-E3", "outcome": "escalate", "when": "Open-ended (“or as otherwise agreed”)."}
+          ]
+        },
+        {
+          "id": "patent_delay",
+          "issue": "Delay for patent filings",
+          "form": "§12.3",
+          "fields": ["patent_delay", "patent_delay_days"],
+          "standard": "On request, publication is delayed up to 60 more days for patent filings.",
+          "counter": "No counter: removing the delay goes to Legal.",
+          "escalate": "The patent delay removed.",
+          "rationale": "Publishing before filing destroys patent rights outside the United States. The delay is used rarely but cannot be given up.",
+          "talkingPoints": [
+            "The delay applies only when Sponsor identifies a patentable invention in the manuscript."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "PUB-A3", "outcome": "accept", "when": "Patent delay kept."},
+            {"id": "PUB-E1", "outcome": "escalate", "when": "Patent delay removed."}
+          ]
+        },
+        {
+          "id": "multisite",
+          "issue": "Multi-site publication first",
+          "form": "§12.2",
+          "fields": ["multisite_wait_months"],
+          "standard": "The site publishes after the multi-site publication, or {standard} after the Study ends at all sites.",
+          "counter": "A wait under {accept_min}: counter at {standard}.",
+          "escalate": "No escalation: the counter restores the form’s wait.",
+          "rationale": "Single-site results published first can misrepresent a study powered on all sites together.",
+          "talkingPoints": [
+            "If the multi-site paper is delayed, the site is free to publish once the wait runs out.",
+            "{accept_min} is accepted without further approval."
+          ],
+          "limits": {
+            "standard": {"value": 18, "unit": " months", "label": "Form wait"},
+            "accept_min": {"value": 12, "unit": " months", "label": "Shortest accepted"}
+          },
+          "rules": [
+            {"id": "PUB-A4", "outcome": "accept", "when": "{accept_min} or longer."},
+            {"id": "PUB-C2", "outcome": "counter", "when": "Under {accept_min}."}
+          ]
+        }
+      ]
+    },
+    {
+      "clauseType": "intellectual_property",
+      "label": "Intellectual Property",
+      "owner": "legal",
+      "summary": "Inventions that arise from Sponsor’s protocol or drug belong to Sponsor, which pays to protect them. Each party keeps what it brought to the Study, and the site keeps the right to use results for research.",
+      "positions": [
+        {
+          "id": "inventions",
+          "issue": "Ownership of study inventions",
+          "form": "§13.2",
+          "fields": ["invention_ownership"],
+          "standard": "Inventions arising from the Protocol or Study Drug belong to Sponsor.",
+          "counter": "No counter: shared or site ownership goes to Legal.",
+          "escalate": "Joint or institution ownership of study inventions.",
+          "rationale": "Sponsor funds the Study and carries the regulatory risk of the drug; split ownership of improvements would block its development.",
+          "talkingPoints": [
+            "The site keeps a research license under §13.3 and its own background IP.",
+            "Inventions unrelated to the Protocol or Study Drug are not affected."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "IP-A1", "outcome": "accept", "when": "Sponsor owns study inventions."},
+            {"id": "IP-E1", "outcome": "escalate", "when": "Joint or institution ownership."}
+          ]
+        },
+        {
+          "id": "research_license",
+          "issue": "Site research license",
+          "form": "§13.3",
+          "fields": ["site_research_license"],
+          "standard": "No license except as stated.",
+          "counter": "No counter: a non-exclusive research license is the pre-approved fallback.",
+          "escalate": "No escalation.",
+          "rationale": "A non-exclusive, non-commercial research license costs Sponsor nothing and answers most academic concerns about ownership.",
+          "talkingPoints": [
+            "The license is for internal research and teaching, not commercial use."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "IP-A2", "outcome": "accept", "when": "Non-exclusive research license for the site."}
+          ]
+        },
+        {
+          "id": "background_ip",
+          "issue": "Background IP",
+          "form": "§13.1",
+          "fields": ["background_ip_retained"],
+          "standard": "Each party keeps its background intellectual property.",
+          "counter": "No counter: confirming the form answers the question.",
+          "escalate": "No escalation.",
+          "rationale": "Background IP is untouched by the Study; confirming it costs nothing.",
+          "talkingPoints": [
+            "Reply to the site’s comment confirming that its existing tools and software stay its own."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "IP-A3", "outcome": "accept", "when": "Each party keeps its background IP."}
+          ]
+        },
+        {
+          "id": "patent_prosecution",
+          "issue": "Patent filings",
+          "form": "§13.2",
+          "fields": ["site_may_file_patents"],
+          "standard": "Sponsor controls and pays for patent filings on study inventions.",
+          "counter": "A site right to file in its own name: restore the form.",
+          "escalate": "No escalation: the counter restores the form.",
+          "rationale": "Filings by two owners on related inventions create conflicting claims and weaken both.",
+          "talkingPoints": [
+            "Sponsor files at its own expense, so the site carries no cost."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "IP-C1", "outcome": "counter", "when": "The site may file patents in its own name."}
+          ]
+        }
+      ]
+    },
+    {
+      "clauseType": "data_privacy",
+      "label": "Data Protection",
+      "owner": "privacy",
+      "summary": "Sponsor receives coded data only, under each subject’s authorization, and may use it as the consent allows. Privacy owns any change to what data Sponsor receives, where it may go, or how fast incidents are reported.",
+      "positions": [
+        {
+          "id": "baa",
+          "issue": "Business associate agreement",
+          "form": "§11.3",
+          "fields": ["requires_baa"],
+          "standard": "No business associate agreement: disclosures to Sponsor are research disclosures under each subject’s authorization.",
+          "counter": "No counter: a BAA request goes to Privacy.",
+          "escalate": "A business associate agreement required.",
+          "rationale": "Sponsor is not performing a service for the site, so it is not a business associate. Signing one would wrongly impose provider obligations.",
+          "talkingPoints": [
+            "HIPAA treats sponsor receipt of research data as a disclosure under authorization, not a business-associate service."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "DP-E1", "outcome": "escalate", "when": "BAA required."}
+          ]
+        },
+        {
+          "id": "secondary_research",
+          "issue": "Secondary research use",
+          "form": "§11.4",
+          "fields": ["blocks_secondary_research"],
+          "standard": "Sponsor may use Study Data for further development, consistent with the consent.",
+          "counter": "No counter: blocking secondary use goes to Privacy.",
+          "escalate": "Secondary research use blocked.",
+          "rationale": "Pooled analyses across studies are how dosing and safety signals are found; the consent form already tells subjects about them.",
+          "talkingPoints": [
+            "Use stays within what each subject agreed to in the consent."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "DP-E2", "outcome": "escalate", "when": "Secondary use blocked."}
+          ]
+        },
+        {
+          "id": "data_use_addendum",
+          "issue": "Data-use addendum",
+          "form": "§11.4",
+          "fields": ["data_use_addendum"],
+          "standard": "No separate data-use agreement.",
+          "counter": "No counter: a limited data-use addendum is the pre-approved fallback.",
+          "escalate": "No escalation.",
+          "rationale": "Sponsor’s template addendum restates obligations it already has and is pre-approved.",
+          "talkingPoints": [
+            "Send Sponsor’s template addendum rather than negotiating the site’s form."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "DP-A2", "outcome": "accept", "when": "A limited data-use addendum."}
+          ]
+        },
+        {
+          "id": "incident_notice",
+          "issue": "Security-incident notice",
+          "form": "§11.3",
+          "fields": ["incident_notice_days"],
+          "standard": "Sponsor notifies the site of a security incident involving Study Data within {standard}.",
+          "counter": "Under {accept_min}: counter at {accept_min}.",
+          "escalate": "No escalation: the counter restores a deadline Sponsor can meet.",
+          "rationale": "Sponsor needs time to establish what happened before reporting it; a too-short deadline produces inaccurate notices.",
+          "talkingPoints": [
+            "Sponsor will notify sooner when subjects’ safety is involved.",
+            "{accept_min} is accepted without further approval."
+          ],
+          "limits": {
+            "standard": {"value": 10, "unit": " business days", "label": "Form deadline"},
+            "accept_min": {"value": 5, "unit": " business days", "label": "Shortest accepted"}
+          },
+          "rules": [
+            {"id": "DP-A3", "outcome": "accept", "when": "{accept_min} or more."},
+            {"id": "DP-C1", "outcome": "counter", "when": "Under {accept_min}."}
+          ]
+        },
+        {
+          "id": "data_transfer",
+          "issue": "Where Study Data may go",
+          "form": "§11.4",
+          "fields": ["restricts_data_transfer"],
+          "standard": "Coded Study Data may be processed wherever Sponsor and its vendors operate, under applicable law.",
+          "counter": "No counter: a transfer or storage restriction goes to Privacy.",
+          "escalate": "Study Data restricted to one state or country.",
+          "rationale": "The Study runs in several countries and uses one global safety database; a local-storage requirement cannot be met.",
+          "talkingPoints": [
+            "Data leaving the country is coded and protected by Sponsor’s transfer safeguards."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "DP-E3", "outcome": "escalate", "when": "Transfer or storage restricted."}
+          ]
+        }
+      ]
+    },
+    {
+      "clauseType": "termination",
+      "label": "Termination",
+      "owner": "legal",
+      "summary": "Either party can end the Agreement on notice, subjects are always transitioned safely, and Sponsor pays for work done and commitments that cannot be cancelled.",
+      "positions": [
+        {
+          "id": "site_notice",
+          "issue": "Notice the site gives",
+          "form": "§14.2",
+          "fields": ["site_notice_days"],
+          "standard": "The site may terminate on {standard} written notice.",
+          "counter": "Notice longer than {accept_max}: counter at {accept_max}.",
+          "escalate": "Notice shorter than {escalate_below}.",
+          "rationale": "{standard} gives Sponsor time to transfer enrolled subjects; a longer notice only delays an exit both parties want.",
+          "talkingPoints": [
+            "Up to {accept_max} is accepted without further approval.",
+            "Subject safety obligations continue during the notice period whatever its length."
+          ],
+          "limits": {
+            "standard": {"value": 30, "unit": " days", "label": "Form notice"},
+            "accept_max": {"value": 60, "unit": " days", "label": "Longest accepted"},
+            "escalate_below": {"value": 30, "unit": " days", "label": "Escalate below"}
+          },
+          "rules": [
+            {"id": "TERM-A0", "outcome": "accept", "when": "Exactly {standard}."},
+            {"id": "TERM-A1", "outcome": "accept", "when": "More than {standard}, up to {accept_max}."},
+            {"id": "TERM-C1", "outcome": "counter", "when": "More than {accept_max}."},
+            {"id": "TERM-E2", "outcome": "escalate", "when": "Less than {escalate_below}."}
+          ]
+        },
+        {
+          "id": "convenience",
+          "issue": "Termination for convenience",
+          "form": "§14.3",
+          "fields": ["termination_for_convenience", "pays_noncancellable_costs"],
+          "standard": "On any termination Sponsor pays for work done and non-cancellable obligations.",
+          "counter": "No counter: either the costs are covered or the term goes to Legal.",
+          "escalate": "A right to terminate for convenience without Sponsor paying non-cancellable costs.",
+          "rationale": "A convenience right is acceptable when the cost of leaving is settled; without that, Sponsor bears unpaid commitments.",
+          "talkingPoints": [
+            "Sponsor already pays non-cancellable costs when it terminates; the same rule applies both ways."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "TERM-A2", "outcome": "accept", "when": "For convenience, with non-cancellable costs paid."},
+            {"id": "TERM-E1", "outcome": "escalate", "when": "For convenience, without non-cancellable costs."}
+          ]
+        },
+        {
+          "id": "sponsor_notice",
+          "issue": "Notice Sponsor gives",
+          "form": "§14.1",
+          "fields": ["sponsor_notice_days"],
+          "standard": "Sponsor may terminate on {standard} written notice, or at once for safety.",
+          "counter": "Notice longer than {accept_max}: counter at {accept_max}.",
+          "escalate": "No escalation: the counter restores the form’s range.",
+          "rationale": "Sponsor must be able to stop a study quickly when the data require it; immediate termination for safety is never negotiable.",
+          "talkingPoints": [
+            "Sponsor pays for work completed and non-cancellable costs during the notice period."
+          ],
+          "limits": {
+            "standard": {"value": 30, "unit": " days", "label": "Form notice"},
+            "accept_max": {"value": 60, "unit": " days", "label": "Longest accepted"}
+          },
+          "rules": [
+            {"id": "TERM-A3", "outcome": "accept", "when": "Up to {accept_max}."},
+            {"id": "TERM-C2", "outcome": "counter", "when": "More than {accept_max}."}
+          ]
+        }
+      ]
+    },
+    {
+      "clauseType": "governing_law",
+      "label": "Governing Law",
+      "owner": "legal",
+      "summary": "Disputes are heard under Sponsor’s home-state law in court. Public institutions keep their own state’s law where their statutes require it; nothing goes to arbitration abroad, and Sponsor does not take on a site’s sovereign-immunity terms.",
+      "positions": [
+        {
+          "id": "choice_of_law",
+          "issue": "Choice of law",
+          "form": "§17.1",
+          "fields": ["governing_law_state", "institution_is_public"],
+          "standard": "The law of New Jersey, Sponsor’s home state.",
+          "counter": "No counter: a public institution’s own state law is the pre-approved fallback.",
+          "escalate": "Another state’s law for a private institution.",
+          "rationale": "One governing law across sites keeps the portfolio consistent; public institutions are often barred by statute from accepting another state’s law.",
+          "talkingPoints": [
+            "Accept the site’s state law when the site is a public institution; ask a private site to keep New Jersey."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "GOV-A1", "outcome": "accept", "when": "Sponsor’s home-state law."},
+            {"id": "GOV-A2", "outcome": "accept", "when": "A public institution’s own state law."},
+            {"id": "GOV-E2", "outcome": "escalate", "when": "Another state’s law for a private institution."}
+          ]
+        },
+        {
+          "id": "venue",
+          "issue": "Venue",
+          "form": "§17.1",
+          "fields": ["venue"],
+          "standard": "Venue in Sponsor’s home-state courts, or silent.",
+          "counter": "Venue in the site’s courts: counter silent on venue.",
+          "escalate": "No escalation: silence on venue is the compromise.",
+          "rationale": "A silent clause leaves venue to ordinary rules, which both sides can live with.",
+          "talkingPoints": [
+            "Offer to delete the venue sentence entirely rather than choose either side’s courts."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "GOV-C1", "outcome": "counter", "when": "Venue in the site’s courts."}
+          ]
+        },
+        {
+          "id": "arbitration",
+          "issue": "Arbitration and immunity",
+          "form": "§17.2",
+          "fields": ["arbitration_domestic", "arbitration_abroad", "sovereign_immunity_waiver_required"],
+          "standard": "Disputes go to court; the Agreement says nothing about sovereign immunity.",
+          "counter": "Domestic arbitration: restore the form.",
+          "escalate": "Mandatory arbitration outside the United States, or a demand that Sponsor waive or accept the site’s sovereign-immunity terms.",
+          "rationale": "Court proceedings keep remedies such as injunctions available for confidentiality breaches; arbitration abroad and immunity terms remove them.",
+          "talkingPoints": [
+            "A public site’s immunity exists by law whether or not the Agreement mentions it; there is nothing to add."
+          ],
+          "limits": {},
+          "rules": [
+            {"id": "GOV-C2", "outcome": "counter", "when": "Arbitration in the United States."},
+            {"id": "GOV-E1", "outcome": "escalate", "when": "Arbitration abroad or a sovereign-immunity demand."}
+          ]
+        }
+      ]
+    }
+  ]
+}

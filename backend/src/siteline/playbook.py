@@ -1,12 +1,17 @@
-"""The sponsor playbook: 9 clause types, owners and approvers.
+"""The sponsor playbook: 9 clause types, each a set of negotiable positions, plus owners and approvers.
 
-The default playbook (fictional) ships in data/playbook.json. Edits from the playbook
-editor are saved to var/playbook.json and take precedence.
+The default playbook (fictional) ships in data/playbook.json. Each position has the form's
+standard, a counter (fallback position) and an escalation trigger as text with {placeholders},
+the numeric `limits` those placeholders and the rules engine read, and the rule IDs that
+enforce it. Edits from the playbook editor are saved to var/playbook.json and take precedence.
 """
 
 from __future__ import annotations
 
+import copy
 import json
+import re
+import time
 from typing import Literal
 
 from siteline.config import DATA_DIR, RUNTIME_DIR, settings
@@ -40,55 +45,215 @@ APPROVERS = {
 
 DEFAULT_PATH = DATA_DIR / "playbook.json"
 SAVED_PATH = RUNTIME_DIR / "playbook.json"
+LOG_PATH = RUNTIME_DIR / "playbook_log.json"
+
+TEXT_FIELDS = ("standard", "counter", "escalate")
+OUTCOME_LETTER = {"accept": "A", "counter": "C", "escalate": "E"}
+# Limit pairs that must stay in order (lower, higher) when a position defines both
+ORDER = [("accept_min", "standard"), ("standard", "escalate_above"), ("escalate_below", "accept_min"),
+         ("escalate_below", "standard"), ("standard", "accept_max")]
+PLACEHOLDER = re.compile(r"\{(\w+)\}")
 
 
 def approvers() -> dict[str, dict]:
     return {k: {**v, "phone": settings.approver_phones[k]} for k, v in APPROVERS.items()}
 
 
-def load_playbook() -> list[dict]:
-    path = SAVED_PATH if SAVED_PATH.exists() else DEFAULT_PATH
-    return json.loads(path.read_text())
+def default_playbook() -> dict:
+    return json.loads(DEFAULT_PATH.read_text())
 
 
-def validate_playbook(rules: list[dict]) -> list[str]:
+def migrate(old: list[dict]) -> dict:
+    """A playbook saved in the old flat format (one row per clause): the default, with its owners."""
+    pb = default_playbook()
+    owners = {r.get("clauseType"): r.get("owner") for r in old if isinstance(r, dict)}
+    for c in pb["clauses"]:
+        if owners.get(c["clauseType"]) in OWNERS:
+            c["owner"] = owners[c["clauseType"]]
+    return pb
+
+
+def load_playbook() -> dict:
+    if not SAVED_PATH.exists():
+        return default_playbook()
+    saved = json.loads(SAVED_PATH.read_text())
+    return migrate(saved) if isinstance(saved, list) else saved
+
+
+def playbook_log() -> list[dict]:
+    return json.loads(LOG_PATH.read_text()) if LOG_PATH.exists() else []
+
+
+def _log(by: str, summary: str) -> None:
+    LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    LOG_PATH.write_text(json.dumps([*playbook_log(), {"at": int(time.time() * 1000), "by": by, "summary": summary}], indent=1))
+
+
+def _changes(old: dict, new: dict) -> str:
+    """One line naming what an edit changed: limits (old → new), owners, and positions whose text moved."""
+    out: list[str] = []
+    olds = {c["clauseType"]: c for c in old["clauses"]}
+    for c in new["clauses"]:
+        oc = olds.get(c["clauseType"], {})
+        if oc.get("owner") != c["owner"]:
+            out.append(f"{c['label']} owner {oc.get('owner')} → {c['owner']}")
+        oldpos = {p["id"]: p for p in oc.get("positions", [])}
+        for p in c["positions"]:
+            op = oldpos.get(p["id"], {})
+            for k, lim in p["limits"].items():
+                was = op.get("limits", {}).get(k, {}).get("value")
+                if was != lim["value"]:
+                    out.append(f"{p['issue']} {lim['label'].lower()} {_fmt(was) if was is not None else '—'} → {_fmt(lim['value'])}")
+            if any(op.get(k) != p.get(k) for k in (*TEXT_FIELDS, "rationale", "talkingPoints")):
+                out.append(f"{p['issue']} wording")
+    return "; ".join(out) or "No changes"
+
+
+def save_playbook(pb: dict, by: str) -> None:
+    summary = _changes(load_playbook(), pb)
+    SAVED_PATH.parent.mkdir(parents=True, exist_ok=True)
+    SAVED_PATH.write_text(json.dumps(pb, indent=2, ensure_ascii=False))
+    _log(by, summary)
+
+
+def reset_playbook(by: str) -> None:
+    summary = _changes(load_playbook(), default_playbook())
+    SAVED_PATH.unlink(missing_ok=True)
+    _log(by, f"Reset to the default playbook ({summary})")
+
+
+def _fmt(v: float) -> str:
+    return f"{v:g}"
+
+
+def _fill(text: str, limits: dict) -> str:
+    return PLACEHOLDER.sub(lambda m: f"{_fmt(limits[m.group(1)]['value'])}{limits[m.group(1)]['unit']}"
+                           if m.group(1) in limits else m.group(0), text)
+
+
+def render(pb: dict) -> dict:
+    """A copy with every text also rendered (standardText, counterText, escalateText, rationaleText,
+    talkingPointsText, rules[].whenText): placeholders filled from the position's limits."""
+    out = copy.deepcopy(pb)
+    for c in out["clauses"]:
+        for p in c["positions"]:
+            for k in (*TEXT_FIELDS, "rationale"):
+                p[f"{k}Text"] = _fill(p[k], p["limits"])
+            p["talkingPointsText"] = [_fill(t, p["limits"]) for t in p["talkingPoints"]]
+            for r in p["rules"]:
+                r["whenText"] = _fill(r["when"], p["limits"])
+    return out
+
+
+def strip_rendered(pb: dict) -> dict:
+    """The templates only (what PUT and Load JSON accept): drops the *Text keys render() adds."""
+    out = copy.deepcopy(pb)
+    for c in out.get("clauses", []):
+        for p in c.get("positions", []):
+            for k in [k for k in p if k.endswith("Text")]:
+                del p[k]
+            for r in p.get("rules", []):
+                r.pop("whenText", None)
+    return out
+
+
+class Playbook:
+    """Read access to one playbook: limits, owners and positions by clause."""
+
+    def __init__(self, pb: dict | None = None) -> None:
+        self.pb = pb if pb is not None else load_playbook()
+        self._clauses = {c["clauseType"]: c for c in self.pb["clauses"]}
+
+    def positions(self, clause: str) -> list[dict]:
+        return self._clauses[clause]["positions"]
+
+    def owner(self, clause: str) -> str:
+        return self._clauses.get(clause, {}).get("owner", "legal")
+
+    def limit(self, clause: str, position: str, key: str) -> float:
+        p = next(p for p in self.positions(clause) if p["id"] == position)
+        return float(p["limits"][key]["value"])
+
+    def rule_position(self) -> dict[str, tuple[str, str]]:
+        """Rule ID → (clause type, position id)."""
+        return {r["id"]: (c["clauseType"], p["id"]) for c in self.pb["clauses"] for p in c["positions"] for r in p["rules"]}
+
+
+def _num(v: object) -> bool:
+    return isinstance(v, int | float) and not isinstance(v, bool)
+
+
+def validate_playbook(pb: object, rule_ids: set[str]) -> list[str]:
+    """Problems with a playbook as strings (empty when valid). `rule_ids` is every rule ID the engine
+    can return; the playbook must list each exactly once."""
+    if not isinstance(pb, dict) or not isinstance(pb.get("clauses"), list):
+        return ["A playbook is an object with a list of clauses"]
     errors: list[str] = []
-    seen = set()
-    for i, r in enumerate(rules):
-        ct = r.get("clauseType")
+    seen_clauses: set[str] = set()
+    seen_rules: dict[str, str] = {}
+    for c in pb["clauses"]:
+        ct = c.get("clauseType")
+        where = str(ct)
         if ct not in CLAUSE_TYPES:
-            errors.append(f"Row {i + 1}: unknown clause type {ct!r}")
-        if ct in seen:
-            errors.append(f"Row {i + 1}: duplicate clause type {ct!r}")
-        seen.add(ct)
-        if r.get("owner") not in OWNERS:
-            errors.append(f"Row {i + 1}: owner must be legal, finance or privacy")
-        for key in ("label", "standard", "fallback", "escalateWhen"):
-            if not str(r.get(key, "")).strip():
-                errors.append(f"Row {i + 1}: {key} is empty")
-    missing = set(CLAUSE_TYPES) - seen
-    if missing:
+            errors.append(f"Unknown clause type {ct!r}")
+            continue
+        if ct in seen_clauses:
+            errors.append(f"Duplicate clause type {ct!r}")
+        seen_clauses.add(ct)
+        if c.get("owner") not in OWNERS:
+            errors.append(f"{where}: owner must be legal, finance or privacy")
+        if not str(c.get("label", "")).strip():
+            errors.append(f"{where}: label is empty")
+        ids: set[str] = set()
+        for p in c.get("positions") or []:
+            pid = p.get("id")
+            at = f"{where} / {pid}"
+            if not pid or pid in ids:
+                errors.append(f"{at}: position id missing or repeated")
+            ids.add(pid)
+            for k in ("issue", *TEXT_FIELDS, "rationale"):
+                if not str(p.get(k, "")).strip():
+                    errors.append(f"{at}: {k} is empty")
+            limits = p.get("limits") or {}
+            for k, lim in limits.items():
+                if not isinstance(lim, dict) or not _num(lim.get("value")) or lim["value"] < 0:
+                    errors.append(f"{at}: limit {k} must be a number of 0 or more")
+            vals = {k: lim["value"] for k, lim in limits.items() if isinstance(lim, dict) and _num(lim.get("value"))}
+            for lo, hi in ORDER:
+                if lo in vals and hi in vals and vals[lo] > vals[hi]:
+                    errors.append(f"{at}: {limits[lo].get('label', lo)} ({_fmt(vals[lo])}) must not exceed {limits[hi].get('label', hi)} ({_fmt(vals[hi])})")
+            texts = [p.get(k, "") for k in (*TEXT_FIELDS, "rationale")] + list(p.get("talkingPoints") or [])
+            texts += [r.get("when", "") for r in p.get("rules") or []]
+            for name in {m for t in texts for m in PLACEHOLDER.findall(str(t))} - set(limits):
+                errors.append(f"{at}: {{{name}}} names no limit")
+            if not p.get("rules"):
+                errors.append(f"{at}: no rule enforces this position")
+            for r in p.get("rules") or []:
+                rid = r.get("id", "")
+                if rid in seen_rules:
+                    errors.append(f"{at}: rule {rid} is already listed under {seen_rules[rid]}")
+                seen_rules[rid] = at
+                letter = rid.split("-")[-1][:1] if "-" in rid else ""
+                if OUTCOME_LETTER.get(r.get("outcome")) != letter:
+                    errors.append(f"{at}: rule {rid} must have outcome {next((o for o, l in OUTCOME_LETTER.items() if l == letter), '?')}")
+    if missing := set(CLAUSE_TYPES) - seen_clauses:
         errors.append("Missing clause types: " + ", ".join(sorted(missing)))
+    if missing := rule_ids - set(seen_rules):
+        errors.append("Rules the engine uses but the playbook does not list: " + ", ".join(sorted(missing)))
+    if extra := set(seen_rules) - rule_ids:
+        errors.append("Rules the playbook lists but the engine does not have: " + ", ".join(sorted(extra)))
     return errors
 
 
-def save_playbook(rules: list[dict]) -> None:
-    SAVED_PATH.parent.mkdir(parents=True, exist_ok=True)
-    SAVED_PATH.write_text(json.dumps(rules, indent=2, ensure_ascii=False))
+def owner_for(clause_type: str, pb: dict | None = None) -> str:
+    return Playbook(pb).owner(clause_type)
 
 
-def owner_for(clause_type: str, rules: list[dict] | None = None) -> str:
-    for r in rules or load_playbook():
-        if r["clauseType"] == clause_type:
-            return r["owner"]
-    return "legal"
-
-
-def playbook_text(rules: list[dict] | None = None) -> str:
+def playbook_text(pb: dict | None = None) -> str:
+    """The playbook for prompts: each clause and its positions, with the numbers filled in."""
     lines = []
-    for r in rules or load_playbook():
-        lines.append(
-            f"- {r['clauseType']} ({r['label']}, owner: {r['owner']})\n"
-            f"  standard: {r['standard']}\n  pre-approved fallback: {r['fallback']}\n  escalate when: {r['escalateWhen']}"
-        )
+    for c in render(pb or load_playbook())["clauses"]:
+        lines.append(f"- {c['clauseType']} ({c['label']}, owner: {c['owner']})")
+        for p in c["positions"]:
+            lines.append(f"  * {p['issue']}: standard: {p['standardText']} Counter: {p['counterText']} Escalate: {p['escalateText']}")
     return "\n".join(lines)
