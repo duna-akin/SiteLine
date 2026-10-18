@@ -414,6 +414,19 @@ export interface TriageStepEvent {
 
 export type ParseStepId = 'upload' | 'sandbox' | 'parse' | 'extract' | 'verify' | 'rules' | 'teardown'
 
+export type SandboxPhaseId = 'create' | 'upload' | 'parse' | 'output' | 'delete'
+
+/** One phase of the sandbox that parses an upload, streamed over /api/events. */
+export interface SandboxPhaseEvent {
+  jobId: string
+  phase: SandboxPhaseId
+  state: 'active' | 'done' | 'failed'
+  /** Set once the phase ends. */
+  seconds: number | null
+  /** The sandbox id on create; sizes and counts on upload and output; the reason on failure. */
+  detail: string
+}
+
 export interface ParseStep {
   id: ParseStepId
   label: string

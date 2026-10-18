@@ -7,7 +7,7 @@
 import { useEffect, useRef } from 'react'
 
 import * as api from '@/api'
-import type { TriageStepEvent } from '@/types'
+import type { SandboxPhaseEvent, TriageStepEvent } from '@/types'
 
 type Handler = (data: unknown) => void
 
@@ -141,6 +141,7 @@ export async function runTriage(
   options: api.UploadOptions,
   onStep: (e: TriageStepEvent) => void,
   onLog: (line: string) => void,
+  onSandbox?: (e: SandboxPhaseEvent) => void,
 ): Promise<TriageResult> {
   connect()
   let jobId: string | null = null
@@ -158,12 +159,13 @@ export async function runTriage(
     if (data.jobId !== jobId) return
     if (name === 'triage.step') onStep(data as TriageStepEvent)
     else if (name === 'triage.log') onLog((data as unknown as { line: string }).line)
+    else if (name === 'triage.sandbox') onSandbox?.(data as SandboxPhaseEvent)
     else if (name === 'triage.done') {
       const d = data as unknown as { agreement: { id: string }; triageSeconds: number }
       settle?.resolve({ agreementId: d.agreement.id, triageSeconds: d.triageSeconds })
     } else if (name === 'triage.failed') settle?.reject(new Error((data as unknown as { error: string }).error))
   }
-  const offs: Array<() => unknown> = ['triage.step', 'triage.log', 'triage.done', 'triage.failed'].map((name) =>
+  const offs: Array<() => unknown> = ['triage.step', 'triage.log', 'triage.sandbox', 'triage.done', 'triage.failed'].map((name) =>
     onServerEvent<{ jobId: string }>(name, (d) => handle(name, d)),
   )
   offs.push(onConnectionLost(() =>

@@ -1,21 +1,21 @@
-import { useEffect, useRef, useState, type DragEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type DragEvent } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { ArrowRight, Box, Check, CircleSlash, Download, FileSearch, FileText, Gavel, ListChecks, LoaderCircle, Play, TriangleAlert, UploadCloud } from 'lucide-react'
+import { ArrowRight, Check, CircleSlash, Download, FileText, LoaderCircle, Play, TriangleAlert, UploadCloud } from 'lucide-react'
 
 import * as api from '@/api'
 import { runTriage } from '@/api/events'
 import { OutcomeBadge } from '@/components/siteline/outcome'
+import { SandboxStrip } from '@/components/siteline/SandboxStrip'
 import { cn } from '@/lib/utils'
 import { outcomeOrder } from '@/mocks/playbook'
 import { DEMO_FILE_NAME, stepLabels } from '@/mocks/site07'
 import { useDemo } from '@/state/demo'
-import type { ParseStepId, StepState, TriageStepEvent } from '@/types'
+import type { ParseStepId, SandboxPhaseEvent, SandboxPhaseId, TriageStepEvent } from '@/types'
 
 const TARGET_SECONDS = 30
 const STEP_ORDER: ParseStepId[] = ['upload', 'sandbox', 'parse', 'extract', 'verify', 'rules', 'teardown']
 
 type RunState = 'idle' | 'running' | 'done'
-type NodeState = 'waiting' | 'active' | 'done' | 'skipped'
 
 function Toggle({ id, label, hint, checked, onChange, disabled }: {
   id: string
@@ -50,28 +50,6 @@ function Toggle({ id, label, hint, checked, onChange, disabled }: {
   )
 }
 
-const nodeTone: Record<NodeState, string> = {
-  done: 'border-ok text-ok',
-  active: 'border-ink-2 text-ink shadow-[0_0_0_3px_var(--sunken)]',
-  waiting: 'border-line text-faint',
-  skipped: 'border-dashed border-line-strong text-faint opacity-60',
-}
-
-function Node({ icon, label, state }: {
-  icon: ReactNode
-  label: string
-  state: NodeState
-}) {
-  return (
-    <div className="z-10 flex w-[4.5rem] flex-col items-center gap-2 text-center sm:w-24">
-      <div className={cn('flex size-12 items-center justify-center rounded-[6px] border bg-surface transition-colors duration-200 sm:size-14', nodeTone[state])}>
-        {icon}
-      </div>
-      <span className="text-xs leading-tight font-medium">{label}</span>
-    </div>
-  )
-}
-
 export function UploadPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -85,6 +63,8 @@ export function UploadPage() {
   const [run, setRun] = useState<RunState>('idle')
   const [steps, setSteps] = useState<Partial<Record<ParseStepId, TriageStepEvent>>>({})
   const [logLines, setLogLines] = useState<string[]>([])
+  const [phases, setPhases] = useState<Partial<Record<SandboxPhaseId, SandboxPhaseEvent>>>({})
+  const [aliveFrom, setAliveFrom] = useState<number | null>(null)
   const [elapsed, setElapsed] = useState(0)
   const [fileError, setFileError] = useState<string | null>(() => {
     const handed = (location.state as { file?: unknown } | null)?.file
@@ -124,6 +104,8 @@ export function UploadPage() {
     setRun('running')
     setSteps({})
     setLogLines([])
+    setPhases({})
+    setAliveFrom(null)
     setRunError(null)
     setResultId(null)
     setElapsed(0)
@@ -134,6 +116,10 @@ export function UploadPage() {
         { localParser, useCache },
         (e) => setSteps((s) => ({ ...s, [e.step]: e })),
         (line) => setLogLines((l) => [...l, line]),
+        (e) => {
+          setPhases((p) => ({ ...p, [e.phase]: e }))
+          if (e.phase === 'create' && e.state === 'done') setAliveFrom(performance.now() - startedAt.current)
+        },
       )
       setElapsed(performance.now() - startedAt.current)
       await loadAgreement(result.agreementId)
@@ -147,14 +133,6 @@ export function UploadPage() {
     }
   }
 
-  const stepState = (id: ParseStepId): StepState | 'waiting' => steps[id]?.state ?? 'waiting'
-  const nodeState = (ids: ParseStepId[]): NodeState => {
-    const states = ids.map(stepState)
-    if (states.every((s) => s === 'skipped')) return 'skipped'
-    if (states.some((s) => s === 'active')) return 'active'
-    if (states.every((s) => s === 'done' || s === 'skipped' || s === 'failed')) return 'done'
-    return run === 'running' && states.some((s) => s !== 'waiting') ? 'active' : 'waiting'
-  }
   const activeStep = STEP_ORDER.find((id) => steps[id]?.state === 'active') ?? null
   const finished = STEP_ORDER.filter((id) => steps[id] && steps[id]!.state !== 'active')
 
@@ -241,17 +219,8 @@ export function UploadPage() {
         </section>
 
         <section aria-labelledby="pipeline-heading" className="tile min-[1081px]:col-span-6">
-          <div className="tile-head"><h2 id="pipeline-heading">Parse pipeline</h2></div>
-
-          <div className="well relative mt-4 flex items-start justify-between gap-1 overflow-hidden px-2 py-4">
-            {/* A static rule behind the steps; each step's border shows its state */}
-            <span aria-hidden className="absolute inset-x-10 top-[calc(1rem+24px)] h-px bg-line-strong sm:top-[calc(1rem+28px)]" />
-            <Node icon={<FileText className="size-5" />} label=".docx" state={nodeState(['upload'])} />
-            <Node icon={<Box className="size-5" />} label={daytonaLive ? 'Sandbox' : 'Local parser'} state={nodeState(['sandbox', 'parse'])} />
-            <Node icon={<FileSearch className="size-5" />} label="Extract + verify" state={nodeState(['extract', 'verify'])} />
-            <Node icon={<Gavel className="size-5" />} label="Rules" state={nodeState(['rules'])} />
-            <Node icon={<ListChecks className="size-5" />} label="Decisions" state={nodeState(['teardown'])} />
-          </div>
+          <h2 id="pipeline-heading" className="sr-only">Parse pipeline</h2>
+          <SandboxStrip phases={phases} step={steps.sandbox} live={daytonaLive} elapsedMs={elapsed} aliveFromMs={aliveFrom} />
 
           <div className="mt-5">
             <div className="flex items-baseline justify-between">
