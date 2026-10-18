@@ -23,7 +23,7 @@ def main() -> None:
     ev = sub.add_parser("eval", help="Run Siteline vs the LLM-only baseline on the labeled set")
     ev.add_argument("--limit", type=int, default=0, help="Only the first N labeled changes")
     ev.add_argument("--sandboxes", type=int, default=12, help="Parallel Daytona sandboxes for parsing (0 = local)")
-    ev.add_argument("--concurrency", type=int, default=32, help="Model calls in flight at once")
+    ev.add_argument("--concurrency", type=int, default=16, help="Model calls in flight at once")
     ev.add_argument("--fresh", action="store_true", help="Ask the model again instead of replaying stored answers")
     sub.add_parser("make-dataset", help="Write the labeled eval set (data/evals/labeled_changes.jsonl)")
     args = parser.parse_args()

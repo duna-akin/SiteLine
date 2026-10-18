@@ -42,7 +42,7 @@ HIGH_TIER = {"level": "high", "share": MAX_SHARE, "days": 120, "bucket": "eval",
 RESULTS_DIR = DATA_DIR / "evals"
 LATEST = RESULTS_DIR / "latest.json"
 # Model calls in flight at once (each change makes an extraction and a baseline call)
-CONCURRENCY = 32
+CONCURRENCY = 16
 ANSWERS = RUNTIME_DIR / "eval_answers.json"
 
 BASELINE_SCHEMA = {
