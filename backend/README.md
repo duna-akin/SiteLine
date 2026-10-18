@@ -111,6 +111,55 @@ Set `PUBLIC_BASE_URL` to that URL. A Cloudflare quick tunnel also works, but its
 every restart (then update the webhook and `.env`); a named Cloudflare tunnel needs a domain on
 Cloudflare. ngrok's browser warning page does not affect server-to-server webhooks.
 
+## Site priority: value lost per week of delay
+
+Each site's "money at risk per week" is the risk-adjusted present value of the trial delay
+caused by one more week without that site. It is computed in `priority.assess` from two
+figures quoted verbatim from the site's contract (subjects to enroll, enrollment months) and
+the study inputs in `data/priority_config.json`, which can be edited on the Priority page.
+
+```
+site share of enrollment  s = (site subjects / site months) / (planned subjects / study months)   capped at 1
+trial delay per site-week d = 7 × s days
+value of one trial day    V = p × S / (1 + r)^L  +  C
+money at risk per week      = d × V
+```
+
+| Input | Default | Source |
+|---|---|---|
+| S, sales per day on the market | $840,000 | Tufts CSDD 2024 (Smith, DiMasi, Getz), median for oncology, 2023 US$ |
+| p, chance of approval | 9.3% | BIO/Informa/QLS, *Clinical Development Success Rates 2011–2020*: Phase II, solid tumors |
+| L, years to launch | 7.6 | Same report, oncology: Phase II 3.7 + Phase III 3.1 + review 0.8 years |
+| r, discount rate | 10.5% | DiMasi, Grabowski, Hansen 2016 (*J Health Econ* 47): real cost of capital |
+| C, direct trial cost per day | $23,737 | Tufts CSDD 2024: Phase II, 2023 US$ |
+| Planned enrollment / study months | 340 / 24 | Fictional NSO-417 study plan |
+
+With these inputs a trial day is worth about $60,300 ($36,600 in sales, $23,700 in trial
+costs). Site 07 (48 subjects over 18 months, 19% of the study's enrollment rate) delays the
+trial 1.3 days per week it waits: about $79,500 a week. Levels: high at $75,000 a week or
+more, elevated at $45,000 or more.
+
+Why the terms are there:
+
+- **Enrollment is the critical path.** The study ends when planned enrollment is reached. A
+  week without this site's patients pushes the end out by the time the rest of the study takes
+  to enroll them, which is 7 days times the site's share of the enrollment rate.
+- **A fixed patent expiry turns delay into lost sales.** A later launch doesn't defer the sales
+  window, it shortens it. A day of delay removes a day of sales at launch, L years away.
+- **Risk and time.** Those sales only happen if the drug is approved (p) and are worth less
+  today (discounted at r over L years). Trial costs are paid now and in full, so they are
+  neither weighted nor discounted.
+
+Assumptions and limits:
+
+- Sales per day is a lifetime average (total sales divided by days on market), so the model
+  treats sales as flat. It values sales, not profit.
+- Other sites keep their pace and don't absorb this site's patients. Under competitive
+  enrollment, the real delay is smaller.
+- The site enrolls at its contracted rate from activation. Ramp-up and screen failures are ignored.
+- The per-patient amount is still read and shown, but it doesn't change the value lost.
+- Missing or unverified enrollment figures give priority "unknown", treated as standard.
+
 ## Sample redlines
 
 Every generated redline (the Site 07 demo, these samples and the seeded inbound emails' attachments)

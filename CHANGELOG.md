@@ -3,6 +3,16 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · Money at risk is the cost of delay
+
+### Changed
+
+- **Money at risk per week is now the risk-adjusted NPV of the trial delay a waiting site causes**, not its per-patient budget. Each week a site's contract is open delays the trial by 7 days × the site's share of the study's enrollment rate. A trial day is worth the chance of approval × sales per day, discounted to launch, plus the direct trial cost per day. Defaults are cited: Tufts CSDD 2024 for sales per day ($840,000, oncology median) and Phase II trial cost per day ($23,737); BIO/Informa/QLS 2021 for the solid-tumor Phase II chance of approval (9.3%) and the years to launch (7.6); DiMasi 2016 for the 10.5% discount rate. The method, assumptions and limits are in the backend README.
+- Site 07 is now ≈$79,473 a week. Thresholds moved to high at $75,000 and elevated at $45,000, so every demo and sample site keeps its level and every rule outcome is unchanged.
+- The Priority page edits the cost-of-delay inputs, shows each input's source and the live value of a trial day, and logs changes to them. Configs saved before this load with the new defaults filled in.
+- The per-patient amount is still extracted and shown, but it no longer decides priority; only the enrollment target and period are required.
+- The `--radar-*` colour tokens are now `--stuck-none`, `--stuck-some` and `--stuck-many`.
+
 ## [Unreleased] · Open sites as bars
 
 ### Changed
