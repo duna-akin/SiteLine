@@ -24,7 +24,7 @@ Other commands:
 | `uv run siteline make-samples` | Rewrite the nine per-clause sample redlines in `data/samples/` and their seed extractions |
 | `uv run siteline parse FILE.docx` | Print a redline's tracked changes as JSON |
 | `uv run siteline make-dataset` | Rewrite the labeled eval set (231 playbook changes + 12 precedent cases) |
-| `uv run siteline eval [--limit N]` | Siteline vs the LLM-only baseline; writes `data/evals/latest.json` |
+| `uv run siteline eval [--limit N] [--fresh]` | Siteline vs the LLM-only baseline; writes `data/evals/latest.json`. Replays the model answers stored in `data/evals/answers.json` (both in git, so every checkout gets the same numbers); `--fresh` asks the model again |
 | `uv run siteline reset` | Clear agreements and approvals back to the seeded inbound emails |
 | `uv run pytest` | Offline tests (parser, rules, quotes, export, eval set) |
 | `uv run --extra chalk python -m siteline.evals.chalk_eval` | Same comparison on Chalk Agent Evals |

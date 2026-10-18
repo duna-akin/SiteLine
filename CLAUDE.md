@@ -11,7 +11,10 @@ deadline: Sunday Oct 18, 2026, 8:00 AM.
 - **Run:** `cd backend && uv run siteline serve`, `cd frontend && npm run dev`, and for callbacks
   `ngrok http --url=https://sudden-playlist-untimely.ngrok-free.dev 8000`.
 - **Check before committing:** `cd backend && uv run pytest`; `cd frontend && npx tsc -b && npm run lint`.
-- **Design rules:** Claude only extracts facts with verbatim quotes; deterministic rules decide,
+- **Model:** extraction and the eval's LLM-only baseline run on OpenAI `gpt-5` (medium effort,
+  `OPENAI_API_KEY`). With no OpenAI key, `SITELINE_CLAUDE_BACKEND=cli` runs extraction through
+  `claude -p` instead. Say "the model" or name `gpt-5`; don't describe the app as running on Claude.
+- **Design rules:** the model only extracts facts with verbatim quotes; deterministic rules decide,
   with a rule ID. Anything uncertain (failed quote, confidence < 0.80, error, no rule) goes to
   human review, never to accept. Precedents are single terms from confirmed agreements, never
   from Siteline's own automated decisions.
@@ -23,9 +26,13 @@ deadline: Sunday Oct 18, 2026, 8:00 AM.
   CLI doesn't work with it. Each approver has their own assigned shared line. With real
   `APPROVER_*_PHONE` values set, every upload texts real teammates, so don't send test texts
   without asking.
-- **Open work:** GitHub issues #2 per-site priority and cost of delay, #3 credentials (Photon
-  done; Claude, Daytona, Twilio voice, IMAP, Chalk Evaluations left), #4 `claude -p` fallback
-  for extraction. #1 precedent lookup shipped in PR #5 (Postgres + S3 on Supabase).
+- **Eval results are in git:** `backend/data/evals/latest.json` is the run the Data page shows, and
+  `backend/data/evals/answers.json` holds every stored model answer, so `siteline eval` replays the
+  same answers (0 live calls) and gives everyone the same numbers. Commit both after a fresh run
+  (`siteline eval --fresh`); `data/evals/runs/` stays local.
+- **Open work:** GitHub issue #2 (per-site priority and cost of delay; cost of delay has shipped)
+  and #3 credentials (OpenAI, Daytona, Photon, IMAP, Postgres and S3 are live; Twilio voice and
+  Chalk Evaluations are not). #1 precedent lookup (PR #5) and #4 `claude -p` fallback are closed.
 - **Commits:** Conventional Commits, subject line only, several small commits.
 
 # Chalk Development Guidelines
