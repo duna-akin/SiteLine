@@ -241,9 +241,9 @@ export function DecisionDetail({ d, className }: { d: Decision; className?: stri
               ))}
           </div>
         )}
-        {d.counterText != null && (outcome === 'fallback' || outcome === 'escalate') && (
+        {d.counterText != null && (outcome === 'counter' || outcome === 'escalate') && (
           <div className="@md:col-span-2">
-            <dt className="eyebrow">{outcome === 'fallback' ? 'Counter sent back' : 'If rejected, sponsor holds'}</dt>
+            <dt className="eyebrow">{outcome === 'counter' ? 'Counter sent back' : 'If rejected, sponsor holds'}</dt>
             <dd className="mt-1 text-muted">{d.counterText || 'Delete the inserted text.'}</dd>
           </div>
         )}

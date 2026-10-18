@@ -137,7 +137,7 @@ def test_sample_comes_through_the_app(s, upload):
         assert d["clauseType"] == c.clause and d["owner"] == owner_for(c.clause)
         if c.values:
             assert d["quoteVerified"] == (c.expect[1] != "SYS-QUOTE"), d["section"]
-        if d["outcome"] == "fallback":
+        if d["outcome"] == "counter":
             assert d["counterText"] and d["counterText"] != d["revised"], d["section"]
         # Escalations text their owner (simulated in tests); nothing else does
         assert d["approval"]["state"] == ("sent" if d["outcome"] == "escalate" else "none"), d["section"]
@@ -156,7 +156,7 @@ def test_sample_comes_through_the_app(s, upload):
         r = client.post(f"/api/approvals/{answered['id']}/reply", json={"reply": 2})
         assert r.json()["approval"]["state"] == "answered"
     r = client.post(f"/api/agreements/{s.agreement_id}/confirm-all", json={"by": "Test reviewer"})
-    assert r.json()["confirmed"] == counts["accept"] + counts["fallback"]
+    assert r.json()["confirmed"] == counts["accept"] + counts["counter"]
 
     # The counter-proposal: a valid Word file with each counter as the sponsor's tracked change
     r = client.get(export)
@@ -165,12 +165,12 @@ def test_sample_comes_through_the_app(s, upload):
     meta = json.loads(r.headers["X-Siteline-Export"])
     assert meta["decisions"] == len(s.changes)
     assert meta["pending"] == sum(counts[o] for o in PENDING) - bool(answered)
-    assert meta["countered"] == counts["fallback"] + bool(answered)
+    assert meta["countered"] == counts["counter"] + bool(answered)
     reparsed = parse_docx(r.content)
     assert sum(reparsed["counts"].values()) == len(s.changes)
     revised = {ch["revised"] for ch in reparsed["changes"]}
     for d in decisions:
-        if d["outcome"] == "fallback":
+        if d["outcome"] == "counter":
             assert d["counterText"] in revised, d["section"]
     if answered:
         assert answered["fallbackText"] in revised
@@ -182,7 +182,7 @@ def test_only_high_priority_widens_the_site21_fee(upload):
     assert (fee["ruleId"], fee["leniency"]["level"], fee["leniency"]["share"]) == ("PAY-A3P", "high", 0.5)
     # The same extraction without leniency is the standard counter at 10%
     v = rules.decide(fee, {"clause_type": "payment_terms", "confidence": fee["confidence"], "values": fee["extracted"]}, True)
-    assert (v.outcome, v.rule_id) == ("fallback", "PAY-F2")
+    assert (v.outcome, v.rule_id) == ("counter", "PAY-F2")
 
 
 def test_whole_document_holds_every_paragraph_and_change(upload):

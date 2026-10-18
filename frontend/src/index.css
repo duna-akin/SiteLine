@@ -5,8 +5,8 @@
 :root {
   --outcome-accept: var(--ok);
   --outcome-accept-bg: var(--ok-bg);
-  --outcome-fallback: var(--elevated);
-  --outcome-fallback-bg: var(--elevated-bg);
+  --outcome-counter: var(--elevated);
+  --outcome-counter-bg: var(--elevated-bg);
   --outcome-escalate: var(--high);
   --outcome-escalate-bg: var(--high-bg);
   --outcome-human: var(--accent);
@@ -48,7 +48,7 @@
   --color-ring: var(--accent);
 
   --color-accept: var(--outcome-accept);
-  --color-fallback: var(--outcome-fallback);
+  --color-counter: var(--outcome-counter);
   --color-escalate: var(--outcome-escalate);
   --color-human: var(--outcome-human);
 

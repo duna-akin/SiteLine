@@ -39,7 +39,7 @@ def test_seed_extraction_gives_the_demo_mix(parsed):
         ok = all(verify_quote(v["quote"], ch, ctx) for v in ex["values"])
         outcomes.append(decide(ch, ex, ok).outcome)
     assert outcomes.count("accept") == 3
-    assert outcomes.count("fallback") == 4
+    assert outcomes.count("counter") == 4
     assert outcomes.count("escalate") == 4
     assert outcomes.count("human_review") == 3  # incl. change 8, a term no playbook rule covers
     assert outcomes[11] == "human_review"  # change 12's quote is not in the redline
@@ -117,7 +117,7 @@ def test_labeled_set_round_trips_through_word():
 def test_unsafe_accept_metric():
     rows = [
         {"gold": "escalate", "siteline": "escalate", "baseline": "accept", "siteline_quotes": [True], "baseline_quote_ok": True, "siteline_ms": 1000, "baseline_ms": 1000},
-        {"gold": "escalate", "siteline": "human_review", "baseline": "fallback", "siteline_quotes": [True], "baseline_quote_ok": False, "siteline_ms": 1000, "baseline_ms": 1000},
+        {"gold": "escalate", "siteline": "human_review", "baseline": "counter", "siteline_quotes": [True], "baseline_quote_ok": False, "siteline_ms": 1000, "baseline_ms": 1000},
     ]
     m = {x["key"]: x for x in score(rows)["metrics"]}
     assert m["unsafe"]["siteline"] == 0 and m["unsafe"]["baseline"] == 100

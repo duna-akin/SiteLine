@@ -1,4 +1,4 @@
-export type Outcome = 'accept' | 'fallback' | 'escalate' | 'human_review'
+export type Outcome = 'accept' | 'counter' | 'escalate' | 'human_review'
 
 export type ClauseType =
   | 'indemnification'

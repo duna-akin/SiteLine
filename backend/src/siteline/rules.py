@@ -27,7 +27,7 @@ BANDS = {
 
 @dataclass
 class Verdict:
-    outcome: str  # accept | fallback | escalate | human_review
+    outcome: str  # accept | counter | escalate | human_review
     rule_id: str
     rule_text: str
     counter_text: str | None = None
@@ -106,7 +106,7 @@ def _drop_phrase(text: str, pattern: str) -> str | None:
 # ---- clause rules -------------------------------------------------------------------
 
 
-STRICTNESS = {"accept": 0, "fallback": 1, "escalate": 2}
+STRICTNESS = {"accept": 0, "counter": 1, "escalate": 2}
 
 
 def _payment(v: dict, ch: dict, lenient: dict | None = None) -> Verdict | None:
@@ -141,7 +141,7 @@ def _start_up_fee(v: dict, ch: dict, lenient: dict | None) -> Verdict | None:
     if fee > 10:
         if widened := _widened("start_up_fee_pct", fee, lenient):
             return widened
-        return Verdict("fallback", "PAY-F2", f"Start-up fee of {fee:g}% is above 10% → counter at 10%, refundable pro rata if no subject is enrolled.", counter)
+        return Verdict("counter", "PAY-F2", f"Start-up fee of {fee:g}% is above 10% → counter at 10%, refundable pro rata if no subject is enrolled.", counter)
     return Verdict("accept", "PAY-A3", f"Start-up fee of {fee:g}% is within the 10% standard.")
 
 
@@ -157,7 +157,7 @@ def _confidentiality(v: dict, ch: dict, lenient: dict | None = None) -> Verdict 
     if years < 5:
         if widened := _widened("survival_years", years, lenient):
             return widened
-        return Verdict("fallback", "CONF-F1", f"Survival of {years:g} years is between 3 and 5 → counter with the 5-year fallback.", _replace_quantity(ch["revised"], "years", "five (5)"))
+        return Verdict("counter", "CONF-F1", f"Survival of {years:g} years is between 3 and 5 → counter with the 5-year fallback.", _replace_quantity(ch["revised"], "years", "five (5)"))
     if years < 7:
         return Verdict("accept", "CONF-A2", f"Survival of {years:g} years meets the pre-approved 5-year fallback.")
     return Verdict("accept", "CONF-A1", f"Survival of {years:g} years meets the 7-year standard.")
@@ -172,7 +172,7 @@ def _indemnification(v: dict, ch: dict) -> Verdict | None:
     if carve.startswith("gross"):
         if _bool(v.get("adjudication_required")):
             counter = _drop_phrase(ch["revised"], r",?\s*as finally adjudicated")
-            return Verdict("fallback", "IND-F1", "Carve-out narrowed to gross negligence → accept the fallback wording and strike “as finally adjudicated”.", counter)
+            return Verdict("counter", "IND-F1", "Carve-out narrowed to gross negligence → accept the fallback wording and strike “as finally adjudicated”.", counter)
         return Verdict("accept", "IND-A2", "Carve-out narrowed to gross negligence or willful misconduct → matches the pre-approved fallback.")
     if carve == "negligence":
         return Verdict("accept", "IND-A1", "Negligence carve-out kept → matches the standard.")
@@ -208,7 +208,7 @@ def _publication(v: dict, ch: dict, lenient: dict | None = None) -> Verdict | No
             if widened := _widened("review_days", days, lenient):
                 return widened
             counter = _replace_quantity(ch["revised"], "days", "sixty (60)")
-            return Verdict("fallback", "PUB-F1", f"Review window of {days:g} days is under the 60-day standard → counter at 60 days.", counter)
+            return Verdict("counter", "PUB-F1", f"Review window of {days:g} days is under the 60-day standard → counter at 60 days.", counter)
         if days <= 75:
             return Verdict("accept", "PUB-A2", f"Review window of {days:g} days is within the 75-day fallback.")
         return Verdict("accept", "PUB-A1", f"Review window of {days:g} days meets the standard.")
@@ -255,7 +255,7 @@ def _termination(v: dict, ch: dict) -> Verdict | None:
         return Verdict("accept", "TERM-A0", "30 days’ notice → matches the standard.")
     if days <= 60:
         return Verdict("accept", "TERM-A1", f"{days:g} days’ notice for the site → within the pre-approved 60-day fallback.")
-    return Verdict("fallback", "TERM-F1", f"{days:g} days’ notice exceeds the 60-day fallback → counter at 60 days.", _replace_quantity(ch["revised"], "days", "sixty (60)"))
+    return Verdict("counter", "TERM-F1", f"{days:g} days’ notice exceeds the 60-day fallback → counter at 60 days.", _replace_quantity(ch["revised"], "days", "sixty (60)"))
 
 
 GOV_FIELDS = ("governing_law_state", "venue", "arbitration_abroad", "sovereign_immunity_waiver_required")
@@ -277,7 +277,7 @@ def _governing_law(v: dict, ch: dict) -> Verdict | None:
     if venue in ("site_courts_exclusive", "site_courts_nonexclusive", "other"):
         counter = _drop_phrase(ch["revised"], r",?\s*with (?:exclusive |non-exclusive )?venue in [^.;]*")
         rule = "Public institution’s home-state law is allowed; " if state and home not in state.lower() else ""
-        return Verdict("fallback", "GOV-F1", f"{rule}a venue clause in the site’s courts is not → counter silent on venue.", counter)
+        return Verdict("counter", "GOV-F1", f"{rule}a venue clause in the site’s courts is not → counter silent on venue.", counter)
     if state and home not in state.lower():
         return Verdict("accept", "GOV-A2", "Public institution’s home-state law → matches the pre-approved fallback.")
     return Verdict("accept", "GOV-A1", "Sponsor’s home-state law and venue → matches the standard.")
@@ -324,7 +324,7 @@ def decide(change: dict, extraction: dict, quotes_ok: bool, lenient: dict | None
     fn = CLAUSE_RULES.get(clause)
     verdict = (fn(values, change, lenient) if clause in WIDENED_CLAUSES else fn(values, change)) if fn else None
     novel = extraction.get("novel_issue")
-    if novel and (verdict is None or verdict.outcome in ("accept", "fallback")):
+    if novel and (verdict is None or verdict.outcome in ("accept", "counter")):
         return Verdict("human_review", "SYS-NOVEL", f"New term no playbook rule covers → human review. {novel}")
     if verdict is None:
         if change.get("kind") == "comment" and not values:

@@ -79,7 +79,7 @@ function Confusion({ results }: { results: EvalResult }) {
                   <th scope="row" className="p-2 text-left"><OutcomeBadge outcome={row} size="sm" /></th>
                   {outcomeOrder.map((col) => {
                     const n = results.confusion[row][col]
-                    const unsafe = row === 'escalate' && (col === 'accept' || col === 'fallback')
+                    const unsafe = row === 'escalate' && (col === 'accept' || col === 'counter')
                     return (
                       <td key={col} className="p-1">
                         <span
@@ -103,7 +103,7 @@ function Confusion({ results }: { results: EvalResult }) {
       </div>
       <p className="mt-3 text-xs text-muted">
         Outlined cells are unsafe accepts: labeled escalations that Siteline accepted or countered
-        ({results.confusion.escalate.accept + results.confusion.escalate.fallback} in this run).
+        ({results.confusion.escalate.accept + results.confusion.escalate.counter} in this run).
       </p>
     </section>
   )

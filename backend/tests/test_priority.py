@@ -90,7 +90,7 @@ def test_no_leniency_ever_lifts_an_escalation():
         if base.outcome == "escalate":
             assert wide.outcome == "escalate" and wide.rule_id == base.rule_id, ex
         elif base.rule_id != wide.rule_id:  # the only allowed move: counter → widened accept
-            assert (base.outcome, wide.outcome) == ("fallback", "accept") and wide.rule_id.endswith("P"), ex
+            assert (base.outcome, wide.outcome) == ("counter", "accept") and wide.rule_id.endswith("P"), ex
 
 
 def test_same_redline_differs_for_high_and_standard_sites():

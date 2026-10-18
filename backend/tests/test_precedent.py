@@ -82,7 +82,7 @@ def test_completed_records_keep_only_accepted_terms_with_their_source(fresh_stat
         _decision(1, "accept", {"data_use_addendum": "true"}),
         _decision(2, "escalate", {"requires_baa": "true"}, answered(1)),
         _decision(3, "escalate", {"blocks_secondary_research": "true"}, answered(3)),
-        _decision(4, "fallback", {"requires_baa": "true"}, counter="countered text"),
+        _decision(4, "counter", {"requires_baa": "true"}, counter="countered text"),
         _decision(5, "accept", {"data_use_addendum": "true"}, verified=False),
     ])
     records = precedent.completed_records("site-20", "site-20/final.docx")

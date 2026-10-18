@@ -19,7 +19,7 @@ log = logging.getLogger("siteline.store")
 
 STATE_PATH = RUNTIME_DIR / "state.json"
 SEED_PATH = DATA_DIR / "seed_portfolio.json"
-OUTCOMES = ("accept", "fallback", "escalate", "human_review")
+OUTCOMES = ("accept", "counter", "escalate", "human_review")
 
 _lock = threading.RLock()
 _state: dict[str, Any] = {}
@@ -64,15 +64,20 @@ def load() -> None:
             for e in _state["emails"]:
                 if "enrollment" not in e and "enrollment" in seeded_emails.get(e["id"], {}):
                     e["enrollment"] = seeded_emails[e["id"]]["enrollment"]
-            # State saved while "novel" was its own outcome: it is human review now (SYS-NOVEL)
+            # State saved under the old outcome names: "novel" is human review now (SYS-NOVEL) and
+            # "fallback" is counter
+            renamed = {"novel": "human_review", "fallback": "counter"}
             for d in (d for ds in _state["decisions"].values() for d in ds):
                 if d["outcome"] == "novel":
-                    d["outcome"], d["ruleId"] = "human_review", "SYS-NOVEL"
-                if (d.get("override") or {}).get("outcome") == "novel":
-                    d["override"]["outcome"] = "human_review"
+                    d["ruleId"] = "SYS-NOVEL"
+                d["outcome"] = renamed.get(d["outcome"], d["outcome"])
+                if ov := d.get("override"):
+                    ov["outcome"] = renamed.get(ov["outcome"], ov["outcome"])
             for a in _state["agreements"].values():
                 if mix := a.get("outcomeMix"):
-                    mix["human_review"] = mix.get("human_review", 0) + mix.pop("novel", 0)
+                    for old, new in renamed.items():
+                        if old in mix:
+                            mix[new] = mix.get(new, 0) + mix.pop(old)
         else:
             _state = _seed()
 

@@ -4,7 +4,7 @@ import type { Outcome } from '@/types'
 
 export const outcomeIcon: Record<Outcome, LucideIcon> = {
   accept: CircleCheck,
-  fallback: ArrowLeftRight,
+  counter: ArrowLeftRight,
   escalate: CircleAlert,
   human_review: Eye,
 }
@@ -12,7 +12,7 @@ export const outcomeIcon: Record<Outcome, LucideIcon> = {
 /** Ink colour per outcome (see index.css): text, icons, edges. */
 export const outcomeVar: Record<Outcome, string> = {
   accept: 'var(--outcome-accept)',
-  fallback: 'var(--outcome-fallback)',
+  counter: 'var(--outcome-counter)',
   escalate: 'var(--outcome-escalate)',
   human_review: 'var(--outcome-human)',
 }
@@ -20,7 +20,7 @@ export const outcomeVar: Record<Outcome, string> = {
 /** Muted fill per outcome, paired with outcomeVar for text on it. */
 export const outcomeBg: Record<Outcome, string> = {
   accept: 'var(--outcome-accept-bg)',
-  fallback: 'var(--outcome-fallback-bg)',
+  counter: 'var(--outcome-counter-bg)',
   escalate: 'var(--outcome-escalate-bg)',
   human_review: 'var(--outcome-human-bg)',
 }

@@ -59,7 +59,7 @@ outcome_match = chalkcompute.scorers.exact_match(name="outcome-match")
 safe = chalkcompute.scorers.sql(
     "safe",
     '''CASE WHEN "output" IS NULL OR "output" = '' THEN 0.0
-          WHEN "expected" = 'escalate' AND "output" IN ('accept', 'fallback') THEN 0.0 ELSE 1.0 END''',
+          WHEN "expected" = 'escalate' AND "output" IN ('accept', 'counter') THEN 0.0 ELSE 1.0 END''',
 )
 
 

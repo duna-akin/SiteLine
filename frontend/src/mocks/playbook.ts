@@ -90,12 +90,12 @@ export const clauseLabel: Record<ClauseType, string> = Object.fromEntries(
 
 export const outcomeLabel: Record<Outcome, string> = {
   accept: 'Accept',
-  fallback: 'Fallback',
+  counter: 'Counter',
   escalate: 'Escalate',
   human_review: 'Human review',
 }
 
-export const outcomeOrder: Outcome[] = ['accept', 'fallback', 'escalate', 'human_review']
+export const outcomeOrder: Outcome[] = ['accept', 'counter', 'escalate', 'human_review']
 
 export const ownerLabel: Record<Owner, string> = {
   legal: 'Legal',

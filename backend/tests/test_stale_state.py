@@ -44,18 +44,18 @@ def test_stale_seeded_attachment_is_rebuilt_and_triages_with_priority(tmp_path, 
     assert agreement["priority"]["moneyAtRiskPerWeek"] == 2308  # 20 subjects / 24 months × $12,000
 
 
-def test_old_novel_decisions_load_as_human_review(tmp_path, monkeypatch):
-    """State saved while "novel" was its own outcome reads as human review (SYS-NOVEL)."""
+def test_old_outcome_names_load_as_the_new_ones(tmp_path, monkeypatch):
+    """State saved while "novel" was its own outcome reads as human review (SYS-NOVEL), and "fallback" as counter."""
     seed = json.loads(store.SEED_PATH.read_text())
     novel = {"id": "c1", "outcome": "novel", "ruleId": "NONE", "approval": {"state": "none"}}
-    overridden = {"id": "c2", "outcome": "accept", "ruleId": "PAY-A1", "approval": {"state": "none"},
+    overridden = {"id": "c2", "outcome": "fallback", "ruleId": "PAY-F2", "approval": {"state": "none"},
                   "override": {"outcome": "novel", "reason": "new term", "at": 0}}
     path = tmp_path / "state.json"
-    path.write_text(json.dumps({**seed, "agreements": {"site-07": {"id": "site-07", "outcomeMix": {"accept": 1, "novel": 1}}},
+    path.write_text(json.dumps({**seed, "agreements": {"site-07": {"id": "site-07", "outcomeMix": {"fallback": 1, "novel": 1}}},
                                 "decisions": {"site-07": [novel, overridden]}, "documents": {}}))
     monkeypatch.setattr(store, "STATE_PATH", path)
     store.load()
     d1, d2 = store.get_decisions("site-07")
     assert (d1["outcome"], d1["ruleId"]) == ("human_review", "SYS-NOVEL")
-    assert d2["override"]["outcome"] == "human_review" and store.is_waiting(d2)
-    assert store.state()["agreements"]["site-07"]["outcomeMix"] == {"accept": 1, "human_review": 1}
+    assert d2["outcome"] == "counter" and d2["override"]["outcome"] == "human_review" and store.is_waiting(d2)
+    assert store.state()["agreements"]["site-07"]["outcomeMix"] == {"counter": 1, "human_review": 1}

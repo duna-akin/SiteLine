@@ -25,7 +25,7 @@ function toEntry(d: Decision): Entry {
   const hold = d.counterText ?? d.original
   const note = d.override ? ` Override: ${d.override.reason}` : ''
   if (outcome === 'accept') return { d, counter: null, comment: `Accepted under ${d.ruleId}.${note}`, pending: false }
-  if (outcome === 'fallback') {
+  if (outcome === 'counter') {
     return { d, counter: hold, comment: `${d.counterText != null ? 'Playbook fallback' : 'Standard held'} (${d.ruleId}).${note}`, pending: false }
   }
   if (outcome === 'escalate') {

@@ -79,7 +79,7 @@ def review(verdict: Verdict, clause_type: str, values: dict, site_name: str, agr
            round_started: str | None = None) -> tuple[Verdict, dict | None]:
     """Return the (possibly downgraded) verdict and the precedent shown with it. An escalation that
     also carries a novel issue is never downgraded: the precedent covers the term, not the new issue."""
-    if verdict.outcome not in ("accept", "fallback", "escalate"):
+    if verdict.outcome not in ("accept", "counter", "escalate"):
         return verdict, None
     matches = find(clause_type, values, site_name, agreement_id, records, round_started)
     if not matches:

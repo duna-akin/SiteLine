@@ -17,7 +17,7 @@ from siteline.docx_writer import DocxWriter
 from siteline.playbook import SPONSOR, approvers
 
 SPONSOR_AUTHOR = f"{SPONSOR['name']} (via Siteline)"
-OUTCOME_LABEL = {"accept": "Accept", "fallback": "Fallback", "escalate": "Escalate", "human_review": "Human review"}
+OUTCOME_LABEL = {"accept": "Accept", "counter": "Counter", "escalate": "Escalate", "human_review": "Human review"}
 
 
 def final_text(d: dict) -> tuple[str, str | None]:
@@ -26,7 +26,7 @@ def final_text(d: dict) -> tuple[str, str | None]:
     hold = d.get("counterText")
     if o == "accept":
         return "accepted", d["revised"]
-    if o == "fallback":
+    if o == "counter":
         if hold is None:
             return "held", d["original"]
         return "countered", hold

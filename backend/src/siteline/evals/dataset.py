@@ -74,13 +74,13 @@ def build() -> list[dict]:
         out.append(repl("§6.2 Invoices", "payment_terms", "Sponsor shall pay each undisputed invoice within ",
                         qty(45), qty(n), " days of receipt.", gold, f"Net {n}"))
     # Payment: start-up fee (standard 10%, fallback counter at 10%, escalate above 20% non-refundable)
-    for n, gold in [(5, "accept"), (8, "accept"), (12, "fallback"), (15, "fallback"), (18, "fallback"), (20, "fallback"),
+    for n, gold in [(5, "accept"), (8, "accept"), (12, "counter"), (15, "counter"), (18, "counter"), (20, "counter"),
                     (25, "escalate"), (30, "escalate"), (40, "escalate")]:
         out.append(repl("§6.3 Start-up Fee", "payment_terms", "Sponsor shall pay a non-refundable start-up fee equal to ",
                         f"{words(10)} percent (10%)", f"{words(n)} percent ({n}%)", " of the study budget.", gold, f"fee {n}%"))
 
     # Confidentiality survival (standard 7, fallback 5, escalate under 3)
-    for n, gold in [(10, "accept"), (8, "accept"), (6, "accept"), (5, "accept"), (4, "fallback"), (3, "fallback"),
+    for n, gold in [(10, "accept"), (8, "accept"), (6, "accept"), (5, "accept"), (4, "counter"), (3, "counter"),
                     (2, "escalate"), (1, "escalate")]:
         out.append(repl("§8.4 Term of Confidentiality", "confidentiality", "The obligations in this Section 8 survive for ",
                         qty(7), qty(n), " years after study close.", gold, f"survival {n}y"))
@@ -97,7 +97,7 @@ def build() -> list[dict]:
                     " of Institution.", "accept", "carve-out narrowed (fallback)"))
     out.append(item("§9.1 Indemnification by Sponsor", "indemnification",
                     [T(base), D("negligence"), I("gross negligence or willful misconduct"), T(" of Institution"), I(", as finally adjudicated by a court"), T(".")],
-                    "fallback", "gross negligence + adjudication"))
+                    "counter", "gross negligence + adjudication"))
     out.append(item("§9.1 Indemnification by Sponsor", "indemnification",
                     [T("Sponsor shall indemnify Institution from claims arising from the Study Drug or the Protocol"),
                      D(", except to the extent caused by the negligence of Institution"), T(".")],
@@ -128,7 +128,7 @@ def build() -> list[dict]:
                     "incurred", "actually incurred and documented", " by a Study Subject for a Study Injury.", "accept", "narrows in sponsor's favor"))
 
     # Publication review (standard 60, fallback up to 75, escalate under 30 or patent delay removed)
-    for n, gold in [(90, "accept"), (75, "accept"), (70, "accept"), (50, "fallback"), (45, "fallback"), (40, "fallback"), (30, "fallback"),
+    for n, gold in [(90, "accept"), (75, "accept"), (70, "accept"), (50, "counter"), (45, "counter"), (40, "counter"), (30, "counter"),
                     (25, "escalate"), (20, "escalate"), (14, "escalate")]:
         out.append(repl("§12.1 Sponsor Review", "publication", "Institution shall provide Sponsor ", qty(60) + " days", qty(n) + " days",
                         " to review any proposed publication.", gold, f"review {n}d"))
@@ -171,7 +171,7 @@ def build() -> list[dict]:
                     "accept", "data-use addendum (fallback)", mark="ins"))
 
     # Termination (standard 30, fallback 60 for site, escalate convenience without costs)
-    for n, gold in [(30, "accept"), (45, "accept"), (60, "accept"), (90, "fallback"), (120, "fallback"), (15, "escalate"), (10, "escalate")]:
+    for n, gold in [(30, "accept"), (45, "accept"), (60, "accept"), (90, "counter"), (120, "counter"), (15, "escalate"), (10, "escalate")]:
         old = 45 if n == 30 else 30
         out.append(repl("§14.2 Termination by Institution", "termination", "Institution may terminate this Agreement on ", qty(old), qty(n),
                         " days’ written notice.", gold, f"site notice {n}d"))
@@ -187,7 +187,7 @@ def build() -> list[dict]:
     out.append(repl("§17.1 Governing Law", "governing_law", gl, "New Jersey, with venue in its state courts", "Ohio", ".", "accept",
                     "public site's state, silent venue", context=PUBLIC))
     out.append(repl("§17.1 Governing Law", "governing_law", gl, "New Jersey, with venue in its state courts", "Ohio, with exclusive venue in Franklin County", ".",
-                    "fallback", "exclusive venue", context=PUBLIC))
+                    "counter", "exclusive venue", context=PUBLIC))
     out.append(repl("§17.1 Governing Law", "governing_law", gl, "New Jersey, with venue in its state courts", "New Jersey", ".", "accept", "venue dropped"))
     out.append(repl("§17.1 Governing Law", "governing_law", gl, "New Jersey, with venue in its state courts", "Massachusetts", ".", "escalate",
                     "private site's state", context=PRIVATE))
@@ -270,17 +270,17 @@ def build() -> list[dict]:
                               " calendar days of receipt.", gold, f"Net {v} (variant)"))
         elif kind == "conf":
             v = rng.choice([1, 2, 3, 4, 5, 6, 9, 12])
-            gold = "escalate" if v < 3 else "fallback" if v < 5 else "accept"
+            gold = "escalate" if v < 3 else "counter" if v < 5 else "accept"
             extra.append(repl("§8.4 Term of Confidentiality", "confidentiality", "Confidentiality obligations continue for ", qty(7), qty(v),
                               " years after the Study ends.", gold, f"survival {v}y (variant)"))
         elif kind == "pub":
             v = rng.choice([10, 21, 28, 35, 42, 55, 65, 80])
-            gold = "escalate" if v < 30 else "fallback" if v < 60 else "accept"
+            gold = "escalate" if v < 30 else "counter" if v < 60 else "accept"
             extra.append(repl("§12.1 Sponsor Review", "publication", "Sponsor may review each manuscript for ", qty(60), qty(v),
                               " days before submission.", gold, f"review {v}d (variant)"))
         else:
             v = rng.choice([5, 20, 40, 50, 75, 100])
-            gold = "escalate" if v < 30 else "accept" if v <= 60 else "fallback"
+            gold = "escalate" if v < 30 else "accept" if v <= 60 else "counter"
             extra.append(repl("§14.2 Termination by Institution", "termination", "Institution may end this Agreement by giving ", qty(30), qty(v),
                               " days’ written notice.", gold, f"site notice {v}d (variant)"))
     out.extend(extra)
