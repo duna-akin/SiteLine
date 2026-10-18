@@ -67,7 +67,7 @@ FIELDS: dict[str, tuple[str, str]] = {
     "restricts_data_transfer": ("data_privacy", "true or false: Study data must stay in one state or country"),
     "site_notice_days": ("termination", "integer days' notice the institution must give to terminate"),
     "sponsor_notice_days": ("termination", "integer days' notice the sponsor must give to terminate"),
-    "termination_for_convenience": ("termination", "true or false: site may terminate for convenience"),
+    "termination_for_convenience": ("termination", "true or false: the change gives the site a right to terminate without cause that the original text did not (false when the original already allowed it, e.g. only the notice period changes)"),
     "pays_noncancellable_costs": ("termination", "true or false: sponsor still pays non-cancellable costs on termination"),
     "governing_law_state": ("governing_law", "the state or country whose law governs, e.g. Wisconsin"),
     "venue": ("governing_law", "sponsor_courts | silent | site_courts_exclusive | site_courts_nonexclusive | other"),
@@ -132,8 +132,8 @@ How to interpret the reference:
 
 How to answer:
 - clause_type: the playbook clause type the change belongs to. Public-records disclosure terms are confidentiality, wherever they sit in the agreement.
-- values: the fields this change sets or alters, as they stand after the site's edit. Include a field only when the text supports it. When the site deletes a provision, report the resulting state only if the comparison establishes it (for example patent_delay = removed, coordination_with_insurance = sponsor_pays_first). For a comment on unchanged text, report the facts of that text.
-- quote: copy the exact words from the change text that support the value, character for character, including punctuation and curly quotes. Quote from the revised text for added or kept language and from the original text for deleted language. Keep each quote short (a clause, not a paragraph). Never paraphrase, join separate passages, or fill gaps.
+- values: the fields this change sets or alters, as they stand after the site's edit. Include a field only when the text supports it. Every value is non-empty: a true-or-false field is exactly true or false. For a public-records or governing-law term, also report institution_is_public from the agreement context. When the site deletes a provision, report the resulting state only if the comparison establishes it (for example patent_delay = removed, coordination_with_insurance = sponsor_pays_first). For a comment on unchanged text, report the facts of that text.
+- quote: copy the exact words from the change text that support the value, character for character, including punctuation and curly quotes. Quote from the revised text for added or kept language and from the original text for deleted language. Keep each quote short (a clause, not a paragraph). Never paraphrase, join separate passages, or fill gaps, and never quote this message's own labels (such as "Tracked edits" or "(none)").
 - novel_issue: if the change adds an obligation, restriction or right that no playbook rule addresses (for example, limits on training AI models), describe it in one sentence. A concept already covered by any live field, including fields beyond the reference's original 34, is not a new field merely because it lacks a decision rule. For a concept truly outside all supported fields in the live registry, separately identify it here as \"Proposed field: <concept>\" with a brief evidence-based explanation; do not add a field or decision rule. Otherwise null.
 - confidence: 0 to 1. Use below 0.8 when the wording is ambiguous, open-ended, internally inconsistent, materially conditional in a way the field cannot represent, or you are unsure which field or party role applies.
 - rationale: a brief explanation, including evidence and branches when meaning is unresolved.
