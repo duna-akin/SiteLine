@@ -22,49 +22,44 @@ from email.utils import parseaddr, parsedate_to_datetime
 
 from siteline import events, store
 from siteline.config import RUNTIME_DIR, settings
+from siteline.cta_base import ARTICLES, PRIVATE, Site, agreement_blocks
 from siteline.demo import build_redline
 
 log = logging.getLogger("siteline.inbound")
 INBOX_DIR = RUNTIME_DIR / "inbox"
+# "§6", "§8", ...: the articles of the form agreement a seeded change can sit in
+FORM_ARTICLES = {f"§{a.split()[1].rstrip('.')}" for a, _ in ARTICLES}
 
 
 def attachment_path(email_id: str):
     return INBOX_DIR / f"{email_id}.docx"
 
 
-def enrollment_sentence(fig: dict) -> str:
-    return f"Enrollment: Institution will use reasonable efforts to enroll {fig['targetSubjects']} subjects over an enrollment period of {fig['months']} months."
-
-
-def payment_sentence(fig: dict) -> str:
-    return f"Per-patient payment: Sponsor will pay Institution USD {fig['perPatientUsd']:,} per enrolled subject, as set out in Exhibit B."
-
-
 def seed_attachment(e: dict) -> bytes:
-    """A fictional redline for a seeded email, built from labeled eval changes."""
+    """A fictional redline for a seeded email: the form agreement (cta_base) with labeled eval
+    changes on twelve of its sections, at most one per section."""
     from siteline.evals.dataset import load_dataset
 
     rng = random.Random(e["id"])
-    items = rng.sample([it for it in load_dataset() if it["gold"] != "novel"], 12)
-    text = lambda t: [{"type": "text", "text": t}]  # noqa: E731
-    blocks = [
-        ("Title", text("Clinical Trial Agreement"), None, None),
-        ("", text("Protocol NSO-417: Phase II study of NSO-417 in relapsed solid tumors"), None, None),
-        ("", text("Sponsor: Northstar Oncology, Inc., Princeton, New Jersey"), None, None),
-        ("", text(f"Institution: {e['siteName']}, {e.get('city', '')}".rstrip(", ")), None, None),
-        ("", text(f"Site Number: {e.get('siteNumber', '')}"), None, None),
-        ("", text("This document is fictional and was generated for the Siteline demo."), None, None),
+    pool = [it for it in load_dataset() if it["note"] != "no playbook rule" and it["section"].split(".")[0] in FORM_ARTICLES]
+    rng.shuffle(pool)
+    picked: dict[str, dict] = {}
+    for it in pool:
+        picked.setdefault(it["section"].split()[0], it)
+        if len(picked) == 12:
+            break
+    fig = e.get("enrollment") or {}
+    site = Site(e.get("siteNumber", ""), e["siteName"], e.get("city", ""), e.get("status", PRIVATE),
+                fig.get("targetSubjects"), fig.get("months"), fig.get("perPatientUsd"))
+    edits = [
+        (it["section"],
+         [{**s, "author": e["siteName"]} if s["type"] != "text" else s for s in it["segments"]],
+         (e["siteName"], it["comment"]) if it.get("comment") else None,
+         (it["mark"], e["siteName"]) if it.get("mark") else None)
+        for it in picked.values()
     ]
-    if fig := e.get("enrollment"):
-        blocks.append(("", text(enrollment_sentence(fig)), None, None))
-        blocks.append(("", text(payment_sentence(fig)), None, None))
-    for it in sorted(items, key=lambda x: x["section"]):
-        blocks.append(("Heading2", text(it["section"]), None, None))
-        comment = (e["siteName"], it["comment"]) if it.get("comment") else None
-        mark = (it["mark"], e["siteName"]) if it.get("mark") else None
-        segs = [{**s, "author": e["siteName"]} if s["type"] != "text" else s for s in it["segments"]]
-        blocks.append(("", segs, comment, mark))
-    return build_redline(blocks, e["attachment"])
+    return build_redline(agreement_blocks(site, edits, "This document is fictional and was generated for the Siteline demo."),
+                         e["attachment"])
 
 
 def ensure_seed_attachments() -> None:

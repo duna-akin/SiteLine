@@ -83,7 +83,8 @@ def _figures(target: str, months: str, usd: str, enroll_quote: str, pay_quote: s
 def seed_figures() -> dict[str, dict]:
     """Whole-agreement readings (priority figures) for the demo file and the seeded emails'
     attachments, keyed like extract_document's cache, so priority works without an API key."""
-    from siteline.inbound_email import enrollment_sentence, payment_sentence, seed_attachment
+    from siteline.cta_base import enrollment_sentence, payment_sentence
+    from siteline.inbound_email import seed_attachment
     from siteline.priority import document_text
     from siteline.store import SEED_PATH
 

@@ -21,7 +21,7 @@ from siteline.samples import SAMPLES, matched, sample_bytes, seed_entries
 from siteline.verify import verify_value
 
 IDS = [f"site{s.number}-{s.slug}" for s in SAMPLES]
-PENDING = ("escalate", "human_review", "novel")
+PENDING = ("escalate", "human_review")
 
 
 @pytest.fixture(scope="module")
@@ -85,7 +85,7 @@ def test_samples_reach_every_rule_and_outcome():
     need = {i for i in ids if not i.endswith("P")} - {"SYS-ERROR"}
     got = {c.expect[1] for s in SAMPLES for c in s.changes}
     assert need <= got, f"no sample reaches {sorted(need - got)}"
-    assert {"NONE", "PAY-A3P"} <= got
+    assert "PAY-A3P" in got
     assert {c.expect[0] for s in SAMPLES for c in s.changes} == set(store.OUTCOMES)
     assert {s.priority for s in SAMPLES} == {"high", "elevated", "standard"}
 
@@ -185,6 +185,19 @@ def test_only_high_priority_widens_the_site21_fee(upload):
     assert (v.outcome, v.rule_id) == ("fallback", "PAY-F2")
 
 
+def test_whole_document_holds_every_paragraph_and_change(upload):
+    s = SAMPLES[0]
+    client = upload(s)
+    r = client.get(f"/api/agreements/{s.agreement_id}/document")
+    assert r.status_code == 200
+    paragraphs = r.json()["paragraphs"]
+    assert paragraphs == parse_docx(sample_bytes(s))["paragraphs"]
+    # Unchanged clauses come along too, and every decision points at a paragraph in it
+    assert any(not p["heading"] and all(seg["type"] == "text" for seg in p["segments"]) for p in paragraphs)
+    assert {d["paragraph"] for d in store.get_decisions(s.agreement_id)} <= {p["index"] for p in paragraphs}
+    assert client.get("/api/agreements/no-such-site/document").status_code == 404
+
+
 def test_all_samples_share_one_portfolio(upload):
     for s in SAMPLES:
         upload(s)
@@ -193,6 +206,18 @@ def test_all_samples_share_one_portfolio(upload):
     queue = store.pending_escalations()
     want = Counter(owner_for(c.clause) for s in SAMPLES for c in s.changes if c.expect[0] == "escalate")
     assert Counter(d["owner"] for d in queue if d["id"].startswith(tuple(f"s{s.number}-" for s in SAMPLES))) == want
+
+
+def test_committed_template_is_the_clean_form():
+    """data/templates holds the form every redline is built on; run `uv run siteline make-demo` if not."""
+    from siteline.demo import TEMPLATE_PATH, template_bytes
+
+    committed = parse_docx(TEMPLATE_PATH.read_bytes())
+    assert committed["changes"] == [] and committed["paragraphs"] == parse_docx(template_bytes())["paragraphs"]
+    # Every article of the form, with no site's details filled in
+    text = "\n".join("".join(seg["text"] for seg in p["segments"]) for p in committed["paragraphs"])
+    assert "Article 17. General" in text and "Exhibit B. Budget and Payment Schedule" in text
+    assert "Institution: [Institution], [City, State]" in text
 
 
 @pytest.mark.parametrize("s", SAMPLES, ids=IDS)

@@ -239,75 +239,6 @@
   "model": "seed (hand-written)",
   "latencyMs": 0
  },
- "doc-0aaf8be81d128fe3aa12d5c3": {
-  "confidence": 0.97,
-  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
-  "figures": [
-   {
-    "field": "enrollment_target_subjects",
-    "value": "48",
-    "quote": "enroll 48 subjects over an enrollment period of 18 months"
-   },
-   {
-    "field": "enrollment_period_months",
-    "value": "18",
-    "quote": "enroll 48 subjects over an enrollment period of 18 months"
-   },
-   {
-    "field": "per_patient_amount_usd",
-    "value": "18200",
-    "quote": "USD 18,200 per enrolled subject"
-   }
-  ],
-  "model": "seed (hand-written)",
-  "latencyMs": 0
- },
- "doc-cf7f8947858546ee1fa63093": {
-  "confidence": 0.97,
-  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
-  "figures": [
-   {
-    "field": "enrollment_target_subjects",
-    "value": "20",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 20 subjects over an enrollment period of 24 months."
-   },
-   {
-    "field": "enrollment_period_months",
-    "value": "24",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 20 subjects over an enrollment period of 24 months."
-   },
-   {
-    "field": "per_patient_amount_usd",
-    "value": "12000",
-    "quote": "Per-patient payment: Sponsor will pay Institution USD 12,000 per enrolled subject, as set out in Exhibit B."
-   }
-  ],
-  "model": "seed (hand-written)",
-  "latencyMs": 0
- },
- "doc-44645173abb8b9781ef492e7": {
-  "confidence": 0.97,
-  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
-  "figures": [
-   {
-    "field": "enrollment_target_subjects",
-    "value": "28",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 28 subjects over an enrollment period of 18 months."
-   },
-   {
-    "field": "enrollment_period_months",
-    "value": "18",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 28 subjects over an enrollment period of 18 months."
-   },
-   {
-    "field": "per_patient_amount_usd",
-    "value": "16500",
-    "quote": "Per-patient payment: Sponsor will pay Institution USD 16,500 per enrolled subject, as set out in Exhibit B."
-   }
-  ],
-  "model": "seed (hand-written)",
-  "latencyMs": 0
- },
  "0d3f33f65aa26e266f9b5a81": {
   "clause_type": "payment_terms",
   "confidence": 0.95,
@@ -406,29 +337,6 @@
   "model": "seed (hand-written)",
   "latencyMs": 0
  },
- "doc-94c6e467b8fc2dd37acbc13a": {
-  "confidence": 0.97,
-  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
-  "figures": [
-   {
-    "field": "enrollment_target_subjects",
-    "value": "60",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 60 subjects over an enrollment period of 12 months."
-   },
-   {
-    "field": "enrollment_period_months",
-    "value": "12",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 60 subjects over an enrollment period of 12 months."
-   },
-   {
-    "field": "per_patient_amount_usd",
-    "value": "22000",
-    "quote": "Per-patient payment: Sponsor will pay Institution USD 22,000 per enrolled subject, as set out in Exhibit B."
-   }
-  ],
-  "model": "seed (hand-written)",
-  "latencyMs": 0
- },
  "4359bfffe097ee86d841811a": {
   "clause_type": "payment_terms",
   "confidence": 0.95,
@@ -517,29 +425,6 @@
     "field": "review_days",
     "value": "70",
     "quote": "seventy (70) days to review"
-   }
-  ],
-  "model": "seed (hand-written)",
-  "latencyMs": 0
- },
- "doc-4986f0b3eeb0d6dff998d2c1": {
-  "confidence": 0.97,
-  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
-  "figures": [
-   {
-    "field": "enrollment_target_subjects",
-    "value": "20",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 20 subjects over an enrollment period of 24 months."
-   },
-   {
-    "field": "enrollment_period_months",
-    "value": "24",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 20 subjects over an enrollment period of 24 months."
-   },
-   {
-    "field": "per_patient_amount_usd",
-    "value": "15000",
-    "quote": "Per-patient payment: Sponsor will pay Institution USD 15,000 per enrolled subject, as set out in Exhibit B."
    }
   ],
   "model": "seed (hand-written)",
@@ -658,29 +543,6 @@
     "field": "venue",
     "value": "sponsor_courts",
     "quote": "the state or federal courts located in Mercer County, New Jersey"
-   }
-  ],
-  "model": "seed (hand-written)",
-  "latencyMs": 0
- },
- "doc-b5eb61b4c0a9ef603b6b1f04": {
-  "confidence": 0.97,
-  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
-  "figures": [
-   {
-    "field": "enrollment_target_subjects",
-    "value": "30",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 30 subjects over an enrollment period of 24 months."
-   },
-   {
-    "field": "enrollment_period_months",
-    "value": "24",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 30 subjects over an enrollment period of 24 months."
-   },
-   {
-    "field": "per_patient_amount_usd",
-    "value": "12000",
-    "quote": "Per-patient payment: Sponsor will pay Institution USD 12,000 per enrolled subject, as set out in Exhibit B."
    }
   ],
   "model": "seed (hand-written)",
@@ -805,29 +667,6 @@
   "model": "seed (hand-written)",
   "latencyMs": 0
  },
- "doc-288fb0ef147235ac8b6cc1aa": {
-  "confidence": 0.97,
-  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
-  "figures": [
-   {
-    "field": "enrollment_target_subjects",
-    "value": "16",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 16 subjects over an enrollment period of 18 months."
-   },
-   {
-    "field": "enrollment_period_months",
-    "value": "18",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 16 subjects over an enrollment period of 18 months."
-   },
-   {
-    "field": "per_patient_amount_usd",
-    "value": "13500",
-    "quote": "Per-patient payment: Sponsor will pay Institution USD 13,500 per enrolled subject, as set out in Exhibit B."
-   }
-  ],
-  "model": "seed (hand-written)",
-  "latencyMs": 0
- },
  "d0a99f32959717880d5aaac0": {
   "clause_type": "publication",
   "confidence": 0.95,
@@ -922,29 +761,6 @@
     "field": "institution_is_public",
     "value": "true",
     "quote": "a public institution of the Commonwealth of Kentucky"
-   }
-  ],
-  "model": "seed (hand-written)",
-  "latencyMs": 0
- },
- "doc-478aa7229ecdc4ffc7d2f1a7": {
-  "confidence": 0.97,
-  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
-  "figures": [
-   {
-    "field": "enrollment_target_subjects",
-    "value": "18",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 18 subjects over an enrollment period of 24 months."
-   },
-   {
-    "field": "enrollment_period_months",
-    "value": "24",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 18 subjects over an enrollment period of 24 months."
-   },
-   {
-    "field": "per_patient_amount_usd",
-    "value": "16000",
-    "quote": "Per-patient payment: Sponsor will pay Institution USD 16,000 per enrolled subject, as set out in Exhibit B."
    }
   ],
   "model": "seed (hand-written)",
@@ -1069,29 +885,6 @@
   "model": "seed (hand-written)",
   "latencyMs": 0
  },
- "doc-b9d59359b834962dc33a5711": {
-  "confidence": 0.97,
-  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
-  "figures": [
-   {
-    "field": "enrollment_target_subjects",
-    "value": "12",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 12 subjects over an enrollment period of 18 months."
-   },
-   {
-    "field": "enrollment_period_months",
-    "value": "18",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 12 subjects over an enrollment period of 18 months."
-   },
-   {
-    "field": "per_patient_amount_usd",
-    "value": "19000",
-    "quote": "Per-patient payment: Sponsor will pay Institution USD 19,000 per enrolled subject, as set out in Exhibit B."
-   }
-  ],
-  "model": "seed (hand-written)",
-  "latencyMs": 0
- },
  "215f240fc1e738f45d8283ea": {
   "clause_type": "payment_terms",
   "confidence": 0.95,
@@ -1191,29 +984,6 @@
     "field": "review_days",
     "value": "90",
     "quote": "ninety (90) days to review"
-   }
-  ],
-  "model": "seed (hand-written)",
-  "latencyMs": 0
- },
- "doc-12dc9895820a1b660fd8de37": {
-  "confidence": 0.97,
-  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
-  "figures": [
-   {
-    "field": "enrollment_target_subjects",
-    "value": "22",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 22 subjects over an enrollment period of 24 months."
-   },
-   {
-    "field": "enrollment_period_months",
-    "value": "24",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 22 subjects over an enrollment period of 24 months."
-   },
-   {
-    "field": "per_patient_amount_usd",
-    "value": "14500",
-    "quote": "Per-patient payment: Sponsor will pay Institution USD 14,500 per enrolled subject, as set out in Exhibit B."
    }
   ],
   "model": "seed (hand-written)",
@@ -1359,29 +1129,6 @@
   "model": "seed (hand-written)",
   "latencyMs": 0
  },
- "doc-a7efea3b697b05e50b39aea1": {
-  "confidence": 0.97,
-  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
-  "figures": [
-   {
-    "field": "enrollment_target_subjects",
-    "value": "26",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 26 subjects over an enrollment period of 30 months."
-   },
-   {
-    "field": "enrollment_period_months",
-    "value": "30",
-    "quote": "Enrollment: Institution will use reasonable efforts to enroll 26 subjects over an enrollment period of 30 months."
-   },
-   {
-    "field": "per_patient_amount_usd",
-    "value": "11000",
-    "quote": "Per-patient payment: Sponsor will pay Institution USD 11,000 per enrolled subject, as set out in Exhibit B."
-   }
-  ],
-  "model": "seed (hand-written)",
-  "latencyMs": 0
- },
  "64dbcd72355d227ef5ac2f9e": {
   "clause_type": "indemnification",
   "confidence": 0.95,
@@ -1491,7 +1238,260 @@
   "model": "seed (hand-written)",
   "latencyMs": 0
  },
- "doc-6950edc12efe0b9725e878ee": {
+ "doc-0c1aef3ef42348bd2bf5d9f6": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "48",
+    "quote": "enroll 48 subjects over an enrollment period of 18 months"
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "18",
+    "quote": "enroll 48 subjects over an enrollment period of 18 months"
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "18200",
+    "quote": "USD 18,200 per enrolled subject"
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-cbc0d74e8c453bbb9b0571af": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "20",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 20 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "24",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 20 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "12000",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 12,000 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-0e8a02d889eaa0e08549511a": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "28",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 28 subjects over an enrollment period of 18 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "18",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 28 subjects over an enrollment period of 18 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "16500",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 16,500 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-1a2a01c4f3e86d98e2ace31d": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "60",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 60 subjects over an enrollment period of 12 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "12",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 60 subjects over an enrollment period of 12 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "22000",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 22,000 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-5217cfdf2bdbe18c45108d50": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "20",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 20 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "24",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 20 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "15000",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 15,000 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-773da8c83e73e1631569ace4": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "30",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 30 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "24",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 30 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "12000",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 12,000 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-f83177ef66f63c6f02ce42ba": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "16",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 16 subjects over an enrollment period of 18 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "18",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 16 subjects over an enrollment period of 18 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "13500",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 13,500 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-8e962f3668a189342fbdf1ab": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "18",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 18 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "24",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 18 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "16000",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 16,000 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-539ef2d15ca72766c6982eab": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "12",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 12 subjects over an enrollment period of 18 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "18",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 12 subjects over an enrollment period of 18 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "19000",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 19,000 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-e963de84c167fd70f390d076": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "22",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 22 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "24",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 22 subjects over an enrollment period of 24 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "14500",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 14,500 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-8dcaad9947a1cfe6b82d1522": {
+  "confidence": 0.97,
+  "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
+  "figures": [
+   {
+    "field": "enrollment_target_subjects",
+    "value": "26",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 26 subjects over an enrollment period of 30 months."
+   },
+   {
+    "field": "enrollment_period_months",
+    "value": "30",
+    "quote": "Enrollment: Institution will use reasonable efforts to enroll 26 subjects over an enrollment period of 30 months."
+   },
+   {
+    "field": "per_patient_amount_usd",
+    "value": "11000",
+    "quote": "Per-patient payment: Sponsor will pay Institution USD 11,000 per enrolled subject, as set out in Exhibit B."
+   }
+  ],
+  "model": "seed (hand-written)",
+  "latencyMs": 0
+ },
+ "doc-1cb2e934c51cfd2fe451ea8a": {
   "confidence": 0.97,
   "rationale": "The agreement states the site's enrollment target, period and per-patient payment.",
   "figures": [

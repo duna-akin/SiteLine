@@ -11,6 +11,40 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Emails wait for a person:** an accepted email lands on the Inbound page untriaged, with its Triage now button, instead of being triaged as soon as it arrives. The same goes for `/api/inbound-emails/simulate`.
 - **The address on screen is the real mailbox:** with IMAP connected and no `SITELINE_INBOUND_ADDRESS`, the Inbound and Home pages show `IMAP_USER` instead of the placeholder `redlines@siteline.demo`.
 
+## [Unreleased] · Four outcomes
+
+### Changed
+
+- **Novel is now part of Human review.** A change that adds a term no playbook rule covers is decided by a person on the Review page, the same as an unclear reading, so the two are one outcome: Accept, Fallback, Escalate, Human review. The reason is in the rule: `SYS-NOVEL` (with the new term described) next to `SYS-QUOTE`, `SYS-LOWCONF`, `SYS-ERROR`, `SYS-CONFLICT`, `SYS-NORULE` and `SYS-COMMENT`. A term that is new and also trips an escalation still escalates, and precedent never downgrades it.
+- Everywhere: the rules engine, the override form and API, the Word export, the eval labels (16 rows relabeled) and the LLM-only baseline's prompt, the samples' expected outcomes, and the outcome bar and tags on Review. Saved state from before loads with its novel decisions as human review.
+- A Human review redline no longer also carries a "Needs your decision" pill; the tag already says it.
+
+## [Unreleased] · A full form agreement
+
+### Changed
+
+- **Every generated redline is a whole contract.** A new fictional form CTA for NSO-417 (`cta_base.py`) has key terms, recitals, seventeen articles (definitions, study conduct, investigator, regulatory and safety, study drug, payment, records and audit, confidentiality, indemnification, subject injury, data protection, publication, IP, term and termination, insurance, compliance, general), a signature page and two exhibits (study summary, budget and payment schedule), about 2,900 words. The Site 07 demo, the nine sample redlines and the seeded inbound emails' attachments are that form with one site's tracked changes applied.
+- **Clean template:** `backend/data/templates/NSO-417_CTA_form.docx` is the form with no tracked changes and placeholders for the site's details, for reading or opening in Word. `uv run siteline make-demo` rewrites it from `cta_base.py`, and a test fails if the committed copy drifts from the code.
+- The seeded inbound attachments make at most one change per section, in document order, with the rest of the agreement unchanged around it (they used to be twelve redlined paragraphs alone, with repeated and conflicting sections out of order).
+- Changed paragraphs keep their exact headings and wording, so seed extractions, quote checks and every expected outcome and rule ID are unchanged; the priority figures' seeds were regenerated for the new text and the stale ones dropped.
+
+## [Unreleased] · The contract is the review screen
+
+### Changed
+
+- **Review shows the whole agreement**, as the site sent it back: title, parties and every article and clause in order, in the document typeface. Each redlined paragraph sits in place, tinted by Siteline's outcome, with deletions struck through, insertions underlined, the site's comment beneath it and what still needs a person (to confirm, needs your decision, awaiting approver, signed off). Clicking a redline opens its decision in a panel beside the contract that stays in view while it scrolls (rule, extracted values, verified quote, precedent, counter text, owner, Confirm, Override and the escalation status), so a change is always judged with the clauses around it. The panel steps to the previous or next change and scrolls the contract with it; on narrow screens the decision opens under its paragraph instead. Links to `#change-…` open the one they name.
+- A sticky bar counts the changes per outcome; clicking a count jumps to the next redline with that outcome instead of hiding the rest of the contract. Priority, days waiting, escalations answered and sign-offs share one line under the header.
+- Agreements triaged before the full text was stored show their redlined paragraphs alone, with a note.
+- **Sites** shows how the selected site's changes were sorted and an "Open contract" link instead of its own redline excerpt.
+
+### Added
+
+- `GET /api/agreements/{id}/document`: every parsed paragraph of the redline, changed or not (404 when none was stored).
+
+### Removed
+
+- The separate decision cards and outcome filter tiles on Review, and the on-screen approver phone. When escalations aren't going out by Photon, the approver's reply (1 approve, 2 counter, 3 reject) is recorded from the escalation's status line in the unfolded decision.
+
 ## [Unreleased] · Redline on Sites
 
 ### Added

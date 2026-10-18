@@ -1,4 +1,4 @@
-export type Outcome = 'accept' | 'fallback' | 'escalate' | 'human_review' | 'novel'
+export type Outcome = 'accept' | 'fallback' | 'escalate' | 'human_review'
 
 export type ClauseType =
   | 'indemnification'
@@ -41,12 +41,21 @@ export interface Segment {
   author?: string
 }
 
+/** One paragraph of the whole redline, changed or not, as parsed from Word. */
+export interface DocParagraph {
+  index: number
+  /** Word style ID: 'Title', 'Heading1', 'Heading2' or '' for body text. */
+  style: string
+  heading: boolean
+  segments: Segment[]
+}
+
 /** Reply digits the approver can text or press on a call. */
 export type ApprovalReply = 1 | 2 | 3
 
 export type ApprovalChannel = 'imessage' | 'voice'
 
-/** How the text and call actually went out: through Photon / Twilio, or only to the on-screen phone. */
+/** How the text and call actually went out: through Photon / Twilio, or only simulated in Siteline. */
 export interface ApprovalDelivery {
   delivery?: 'photon' | 'simulated'
   text?: string
@@ -105,6 +114,8 @@ export interface Change {
   siteComment?: string | null
   /** The paragraph as parsed from Word, with the site's tracked insertions and deletions. */
   segments?: Segment[]
+  /** Where the paragraph sits in the whole document (DocParagraph.index). */
+  paragraph?: number
   author: string
   extracted: ExtractedValue[]
   quote: string

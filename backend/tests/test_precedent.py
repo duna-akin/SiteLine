@@ -56,7 +56,7 @@ def test_worse_ask_or_same_agreement_never_counts():
 
 def test_fail_safes_are_untouched():
     hr = Verdict("human_review", "SYS-QUOTE", "A quote was not found verbatim in the redline → human review.")
-    novel = Verdict("novel", "NONE", "No playbook rule covers this → flagged as novel.")
+    novel = Verdict("human_review", "SYS-NOVEL", "New term no playbook rule covers → human review.")
     for v in (hr, novel):
         assert precedent.review(v, "data_privacy", {"requires_baa": "true"}, SITE, "site-07", [rec({"requires_baa": "true"})]) == (v, None)
 
@@ -128,7 +128,7 @@ def test_confirm_keeps_the_final_document_and_posts_accepted_terms(fresh_state, 
     for d in store.get_decisions("site-07"):
         if d["outcome"] == "escalate":
             asyncio.run(approvals.record_reply(d["id"], 1, "imessage"))
-        elif d["outcome"] in ("human_review", "novel"):
+        elif d["outcome"] == "human_review":
             store.update_decision(d["id"], override={"outcome": "accept", "reason": "resolved in the test", "at": 0})
     asyncio.run(api.confirm_all("site-07"))  # a person signs off on every remaining suggestion
     res = asyncio.run(api.complete_agreement("site-07"))
@@ -232,7 +232,7 @@ def _resolve_and_complete(agreement_id="site-07"):
     for d in store.get_decisions(agreement_id):
         if store.effective_outcome(d) == "escalate" and d["approval"]["state"] != "answered":
             asyncio.run(approvals.record_reply(d["id"], 1, "imessage"))
-        elif d["outcome"] in ("human_review", "novel") and not d.get("override"):
+        elif d["outcome"] == "human_review" and not d.get("override"):
             store.update_decision(d["id"], override={"outcome": "accept", "reason": "resolved in the test", "at": 0})
     asyncio.run(api.confirm_all(agreement_id))
     for d in store.get_decisions(agreement_id):  # suggestions resting on a precedent need their own confirm

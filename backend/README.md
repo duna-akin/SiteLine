@@ -19,7 +19,7 @@ Other commands:
 
 | Command | What it does |
 |---|---|
-| `uv run siteline make-demo` | Rewrite `data/demo/NSO-417_CTA_Site07_redline.docx` and its seed extraction cache |
+| `uv run siteline make-demo` | Rewrite `data/demo/NSO-417_CTA_Site07_redline.docx`, the clean form `data/templates/NSO-417_CTA_form.docx` and the seed extraction cache |
 | `uv run siteline cache-demo` | Extract the demo file with OpenAI and save that as the demo cache (needs a key) |
 | `uv run siteline make-samples` | Rewrite the nine per-clause sample redlines in `data/samples/` and their seed extractions |
 | `uv run siteline parse FILE.docx` | Print a redline's tracked changes as JSON |
@@ -96,7 +96,7 @@ https://api.photon.codes/openapi.json.
   for sending SMS texts, which Siteline does not do.
 - A reply of `1`, `2` or `3` answers that approver's oldest open escalation; `C04 2` picks one.
 - With all three approver phones set, **every upload texts real people**. Blank the
-  `APPROVER_*_PHONE` lines to rehearse on the on-screen phone.
+  `APPROVER_*_PHONE` lines to rehearse with simulated texts, answered from the Review page.
 
 ## Public URL (ngrok)
 
@@ -113,6 +113,12 @@ Cloudflare. ngrok's browser warning page does not affect server-to-server webhoo
 
 ## Sample redlines
 
+Every generated redline (the Site 07 demo, these samples and the seeded inbound emails' attachments)
+is the same fictional form agreement, `cta_base.py`, with one site's tracked changes applied: key
+terms, recitals, seventeen articles, the signature page and two exhibits, so each one reads as a
+whole contract on the Review page. The clean form itself, with placeholders for the site's details
+and no tracked changes, is `data/templates/NSO-417_CTA_form.docx`.
+
 `data/samples/` holds nine fictional CTAs (Sites 21–29), one per playbook clause, for demos and
 tests. Upload any of them on the Inbound page. They triage from seed extractions, so no key is
 needed, and each change lands on the rule ID listed in `samples.py`.
@@ -125,7 +131,7 @@ needed, and each change lands on the rule ID listed in `samples.py`.
 | 24 Saltmarsh | Subject injury | Pain and suffering and an uncapped reimbursement escalate to Finance |
 | 25 Thornbury | Publication | 21-day review, patent delay removed, open-ended thesis review; public-institution law accepted |
 | 26 Ashgrove | Intellectual property | Institution and joint ownership escalate; the research license is pre-approved |
-| 27 Kestrel Valley | Data protection | BAA and blocked secondary use escalate to Privacy; AI-training limit is novel |
+| 27 Kestrel Valley | Data protection | BAA and blocked secondary use escalate to Privacy; AI-training limit goes to human review (`SYS-NOVEL`) |
 | 28 Brightwater | Termination | 10-day notice, convenience termination, conflicting notice, a failed quote |
 | 29 Cardinal Plains | Governing law | Sovereign immunity and arbitration abroad escalate; county venue is countered |
 
@@ -139,6 +145,7 @@ needed, and each change lands on the rule ID listed in `samples.py`.
 - `storage.py`: final agreed documents in the S3 bucket (or `var/documents/`), served back as precedent sources
 - `approvals.py`, `photon.py`, `voice.py`: texts, replies, no-reply timer, calls
 - `export.py`, `docx_writer.py`: the Word counter-proposal
+- `cta_base.py`: the sponsor's full form agreement that every generated redline is built on
 - `samples.py`: the nine per-clause sample redlines, their seed extractions and expected rule IDs
 - `evals/`: labeled set, harness, Chalk runner
-- `data/`: playbook, demo redline, seed cache, seeded inbound emails (fictional). Runtime state goes to `var/` (git-ignored).
+- `data/`: playbook, demo redline, clean form agreement, seed cache, seeded inbound emails (fictional). Runtime state goes to `var/` (git-ignored).

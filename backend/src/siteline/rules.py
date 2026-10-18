@@ -1,7 +1,7 @@
 """Rules engine: one outcome per change, from extracted values and the playbook.
 
-Order: system checks (failed quote, low confidence, extraction error, conflicting values), then novel terms,
-then the clause rules. Every outcome carries the ID and text of the rule that fired.
+Order: system checks (failed quote, low confidence, extraction error, conflicting values), then terms no
+playbook rule covers (SYS-NOVEL, human review), then the clause rules. Every outcome carries the ID and text of the rule that fired.
 Counter-proposal text comes from fixed substitutions on the site's own wording; Siteline
 does not draft new legal language (PRD non-goal).
 """
@@ -27,7 +27,7 @@ BANDS = {
 
 @dataclass
 class Verdict:
-    outcome: str  # accept | fallback | escalate | human_review | novel
+    outcome: str  # accept | fallback | escalate | human_review
     rule_id: str
     rule_text: str
     counter_text: str | None = None
@@ -236,7 +236,7 @@ def _privacy(v: dict, ch: dict) -> Verdict | None:
     if _bool(v.get("blocks_secondary_research")):
         return Verdict("escalate", "DP-E2", "Site blocks secondary research use → escalate to Privacy.", ch["original"])
     if _bool(v.get("ml_training_restriction")):
-        return Verdict("novel", "NONE", "No playbook rule covers model-training restrictions → flagged as novel.")
+        return Verdict("human_review", "SYS-NOVEL", "No playbook rule covers model-training restrictions → human review.")
     if _bool(v.get("data_use_addendum")):
         return Verdict("accept", "DP-A2", "Limited data-use addendum → matches the pre-approved fallback.")
     return None
@@ -325,7 +325,7 @@ def decide(change: dict, extraction: dict, quotes_ok: bool, lenient: dict | None
     verdict = (fn(values, change, lenient) if clause in WIDENED_CLAUSES else fn(values, change)) if fn else None
     novel = extraction.get("novel_issue")
     if novel and (verdict is None or verdict.outcome in ("accept", "fallback")):
-        return Verdict("novel", "NONE", f"No playbook rule covers this → flagged as novel. {novel}")
+        return Verdict("human_review", "SYS-NOVEL", f"New term no playbook rule covers → human review. {novel}")
     if verdict is None:
         if change.get("kind") == "comment" and not values:
             return Verdict("human_review", "SYS-COMMENT", "Site comment with no change to the text → reply by hand.")

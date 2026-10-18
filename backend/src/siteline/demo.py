@@ -1,18 +1,21 @@
-"""The Site 07 demo redline: a fictional CTA with 14 tracked changes.
+"""The Site 07 demo redline: the form agreement (cta_base) with 14 tracked changes.
 
 All text is written for this demo. It is not real contract language and comes from
 no real sponsor, site or agreement (PRD clean-room rule).
 
-Run `uv run siteline make-demo` to (re)write data/demo/NSO-417_CTA_Site07_redline.docx.
+Run `uv run siteline make-demo` to (re)write data/demo/NSO-417_CTA_Site07_redline.docx and the
+clean form, data/templates/NSO-417_CTA_form.docx.
 """
 
 from __future__ import annotations
 
 from siteline.config import DATA_DIR
+from siteline.cta_base import Block, Edit, Site, agreement_blocks, form_blocks
 from siteline.docx_writer import DocxWriter
 
 DEMO_FILE_NAME = "NSO-417_CTA_Site07_redline.docx"
 DEMO_PATH = DATA_DIR / "demo" / DEMO_FILE_NAME
+TEMPLATE_PATH = DATA_DIR / "templates" / "NSO-417_CTA_form.docx"
 
 SITE = {
     "agreementId": "site-07",
@@ -20,6 +23,7 @@ SITE = {
     "siteName": "Larkspur Cancer Institute",
     "city": "Madison, WI",
 }
+SITE_FORM = Site("07", SITE["siteName"], SITE["city"], "a public institution of the State of Wisconsin", 48, 18, 18200)
 
 WHIT = "J. Whitcombe (Site 07)"
 TAN = "R. Tanaka (Site 07)"
@@ -41,34 +45,23 @@ def D(text: str, who: str = WHIT) -> dict:
     return {"type": "del", "text": text, "author": who, "date": DATE}
 
 
-# (style, segments, comment(author, text) | None, paragraph mark (kind, author) | None)
-Block = tuple[str, list[dict], tuple[str, str] | None, tuple[str, str] | None]
-
-
-def blocks() -> list[Block]:
-    b: list[Block] = []
+def edits() -> list[Edit]:
+    """Site 07's 14 tracked changes, each on its section of the form agreement (cta_base). The
+    unchanged paragraphs below are the form's own text, kept so the script reads in order."""
+    e: list[Edit] = []
+    section = ""
 
     def h1(text: str) -> None:
-        b.append(("Heading1", [T(text)], None, None))
+        pass
 
     def h2(text: str) -> None:
-        b.append(("Heading2", [T(text)], None, None))
+        nonlocal section
+        section = text
 
     def p(segs: list[dict] | str, comment: tuple[str, str] | None = None, mark: tuple[str, str] | None = None) -> None:
-        b.append(("", [T(segs)] if isinstance(segs, str) else segs, comment, mark))
-
-    b.append(("Title", [T("Clinical Trial Agreement")], None, None))
-    p("Protocol NSO-417: Phase II study of NSO-417 in relapsed solid tumors")
-    p("Sponsor: Northstar Oncology, Inc., Princeton, New Jersey")
-    p("Institution: Larkspur Cancer Institute, Madison, WI")
-    p("Site Number: 07")
-    p("Enrollment: Institution will use reasonable efforts to enroll 48 subjects over an enrollment period of 18 months.")
-    p("Per-patient payment: Sponsor will pay Institution USD 18,200 per enrolled subject, as set out in Exhibit B.")
-    p(
-        "This Clinical Trial Agreement is entered into by Northstar Oncology, Inc. (“Sponsor”) and "
-        "Larkspur Cancer Institute, a public institution of the State of Wisconsin (“Institution”). "
-        "This document is fictional and was written for a demo."
-    )
+        if isinstance(segs, str) and comment is None:
+            return  # unchanged: the form agreement supplies it
+        e.append((section, [T(segs)] if isinstance(segs, str) else segs, comment, mark))
 
     h1("Article 6. Payment")
     h2("§6.1 Budget")
@@ -200,7 +193,11 @@ def blocks() -> list[Block]:
     ])
     h2("§17.4 Entire Agreement")
     p("This Agreement and its exhibits are the entire agreement of the parties regarding the Study.")
-    return b
+    return e
+
+
+def blocks() -> list[Block]:
+    return agreement_blocks(SITE_FORM, edits(), "This document is fictional and was written for a demo.")
 
 
 def build_redline(blocks_: list[Block], title: str) -> bytes:
@@ -219,6 +216,17 @@ def write_demo() -> str:
     DEMO_PATH.parent.mkdir(parents=True, exist_ok=True)
     DEMO_PATH.write_bytes(demo_bytes())
     return str(DEMO_PATH)
+
+
+def template_bytes() -> bytes:
+    return build_redline(form_blocks(), "NSO-417 Clinical Trial Agreement (sponsor form)")
+
+
+def write_template() -> str:
+    """The clean form agreement every redline is built on, for reading or opening in Word."""
+    TEMPLATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    TEMPLATE_PATH.write_bytes(template_bytes())
+    return str(TEMPLATE_PATH)
 
 
 def ensure_demo() -> bytes:

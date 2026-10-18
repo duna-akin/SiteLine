@@ -140,7 +140,7 @@ export function PlaybookPage() {
             <span className="eyebrow">Negotiation positions</span>
             <h1>Playbook</h1>
             <p>
-              The rules engine reads these positions. Each change maps to one clause type, then lands on accept, fallback or escalate. Anything the rules don’t cover is novel.{' '}
+              The rules engine reads these positions. Each change maps to one clause type, then lands on accept, fallback or escalate. Anything the rules don’t cover, or can’t read reliably, goes to human review.{' '}
               <a href="#priority" className="font-medium text-accent hover:underline">Priority settings</a> widen a few accept lines for sites that cost the most to wait on.
             </p>
           </div>
