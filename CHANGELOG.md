@@ -3,6 +3,18 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · An enforced playbook
+
+### Changed
+
+- **The playbook is 9 clauses and 37 positions**, written the way a sponsor's contracts team writes one: per position the form's standard, the counter Siteline sends back, the escalation trigger, a rationale and talking points. New positions: institutional overhead, holdback, screen failures, disclosure to affiliates, marking, public records, notice of claims, control of the defense, additional insured, travel costs, injury exclusions, the multi-site publication wait, patent filings, security-incident notice, data transfer, termination for convenience with costs paid, sponsor notice and domestic arbitration (29 new rules).
+- **The numbers in the playbook decide.** Each position's limits (`data/playbook.json`) are what `rules.py` reads, including the three bands site priority widens. Every rule ID belongs to exactly one position; a test fails if the engine and the playbook disagree.
+- **Editing the playbook re-decides open work**, like Priority settings: Save shows which open suggestions would change (from → to), then re-decides only those no person has confirmed; a new escalation texts its approver; every save and reset is logged. Reset returns to the default playbook. Load and Export JSON carry the templates.
+- When one change touches several positions of a clause, the strictest verdict wins (ties go to the position listed first) and its rule text names the others.
+- Counter rules are renamed `…-C#` (`PAY-F2` → `PAY-C2`, `CONF-F1` → `CONF-C1`, `IND-F1` → `IND-C1`, `PUB-F1` → `PUB-C1`, `TERM-F1` → `TERM-C1`, `GOV-F1` → `GOV-C1`). The 75-day publication line is gone: 60 days or more is `PUB-A1`. Older decisions keep their IDs and still link to their position.
+- The Playbook page shows each position with its rules, editable wording and limits, and the change log; a decision's rule ID links to its position.
+- Coverage: every rule is the expected outcome of a sample redline change (with a seed extraction), and the eval set has 81 new labeled rows (243 in all).
+
 ## [Unreleased] · Four outcomes
 
 ### Changed

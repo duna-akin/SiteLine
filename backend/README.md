@@ -23,7 +23,7 @@ Other commands:
 | `uv run siteline cache-demo` | Extract the demo file with OpenAI and save that as the demo cache (needs a key) |
 | `uv run siteline make-samples` | Rewrite the nine per-clause sample redlines in `data/samples/` and their seed extractions |
 | `uv run siteline parse FILE.docx` | Print a redline's tracked changes as JSON |
-| `uv run siteline make-dataset` | Rewrite the labeled eval set (150 playbook changes + 12 precedent cases) |
+| `uv run siteline make-dataset` | Rewrite the labeled eval set (231 playbook changes + 12 precedent cases) |
 | `uv run siteline eval [--limit N]` | Siteline vs the LLM-only baseline; writes `data/evals/latest.json` |
 | `uv run siteline reset` | Clear agreements and approvals back to the seeded inbound emails |
 | `uv run pytest` | Offline tests (parser, rules, quotes, export, eval set) |
@@ -139,6 +139,7 @@ needed, and each change lands on the rule ID listed in `samples.py`.
 
 - `src/siteline/docx_redline.py`: stdlib-only parser (also uploaded into the Daytona sandbox)
 - `extraction.py` → `verify.py` → `rules.py`: the model reads, quotes are checked, rules decide
+- `playbook.py` + `data/playbook.json`: the playbook, 9 clauses and 37 positions. Each position's `limits` are the numbers `rules.py` decides by, and its `rules` list the rule IDs that enforce it (a test keeps the two in step). Saving it from the Playbook page (`PUT /api/playbook`, after a `preview`) re-decides open suggestions; `var/playbook.json` holds the saved copy and `var/playbook_log.json` the change log
 - `pipeline.py`: the triage job and its live progress events
 - `precedent.py`: after the rules, checks what the sponsor already agreed with this institution; builds the precedents a confirmed agreement contributes
 - `db.py`: the `precedents` table and its two queries (read by site, write on confirmation) when `DATABASE_URL` is set
