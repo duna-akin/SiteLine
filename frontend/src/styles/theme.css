@@ -25,9 +25,9 @@
   --neutral-bg: #EEEEEE;
 
   /* Site bars by stuck clauses (they differ in lightness as well as hue) */
-  --radar-ok: #7E9A88;
-  --radar-warn: #BCA77E;
-  --radar-bad: #8C4A4A;
+  --stuck-none: #7E9A88;
+  --stuck-some: #BCA77E;
+  --stuck-many: #8C4A4A;
 
   --serif: "IBM Plex Serif", Georgia, "Times New Roman", serif;
   --sans: "IBM Plex Sans", system-ui, -apple-system, sans-serif;

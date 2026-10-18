@@ -55,6 +55,6 @@ export function byPriority<T extends { status: string; daysOpen: number; priorit
 /** Open sites (the portfolio): every agreement not yet executed. */
 export const openSites = (agreements: Agreement[]) => agreements.filter((a) => a.status !== 'executed')
 
-/** Most money at risk first, then longest open: the radar's ranked list. */
+/** Most money at risk first, then longest open: the open-sites bar list. */
 export const byMoney = (sites: Agreement[]) =>
   [...sites].sort((a, b) => (b.priority?.moneyAtRiskPerWeek ?? -1) - (a.priority?.moneyAtRiskPerWeek ?? -1) || b.daysOpen - a.daysOpen)

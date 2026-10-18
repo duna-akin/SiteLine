@@ -86,7 +86,7 @@ function Confusion({ results }: { results: EvalResult }) {
                           className={cn('flex h-11 items-center justify-center rounded-[6px] font-semibold tabular', unsafe && n > 0 && 'shadow-[inset_0_0_0_1px_var(--high)]')}
                           style={{
                             background: row === col
-                              ? `color-mix(in oklab, var(--radar-ok) ${20 + (total ? n / total : 0) * 50}%, var(--surface))`
+                              ? `color-mix(in oklab, var(--stuck-none) ${20 + (total ? n / total : 0) * 50}%, var(--surface))`
                               : n > 0 ? 'var(--elevated-bg)' : 'var(--page)',
                           }}
                         >

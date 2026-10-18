@@ -12,7 +12,7 @@ const unknownFigures = (a: Agreement) => a.priority?.moneyAtRiskPerWeek == null
 function barColour(a: Agreement) {
   if (notTriaged(a) || unknownFigures(a)) return 'var(--muted)'
   const stuck = a.stuckClauses.length
-  return stuck >= 3 ? 'var(--radar-bad)' : stuck > 0 ? 'var(--radar-warn)' : 'var(--radar-ok)'
+  return stuck >= 3 ? 'var(--stuck-many)' : stuck > 0 ? 'var(--stuck-some)' : 'var(--stuck-none)'
 }
 
 function rowLabel(a: Agreement) {
@@ -89,9 +89,9 @@ export function SiteBarsLegend() {
   return (
     <ul className="legend" aria-label="Legend">
       <li>Bar = money at risk per week</li>
-      <li><i style={{ background: 'var(--radar-ok)' }} />No stuck clauses</li>
-      <li><i style={{ background: 'var(--radar-warn)' }} />1–2 stuck</li>
-      <li><i style={{ background: 'var(--radar-bad)' }} />3+ stuck</li>
+      <li><i style={{ background: 'var(--stuck-none)' }} />No stuck clauses</li>
+      <li><i style={{ background: 'var(--stuck-some)' }} />1–2 stuck</li>
+      <li><i style={{ background: 'var(--stuck-many)' }} />3+ stuck</li>
       <li><i style={{ background: 'var(--muted)' }} />No figures yet</li>
       <li><b className="font-semibold text-elevated">Days in gold</b> = over the {TARGET_DAYS}-day target</li>
     </ul>
