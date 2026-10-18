@@ -39,7 +39,7 @@ export function ReviewPage() {
 
   const escalations = decisions.filter((d) => effectiveOutcome(d) === 'escalate')
   const answered = escalations.filter((d) => d.approval.state === 'answered').length
-  const needsHuman = decisions.filter((d) => (d.outcome === 'human_review' || d.outcome === 'novel') && !d.override).length
+  const needsHuman = decisions.filter((d) => d.outcome === 'human_review' && !d.override).length
   const docReady = doc?.id === agreementId
   const confirmedCount = decisions.filter(isConfirmed).length
   const toConfirm = decisions.filter((d) => !isWaiting(d) && !isConfirmed(d))

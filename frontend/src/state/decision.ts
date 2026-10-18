@@ -8,10 +8,10 @@ export function effectiveOutcome(d: Decision): Outcome {
   return d.override?.outcome ?? d.outcome
 }
 
-const unresolved = (o: Outcome) => o === 'human_review' || o === 'novel'
+const unresolved = (o: Outcome) => o === 'human_review'
 
 /** Blocked on an approver's reply or a reviewer's decision (mirrors store.is_waiting). Human review
- * and novel stay waiting even when an override chose them: export can't act on either. */
+ * stays waiting even when an override chose it: export can't act on it. */
 export function isWaiting(d: Decision): boolean {
   const o = effectiveOutcome(d)
   return (o === 'escalate' && d.approval.state !== 'answered') || unresolved(o)

@@ -51,7 +51,7 @@ function Plain({ p }: { p: DocParagraph }) {
 function Status({ d }: { d: Decision }) {
   const o = effectiveOutcome(d)
   if (o === 'escalate' && isWaiting(d)) return <span className="pill s-high">Awaiting approver</span>
-  if (isWaiting(d)) return <span className="pill s-high">Needs your decision</span>
+  if (isWaiting(d)) return null // Human review: the tag already says a person decides
   if (!isConfirmed(d)) return <span className="pill s-elevated">To confirm</span>
   return <span className="inline-flex items-center gap-1 text-xs text-muted"><Check aria-hidden className="size-3.5" /> Signed off</span>
 }

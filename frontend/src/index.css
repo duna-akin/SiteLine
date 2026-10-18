@@ -11,8 +11,6 @@
   --outcome-escalate-bg: var(--high-bg);
   --outcome-human: var(--accent);
   --outcome-human-bg: var(--accent-bg);
-  --outcome-novel: var(--ink-2);
-  --outcome-novel-bg: var(--neutral-bg);
 }
 
 @theme inline {
@@ -53,7 +51,6 @@
   --color-fallback: var(--outcome-fallback);
   --color-escalate: var(--outcome-escalate);
   --color-human: var(--outcome-human);
-  --color-novel: var(--outcome-novel);
 
   --font-serif: var(--serif);
   --font-sans: var(--sans);

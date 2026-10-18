@@ -83,7 +83,7 @@ function ApprovalLine({ d }: { d: Decision }) {
 export function OverrideForm({ d, onDone }: { d: Decision; onDone: () => void }) {
   const { override } = useDemo()
   // All five outcomes are listed; Siteline's own is shown but disabled, since the backend refuses it.
-  // Human review and novel keep the change waiting, so export holds it until someone decides.
+  // Human review keeps the change waiting, so export holds it until someone decides.
   const [outcome, setOutcome] = useState<Outcome>(outcomeOrder.find((o) => o !== d.outcome)!)
   const [reason, setReason] = useState('')
   const [error, setError] = useState<string | null>(null)

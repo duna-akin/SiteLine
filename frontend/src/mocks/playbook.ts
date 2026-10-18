@@ -93,10 +93,9 @@ export const outcomeLabel: Record<Outcome, string> = {
   fallback: 'Fallback',
   escalate: 'Escalate',
   human_review: 'Human review',
-  novel: 'Novel',
 }
 
-export const outcomeOrder: Outcome[] = ['accept', 'fallback', 'escalate', 'human_review', 'novel']
+export const outcomeOrder: Outcome[] = ['accept', 'fallback', 'escalate', 'human_review']
 
 export const ownerLabel: Record<Owner, string> = {
   legal: 'Legal',
