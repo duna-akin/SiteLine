@@ -15,6 +15,7 @@ export const byArrival = (emails: InboundEmail[]) => [...emails].sort((a, b) => 
 export function whoLine(item: EscalationQueueItem, now: number) {
   const d = item.decision
   const a = d.approval
-  const status = a.state === 'calling' ? 'calling the approver' : a.state === 'sent' ? `texted ${timeAgo(a.sentAt, now)}` : 'not texted yet'
+  // Without a voice line the call rings the on-screen phone, not the approver
+  const status = a.state === 'calling' ? (a.callDelivery === 'simulated' ? 'call on the on-screen phone' : 'calling the approver') : a.state === 'sent' ? `texted ${timeAgo(a.sentAt, now)}` : 'not texted yet'
   return `${ownerLabel[d.owner]} · ${status}`
 }
