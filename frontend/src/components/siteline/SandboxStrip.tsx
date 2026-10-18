@@ -54,7 +54,7 @@ export function SandboxStrip({ phases, step, live, elapsedMs, aliveFromMs }: {
           : 'A sandbox made for this one file. No internet, deleted when it’s done.'}
       </p>
 
-      <ol aria-label="Sandbox steps" className={cn('relative mt-5 grid grid-cols-5', local && step?.state !== 'failed' && 'opacity-45')}>
+      <ol aria-label="Sandbox steps" className={cn('relative mt-5 grid grid-cols-5 grid-rows-[repeat(4,auto)]', local && step?.state !== 'failed' && 'opacity-45')}>
         <span aria-hidden className="absolute inset-x-[10%] top-[13px] h-[2px] bg-line-strong" />
         <span
           aria-hidden
@@ -66,7 +66,7 @@ export function SandboxStrip({ phases, step, live, elapsedMs, aliveFromMs }: {
           const state = e?.state ?? 'waiting'
           const note = e?.state === 'done' && (p.id === 'upload' || p.id === 'output') && e.detail ? e.detail : p.note
           return (
-            <li key={p.id} className="relative px-1 text-center">
+            <li key={p.id} className="relative row-span-4 grid grid-rows-subgrid px-1 text-center">
               <span
                 aria-hidden
                 className={cn(
