@@ -41,6 +41,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - **Emails wait for a person:** an accepted email lands on the Inbound page untriaged, with its Triage now button, instead of being triaged as soon as it arrives. The same goes for `/api/inbound-emails/simulate`.
 - **The address on screen is the real mailbox:** with IMAP connected and no `SITELINE_INBOUND_ADDRESS`, the Inbound and Home pages show `IMAP_USER` instead of the placeholder `redlines@siteline.demo`.
 
+## [Unreleased] - Canonical CTA terminology
+
+### Changed
+
+- Clause extraction loads the complete supplied 34-field semantic dictionary, interprets aliases as examples, and adapts missing or conditional facts to the existing string-valued schema and human-review path. It preserves the expanded 50-field extraction registry (including public-records context), negotiation rules and playbook, cost-of-delay priority scoring, and document-figure extraction. The live registry remains authoritative for supported fields.
+- Live clause cache keys now include the actual prompt and agreement context. Old runtime clause entries are ignored; committed demo/sample seeds and document caches are preserved. Seed demos still use their hand-written extractions unless bypassed or superseded by a fresh live extraction.
+
+### Added
+
+- Offline terminology, schema, synonym/consequence interface and cache regression tests. Live LLM interpretation still requires validation with cache reads disabled.
+
 ## [Unreleased] · Four outcomes
 
 ### Changed

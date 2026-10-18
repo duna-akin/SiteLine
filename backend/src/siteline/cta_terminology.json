@@ -1,0 +1,546 @@
+{
+  "version": "1.1-extraction-compatible",
+  "description": "Canonical clinical-trial-agreement semantic normalization taxonomy; aliases are candidate retrieval cues, not literal substitution rules.",
+  "fields": {
+    "net_days": {
+      "category": "payment_terms",
+      "definition": "integer days to pay an invoice, e.g. 30",
+      "semantic_hints": [
+        "net 30",
+        "within 30 days of receipt of invoice",
+        "payment terms",
+        "valid and accepted tax invoice",
+        "days after receipt of an undisputed invoice",
+        "settlement of invoices"
+      ],
+      "type": "number"
+    },
+    "start_up_fee_pct": {
+      "category": "payment_terms",
+      "definition": "start-up fee as a percent of the study budget, number only, e.g. 15",
+      "semantic_hints": [
+        "study initiation fee",
+        "start-up fee",
+        "site activation fee",
+        "budget percentage paid upfront",
+        "initiation milestone as a percentage of total budget"
+      ],
+      "type": "number"
+    },
+    "start_up_fee_refundable": {
+      "category": "payment_terms",
+      "definition": "true or false",
+      "semantic_hints": [
+        "non-refundable startup payment",
+        "start-up payment credited against later fees",
+        "advance repaid if study does not begin",
+        "repayment of initiation fee"
+      ],
+      "type": "boolean"
+    },
+    "survival_years": {
+      "category": "confidentiality",
+      "definition": "years confidentiality survives after study close, number",
+      "semantic_hints": [
+        "for five years following termination",
+        "nondisclosure obligations survive completion for five years",
+        "remain in effect for five years after expiration",
+        "period following termination in which confidential information is protected"
+      ],
+      "type": "number"
+    },
+    "trade_secrets_perpetual": {
+      "category": "confidentiality",
+      "definition": "true or false: trade secrets stay protected with no end date",
+      "semantic_hints": [
+        "trade secrets remain confidential for so long as protected by law",
+        "indefinitely as to trade secrets",
+        "trade secret obligations survive in perpetuity",
+        "no time limitation on trade secret protection"
+      ],
+      "type": "boolean"
+    },
+    "carve_out_standard": {
+      "category": "indemnification",
+      "definition": "negligence | gross_negligence_or_willful_misconduct | none",
+      "semantic_hints": [
+        "except to the extent caused by negligent acts or omissions",
+        "except for gross negligence or willful misconduct",
+        "arising out of wrongful or negligent acts",
+        "excluded to the extent resulting from institution misconduct"
+      ],
+      "type": "enum",
+      "enum": [
+        "negligence",
+        "gross_negligence_or_willful_misconduct",
+        "none"
+      ]
+    },
+    "adjudication_required": {
+      "category": "indemnification",
+      "definition": "true or false: carve-out applies only once finally adjudicated",
+      "semantic_hints": [
+        "finally adjudicated by a court of competent jurisdiction",
+        "finally determined by a court",
+        "after a nonappealable judgment",
+        "liable only after final determination of fault"
+      ],
+      "type": "boolean"
+    },
+    "mutual_indemnity": {
+      "category": "indemnification",
+      "definition": "true or false: site's indemnity becomes mutual / sponsor must be indemnified in turn",
+      "semantic_hints": [
+        "institution shall indemnify sponsor",
+        "sponsor indemnified parties",
+        "each party agrees to indemnify the other",
+        "reciprocal indemnification",
+        "by institution / by sponsor"
+      ],
+      "type": "boolean"
+    },
+    "covers_lost_wages": {
+      "category": "subject_injury",
+      "definition": "true or false",
+      "semantic_hints": [
+        "lost wages",
+        "loss of earnings",
+        "lost income",
+        "lost salary",
+        "compensation for time off work"
+      ],
+      "type": "boolean"
+    },
+    "covers_pain_and_suffering": {
+      "category": "subject_injury",
+      "definition": "true or false",
+      "semantic_hints": [
+        "pain and suffering",
+        "non-economic damages",
+        "emotional distress",
+        "general damages for suffering"
+      ],
+      "type": "boolean"
+    },
+    "covers_travel": {
+      "category": "subject_injury",
+      "definition": "true or false",
+      "semantic_hints": [
+        "travel costs for injury care",
+        "transportation reimbursement",
+        "travel expenses associated with injury treatment",
+        "mileage to medical appointments"
+      ],
+      "type": "boolean"
+    },
+    "reimbursement_cap": {
+      "category": "subject_injury",
+      "definition": "capped | uncapped",
+      "semantic_hints": [
+        "up to 150% of Medicare rate",
+        "not more than",
+        "limited to the amount",
+        "subject to an aggregate cap",
+        "without any monetary cap",
+        "uncapped medical expenses"
+      ],
+      "type": "enum",
+      "enum": [
+        "capped",
+        "uncapped"
+      ]
+    },
+    "coordination_with_insurance": {
+      "category": "subject_injury",
+      "definition": "net_of_insurance | sponsor_pays_first",
+      "semantic_hints": [
+        "not covered by patient insurance",
+        "less amounts paid by insurance",
+        "payor of last resort",
+        "sponsor pays without first seeking insurance",
+        "not required to submit claim to insurance"
+      ],
+      "type": "enum",
+      "enum": [
+        "net_of_insurance",
+        "sponsor_pays_first"
+      ]
+    },
+    "review_days": {
+      "category": "publication",
+      "definition": "integer days the sponsor has to review a publication",
+      "semantic_hints": [
+        "submitted for review 30 days before publication",
+        "at least 40 days before forwarding publication",
+        "45-day review period",
+        "review and comment upon a proposed manuscript",
+        "review proposed abstracts or presentations"
+      ],
+      "type": "number"
+    },
+    "review_window_open_ended": {
+      "category": "publication",
+      "definition": "true or false: a qualifier like 'or as otherwise agreed' makes the window open-ended",
+      "semantic_hints": [
+        "or as otherwise agreed",
+        "until sponsor approves",
+        "review period may be extended by mutual agreement",
+        "until written permission is granted",
+        "within such other period as sponsor requires"
+      ],
+      "type": "boolean"
+    },
+    "patent_delay": {
+      "category": "publication",
+      "definition": "retained | removed",
+      "semantic_hints": [
+        "delay publication to permit patent filing",
+        "defer publication for patent application",
+        "right to request patent filing postponement",
+        "right to publish without any patent filing delay"
+      ],
+      "type": "enum",
+      "enum": [
+        "retained",
+        "removed"
+      ]
+    },
+    "patent_delay_days": {
+      "category": "publication",
+      "definition": "integer days of extra delay for patent filings",
+      "semantic_hints": [
+        "additional 60 days to file patent applications",
+        "defer publication by 75 days",
+        "delay publication for up to 120 days to secure intellectual property",
+        "90-day extra delay for patent prosecution"
+      ],
+      "type": "number"
+    },
+    "invention_ownership": {
+      "category": "intellectual_property",
+      "definition": "sponsor | joint | institution",
+      "semantic_hints": [
+        "sponsor shall own all developments",
+        "title resides with institution",
+        "jointly owned inventions",
+        "vest automatically upon creation in sponsor",
+        "solely owned sponsor inventions",
+        "ownership follows inventorship"
+      ],
+      "type": "enum",
+      "enum": [
+        "sponsor",
+        "joint",
+        "institution"
+      ]
+    },
+    "site_research_license": {
+      "category": "intellectual_property",
+      "definition": "true or false: site keeps a non-exclusive research license",
+      "semantic_hints": [
+        "non-exclusive royalty-free license for institution research",
+        "perpetual right to use inventions for noncommercial research",
+        "site retains internal teaching and research rights",
+        "retained royalty-free noncommercial license to inventions"
+      ],
+      "type": "boolean"
+    },
+    "background_ip_retained": {
+      "category": "intellectual_property",
+      "definition": "true or false: each party keeps its background IP",
+      "semantic_hints": [
+        "each party retains pre-existing intellectual property",
+        "background IP remains sole property of institution",
+        "prior inventions not affected by agreement",
+        "no ownership transfer of background technology"
+      ],
+      "type": "boolean"
+    },
+    "requires_baa": {
+      "category": "data_privacy",
+      "definition": "true or false: sponsor must sign a business associate agreement",
+      "semantic_hints": [
+        "business associate agreement",
+        "BAA required",
+        "sponsor must execute HIPAA business associate contract",
+        "business associate obligations under HIPAA"
+      ],
+      "type": "boolean"
+    },
+    "blocks_secondary_research": {
+      "category": "data_privacy",
+      "definition": "true or false: sponsor may not use data for secondary research",
+      "semantic_hints": [
+        "only for purposes of the study",
+        "may not perform secondary research",
+        "no further research without consent",
+        "restricted to protocol-specified purposes"
+      ],
+      "type": "boolean"
+    },
+    "data_use_addendum": {
+      "category": "data_privacy",
+      "definition": "true or false: sponsor signs a limited data-use addendum",
+      "semantic_hints": [
+        "limited data set agreement",
+        "data-use agreement",
+        "DUA",
+        "data-use addendum",
+        "separate limited data use terms"
+      ],
+      "type": "boolean"
+    },
+    "ml_training_restriction": {
+      "category": "data_privacy",
+      "definition": "true or false: limits on using study data to train AI/ML models",
+      "semantic_hints": [
+        "no training of machine learning models",
+        "prohibits generative AI model training",
+        "cannot use study data to develop algorithms",
+        "limits reuse of protected data for artificial intelligence"
+      ],
+      "type": "boolean"
+    },
+    "site_notice_days": {
+      "category": "termination",
+      "definition": "integer days' notice the institution must give to terminate",
+      "semantic_hints": [
+        "institution may terminate on 30 days prior written notice",
+        "either party may terminate by giving thirty days written notice",
+        "site termination effective 30 days after notice"
+      ],
+      "type": "number"
+    },
+    "sponsor_notice_days": {
+      "category": "termination",
+      "definition": "integer days' notice the sponsor must give to terminate",
+      "semantic_hints": [
+        "sponsor may terminate on 30 days prior written notice",
+        "company may terminate without cause upon notice",
+        "funding agency gives advance written notice"
+      ],
+      "type": "number"
+    },
+    "termination_for_convenience": {
+      "category": "termination",
+      "definition": "true or false: site may terminate for convenience",
+      "semantic_hints": [
+        "institution may terminate with or without cause",
+        "either party can terminate for any reason",
+        "institution may terminate without cause",
+        "termination at site sole discretion"
+      ],
+      "type": "boolean"
+    },
+    "pays_noncancellable_costs": {
+      "category": "termination",
+      "definition": "true or false: sponsor still pays non-cancellable costs on termination",
+      "semantic_hints": [
+        "non-cancelable commitments incurred prior to termination",
+        "outstanding obligations that cannot be cancelled",
+        "non-cancellable expenses",
+        "reasonable close-out costs",
+        "costs incurred through termination"
+      ],
+      "type": "boolean"
+    },
+    "governing_law_state": {
+      "category": "governing_law",
+      "definition": "the state or country whose law governs, e.g. Wisconsin",
+      "semantic_hints": [
+        "governed by laws of Indiana",
+        "law of Connecticut",
+        "applicable law of the State or Territory in which the Institution is located",
+        "construed in accordance with governing law"
+      ],
+      "type": "string"
+    },
+    "venue": {
+      "category": "governing_law",
+      "definition": "sponsor_courts | silent | site_courts_exclusive | site_courts_nonexclusive | other",
+      "semantic_hints": [
+        "exclusive jurisdiction of courts in",
+        "consent to personal jurisdiction and venue",
+        "courts of the state",
+        "shall submit to jurisdiction",
+        "forum selection",
+        "competent courts of sponsor location"
+      ],
+      "type": "enum",
+      "enum": [
+        "sponsor_courts",
+        "silent",
+        "site_courts_exclusive",
+        "site_courts_nonexclusive",
+        "other"
+      ]
+    },
+    "arbitration_abroad": {
+      "category": "governing_law",
+      "definition": "true or false: mandatory arbitration outside the US",
+      "semantic_hints": [
+        "mandatory binding arbitration in another country",
+        "arbitration shall be held outside the United States",
+        "seat of arbitration located abroad"
+      ],
+      "type": "boolean"
+    },
+    "sovereign_immunity_waiver_required": {
+      "category": "governing_law",
+      "definition": "true or false: sponsor must waive or accept the site's sovereign immunity terms",
+      "semantic_hints": [
+        "sovereign immunity",
+        "subject to state claims process",
+        "without waiving governmental immunities",
+        "waiver of sovereign immunity",
+        "acceptance of public institution statutory protections"
+      ],
+      "type": "boolean"
+    },
+    "institution_is_public": {
+      "category": "governing_law",
+      "definition": "true or false: the institution is a public (state) institution",
+      "semantic_hints": [
+        "agency of the State of Connecticut",
+        "public entity entitled to governmental immunity protections",
+        "constituent unit of a state university",
+        "state institution"
+      ],
+      "type": "boolean"
+    },
+    "no_substantive_change": {
+      "category": "any",
+      "definition": "true when the edit only fixes typos, formatting or numbering and does not change any right or obligation",
+      "semantic_hints": [
+        "typographical changes only",
+        "formatting changes only",
+        "renumbering with no rights changed",
+        "clerical correction without any substantive change"
+      ],
+      "type": "boolean"
+    }
+  },
+  "category_aliases": {
+    "payment_terms": [
+      "Payments",
+      "Payment",
+      "Compensation",
+      "Cost and Billings",
+      "Fees",
+      "Budget",
+      "Payment Schedule",
+      "Schedule 2",
+      "Financial Terms",
+      "Reimbursement of Expenses"
+    ],
+    "confidentiality": [
+      "Confidentiality",
+      "Non-Disclosure",
+      "Obligation of Nondisclosure",
+      "Confidential Information",
+      "Proprietary Information",
+      "Trade Secrets",
+      "Disclosure Restrictions"
+    ],
+    "indemnification": [
+      "Indemnification",
+      "Indemnity",
+      "Defense of Claims",
+      "Defend and Hold Harmless",
+      "Allocation of Liability",
+      "Institution Indemnitees",
+      "Sponsor Indemnitees",
+      "Claims and Losses"
+    ],
+    "subject_injury": [
+      "Subject Injury",
+      "Patient Injury",
+      "Patient Injury Reimbursement",
+      "Compensation for Injury",
+      "Medical Expense Reimbursement",
+      "Adverse Reaction Treatment",
+      "Clinical Trial Injury"
+    ],
+    "publication": [
+      "Publication",
+      "Publications",
+      "Right to Publish",
+      "Review by Sponsor",
+      "Manuscripts",
+      "Abstracts",
+      "Presentations",
+      "Dissemination of Study Results",
+      "Patent Filing Publication Delay"
+    ],
+    "intellectual_property": [
+      "Inventions, Discoveries and Patents",
+      "Intellectual Property",
+      "Developments",
+      "Study Materials",
+      "Background IP",
+      "Ownership of Inventions",
+      "Study Results",
+      "Technology and Patent Rights"
+    ],
+    "data_privacy": [
+      "HIPAA/HIPAA Privacy",
+      "Personal Information",
+      "Data Use/Ownership",
+      "Data Protection",
+      "HIPAA Authorization",
+      "Privacy",
+      "Data Use Restrictions",
+      "Permitted Data Uses"
+    ],
+    "termination": [
+      "Termination",
+      "Term and Termination",
+      "Effect of Termination",
+      "Early Termination",
+      "Termination for Cause",
+      "Termination without Cause",
+      "Non-Cancelable Commitments"
+    ],
+    "governing_law": [
+      "Applicable Law",
+      "Choice of Law",
+      "Governing Law",
+      "Disputes",
+      "Jurisdiction",
+      "Venue",
+      "Forum Selection",
+      "State Claims Procedures",
+      "Sovereign Immunity"
+    ],
+    "any": [
+      "Amendments",
+      "Modifications",
+      "Revisions",
+      "Redlines",
+      "No Substantive Changes"
+    ]
+  },
+  "guardrails": [
+    "Recognize parties by function, not just labels: in investigator-initiated trials the Institution can be the Sponsor-Investigator and an external company may be called Company or Funding Agency.",
+    "Field aliases retrieve candidate clauses; only contextual interpretation determines field value. Handle negation, provisos, exceptions, references, and compound obligations.",
+    "Do not turn an absent clause into false, 0, none, removed, or uncapped. Use status=not_mentioned and value=null.",
+    "Do not equate HIPAA Authorization, patient informed consent, privacy law compliance, and a Business Associate Agreement. BAA requires BAA language.",
+    "Mention of trade secrets inside a definition does NOT prove perpetual confidentiality obligations.",
+    "A clause providing medical care costs does NOT itself cover lost wages, pain and suffering, or travel.",
+    "Indemnity for third-party claims is distinct from reimbursement of subject treatment expenses.",
+    "Study-use-only language about Sponsor confidential information is not automatically a restriction on secondary research use of Study Data.",
+    "A public institution preserving its own sovereign immunity is not the same as requiring the Sponsor to waive its immunity.",
+    "Adjudication mentioned elsewhere (e.g., defense counsel fees or liability determination) does NOT mean the indemnity carve-out itself is adjudication-gated.",
+    "Invention ownership may vary by invention class. Return ambiguous or conditional with evidence rather than choosing one of sponsor/institution/joint arbitrarily.",
+    "Retaining institution background IP does NOT mean site has a non-exclusive research license to newly created study IP.",
+    "Venue, governing law, and arbitration are distinct concepts; Australian state/territory clauses are not US state clauses.",
+    "Termination for material breach or patient safety is NOT termination for convenience. Record the notice period and termination trigger together.",
+    "A rate limit (e.g. 150% of Medicare) is a cap; a general budget limit is not necessarily a cap on subject injury reimbursement.",
+    "Publication review, patent-related publication delay, and multi-center publication embargo are separate timelines.",
+    "The patent_delay enum retained/removed is redline-relative; from a standalone template, extract whether a patent delay exists and its length, but do not claim language was removed.",
+    "A mutually agreed review extension is not necessarily an indefinite unilateral sponsor veto; inspect the exact approval requirement.",
+    "no_substantive_change is a property of a comparison/redline; a single unsigned template cannot establish it.",
+    "Templates establish vocabulary/examples but not negotiated or executed precedent acceptability."
+  ],
+  "extraction_prompt": "Normalize the provided clinical trial agreement text to the supplied canonical schema.\n\nProcess:\n1. Read and resolve the definitions of Sponsor, Institution, Company, Funding Agency, and Sponsor-Investigator. Identify sponsor- versus investigator-initiated arrangements.\n2. Locate semantically relevant clauses across all headings, schedules, appendices and cross-references. Use alias hints only to find candidates, never as proof of their legal meaning.\n3. For each field, reason about obligations, party direction, negations, carve-outs, timing trigger, scope, conditions, and exceptions.\n4. Return one JSON object with every canonical key, using {\"value\": ..., \"status\": \"explicit|ambiguous|conditional|not_mentioned|not_applicable\", \"evidence\": [{\"quote\": \"verbatim text\", \"page\": 1}], \"note\": \"brief explanation\"}.\n5. Preserve exact enum values. Use JSON null with not_mentioned whenever the document does not establish a field. Do not fill missing fields from legal norms, adjacent clauses, or other templates.\n6. If rights split by invention type, or multiple triggers produce different notice periods, mark conditional and describe each branch in note. Do not invent a single value.\n7. no_substantive_change can be assessed only if BOTH old and new versions are supplied. For a single template, status=not_applicable and value=null.\n8. Return machine-readable JSON only. Do not change canonical keys or categories.\n"
+}

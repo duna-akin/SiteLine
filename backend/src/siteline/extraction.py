@@ -11,6 +11,7 @@ import asyncio
 import hashlib
 import json
 import time
+from pathlib import Path
 from typing import Any
 
 import openai
@@ -18,6 +19,10 @@ import openai
 from siteline.config import DATA_DIR, RUNTIME_DIR, settings
 from siteline.playbook import CLAUSE_TYPES, playbook_text
 from siteline.priority import FIGURES
+
+# Preserve the supplied taxonomy in full. Its standalone extraction_prompt uses a
+# different output shape; _system_prompt adapts the semantics to our existing schema.
+TERMINOLOGY = json.loads(Path(__file__).with_name("cta_terminology.json").read_text(encoding="utf-8"))
 
 # field name -> (clause type, value format the model must use)
 FIELDS: dict[str, tuple[str, str]] = {
@@ -101,6 +106,7 @@ SCHEMA: dict[str, Any] = {
 
 def _system_prompt() -> str:
     fields = "\n".join(f"- {name} ({ct}): {fmt}" for name, (ct, fmt) in FIELDS.items())
+    reference = json.dumps({k: v for k, v in TERMINOLOGY.items() if k != "extraction_prompt"}, ensure_ascii=False)
     return f"""You read one tracked change from a site's redline of a clinical trial agreement and record what it says, as structured data. A rules engine decides the outcome from your values, so report facts, not judgments.
 
 The sponsor's playbook (for context on which facts matter):
@@ -109,13 +115,29 @@ The sponsor's playbook (for context on which facts matter):
 Fields you may report (value formats):
 {fields}
 
+Canonical terminology reference (vocabulary and semantic examples, not a response schema):
+{reference}
+
+How to interpret the reference:
+- The supplied reference covers the original 34 canonical fields; the Fields you may report table above is the authoritative live registry, including subsequent playbook fields. The reference does not restrict extraction to that subset. Preserve the live field descriptions, including the expanded institution_is_public context guidance.
+- semantic_hints and category_aliases are examples of meaning and candidate retrieval cues, never exact keyword-matching triggers, literal substitutions, or rules for accepting or rejecting changes. Different wording may express the same obligation; identical words may have different consequences in context. The playbook is context only, not evidence that a term is present or acceptable.
+- Resolve Sponsor, Institution, Company, Funding Agency, and Sponsor-Investigator from their contractual roles and duties. An Institution may be the Sponsor-Investigator in an investigator-initiated trial; do not automatically equate Company or Funding Agency with Sponsor. Do not put an external funder's rights or notice period in a sponsor field unless the agreement establishes that role for the obligation. If roles cannot be resolved, explain why and use confidence below 0.8.
+- Locate relevant language across the supplied headings, schedules, appendices and cross-references. You receive one change and limited agreement context, not necessarily the entire agreement. Do not assume the contents of unseen definitions, schedules, or referenced clauses.
+- Interpret obligations, party direction, scope, negations, conditions, exceptions, timing triggers, and compound duties before choosing a value. Do not infer a BAA from HIPAA authorization, perpetual protection from a trade-secret definition, injury benefits from medical costs, a research license from background IP, or a sponsor immunity duty from an institution merely reserving its own immunity.
+- The reference's status=not_mentioned/value=null guidance means OMIT that field from values in this pipeline. Never emit null, \"null\", a status, evidence, page, or note for a field. Never turn silence into false, 0, none, removed, uncapped, or silent. An explicit absence supported by the supplied text or a tracked deletion is different from missing information.
+- If a field is ambiguous, conditional, split by invention class, or has different notice periods for different termination triggers, omit that field unless one canonical value fully captures the supported obligation. Describe the branches, triggers, and evidence in rationale and use confidence below 0.8 so the existing rules request human review. Never choose one branch arbitrarily or flatten a condition into an unconditional boolean. Clear unrelated fields may still be reported.
+- Publication review, patent filing delay, and multi-center embargo are separate timelines. A mutually agreed extension is not automatically an indefinite unilateral veto; assess the actual requirement and flag uncertainty. patent_delay=removed requires an actual comparison showing deletion; a standalone template's silence cannot establish removal. Report an explicitly present patent delay and its length when supported.
+- no_substantive_change requires both old and new text and a comparison establishing no change to rights or obligations. Do not report it for a standalone template or for a comment with no comparison. The reference category any is only for that field; clause_type must remain one of the nine playbook clause types.
+- Use only the {len(FIELDS)} existing field names in the live registry above and exact enum spellings. The reference's number and boolean types describe meaning; every reported value is still a STRING (for example \"30\" or \"true\"). Follow only the output contract below, not the standalone dictionary's richer output format.
+
 How to answer:
 - clause_type: the playbook clause type the change belongs to. Public-records disclosure terms are confidentiality, wherever they sit in the agreement.
-- values: the fields this change sets or alters, as they stand after the site's edit. Include a field only when the text supports it. When the site deletes a provision, report the resulting state (for example patent_delay = removed, coordination_with_insurance = sponsor_pays_first). For a comment on unchanged text, report the facts of that text.
+- values: the fields this change sets or alters, as they stand after the site's edit. Include a field only when the text supports it. When the site deletes a provision, report the resulting state only if the comparison establishes it (for example patent_delay = removed, coordination_with_insurance = sponsor_pays_first). For a comment on unchanged text, report the facts of that text.
 - quote: copy the exact words from the change text that support the value, character for character, including punctuation and curly quotes. Quote from the revised text for added or kept language and from the original text for deleted language. Keep each quote short (a clause, not a paragraph). Never paraphrase, join separate passages, or fill gaps.
-- novel_issue: if the change adds an obligation, restriction or right that no playbook clause addresses (for example, limits on training AI models), describe it in one sentence. Otherwise null.
-- confidence: 0 to 1. Use below 0.8 when the wording is ambiguous, open-ended (for example "or as otherwise agreed"), internally inconsistent, or you are unsure which field applies.
-- rationale: one sentence."""
+- novel_issue: if the change adds an obligation, restriction or right that no playbook rule addresses (for example, limits on training AI models), describe it in one sentence. A concept already covered by any live field, including fields beyond the reference's original 34, is not a new field merely because it lacks a decision rule. For a concept truly outside all supported fields in the live registry, separately identify it here as \"Proposed field: <concept>\" with a brief evidence-based explanation; do not add a field or decision rule. Otherwise null.
+- confidence: 0 to 1. Use below 0.8 when the wording is ambiguous, open-ended, internally inconsistent, materially conditional in a way the field cannot represent, or you are unsure which field or party role applies.
+- rationale: a brief explanation, including evidence and branches when meaning is unresolved.
+Return only the strict JSON object with clause_type, values[{{field,value,quote}}], novel_issue, confidence, and rationale."""
 
 
 def _user_prompt(change: dict, context: str) -> str:
@@ -157,8 +179,20 @@ def _load_cache() -> dict[str, dict]:
     return out
 
 
-def lookup_cache(change: dict) -> dict | None:
-    return _load_cache().get(cache_key(change))
+def _live_cache_key(change: dict, context: str) -> str:
+    """Version live clauses by the actual prompt and context; leave demo keys stable."""
+    raw = json.dumps([_system_prompt(), _user_prompt(change, context)], ensure_ascii=False)
+    return "clause-v2-" + hashlib.sha256(raw.encode()).hexdigest()[:24]
+
+
+def lookup_cache(change: dict, context: str = "") -> dict | None:
+    if hit := _load_cache().get(_live_cache_key(change, context)):
+        return hit
+    # Only the explicit seed fixtures may bypass prompt versioning. Old live
+    # entries must not shadow those fixtures or bypass the expanded instructions.
+    if SEED_CACHE.exists():
+        return json.loads(SEED_CACHE.read_text()).get(cache_key(change))
+    return None
 
 
 def store_cache(entries: dict[str, dict], seed: bool = False) -> None:
@@ -251,7 +285,7 @@ async def extract_all(changes: list[dict], context: str, use_cache: bool) -> lis
 
     async def one(change: dict) -> dict:
         if use_cache:
-            hit = lookup_cache(change)
+            hit = lookup_cache(change, context)
             if hit:
                 return {**hit, "cached": True}
         if not settings.claude_enabled:
@@ -260,7 +294,7 @@ async def extract_all(changes: list[dict], context: str, use_cache: bool) -> lis
             result = await extract_live(change, context)
         except ExtractionError as e:
             return {"error": str(e)}
-        store_cache({cache_key(change): result})
+        store_cache({_live_cache_key(change, context): result})
         return {**result, "cached": False}
 
     return await asyncio.gather(*(one(c) for c in changes))

@@ -43,6 +43,71 @@ Other commands:
 | Precedent history | `DATABASE_URL` | Precedents are kept in `var/state.json` |
 | Source documents | `S3_*` (Supabase Storage) | Final documents are kept in `var/documents/` |
 
+## Canonical extraction terminology
+
+`src/siteline/cta_terminology.json` preserves the complete supplied version
+`1.1-extraction-compatible` dictionary. The clause system prompt includes its field
+definitions, semantic hints, category aliases and guardrails as contextual examples.
+They do not match keywords or decide negotiation outcomes. The dictionary's standalone
+`extraction_prompt` remains in the source file for reference; its incompatible output
+format is not sent to the model.
+
+The dictionary covers the original 34 canonical fields. The live `FIELDS` registry
+also retains the 16 fields added for the expanded playbook (50 total), plus the expanded
+`institution_is_public` description for agreement context and public-records terms.
+The full live registry determines supported names; the dictionary is a semantic subset.
+The strict response remains unchanged:
+`clause_type`, `values[{field,value,quote}]`, `novel_issue`, `confidence`, `rationale`.
+Values remain strings and quotes must be verbatim. Missing fields are omitted, never
+filled with false or null. Ambiguous or conditional facts that cannot fit one canonical
+value are omitted and explained in `rationale`, with confidence below 0.8 for human
+review. A concept outside all supported live fields is identified as `Proposed field: <concept>` in
+`novel_issue`; this does not extend the schema or rules. A field without a playbook rule
+(such as the existing ML-training field) is not automatically a proposed new field.
+
+The pipeline still supplies one change plus the first twelve paragraphs of agreement
+context. Definitions or cross-references outside that context may remain unresolved;
+the prompt asks the model to flag that uncertainty. Investigator-initiated arrangements
+require resolving Institution, Sponsor-Investigator, Company and Funding Agency by
+contractual duties before assigning sponsor-directed values.
+
+Live clause entries now use `clause-v2-` keys based on the actual system and user prompts,
+including terminology, current playbook context, party context and tracked edits. Old
+unversioned **runtime** clause entries are ignored, retained on disk, and regenerated
+when a live backend is available. Without one, an uncached change goes to human review.
+The committed demo/sample seeds keep their original keys and content as an explicit
+fallback; stale runtime entries cannot override them. Thus cached demos still demonstrate
+the old hand-written extractions, not the expanded prompt. A fresh versioned live result
+takes precedence over a matching seed. `use_cache=False` bypasses both kinds of reads
+and writes only to the runtime cache. Document-figure extraction and its cache are
+unchanged. `siteline cache-demo` still explicitly replaces demo seeds; it is not required
+for this integration and was not run.
+
+Run focused offline tests from `backend/`:
+
+```bash
+uv run python -X utf8 -m pytest tests/test_extraction.py tests/test_extraction_semantics.py tests/test_extraction_cache.py -q
+uv run python -X utf8 -m pytest -q
+```
+
+UTF-8 mode avoids the existing state writer's Windows default-encoding limitation.
+The tests verify terminology delivery, schema compatibility, quoted evidence, cache
+behavior and scripted extraction-to-rule outcomes across synonyms, negations and
+conditions. Scripted model responses do **not** verify LLM interpretation. Live validation
+must exercise those language cases with cache reads disabled, including party-role
+resolution, silence, conditional inventions/notice periods and publication timelines.
+The existing broader live eval is `uv run siteline eval --limit N` and requires a model
+backend; it does not replace a review of these new semantic cases.
+
+This terminology integration preserves the expanded negotiation rules and playbook,
+cost-of-delay priority scoring, and document-figure extraction. Public-records disclosure
+terms retain their confidentiality classification wherever they occur in the agreement.
+Existing policy limits still need a separate review before any rule changes: mutual
+publication extensions need contextual interpretation; public-institution governing-law
+handling is broader than the playbook's home-state wording; missing refundability or
+non-cancellable-cost facts can still conservatively escalate; and some canonical fields
+have no dedicated decision rule. These are not resolved by adding vocabulary.
+
 ## Postgres (precedent history)
 
 Precedents live in one `precedents` table (created on first use) with two queries:
