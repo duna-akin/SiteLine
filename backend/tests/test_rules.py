@@ -186,3 +186,25 @@ def test_two_positions_firing_counter_with_the_form():
 
 def test_engine_positions_declare_exactly_the_rule_ids():
     assert {r for need in rules.ENGINE.values() for r in need["rules"]} == set(RULE_IDS)
+
+
+def test_a_cosmetic_edit_may_note_absent_terms_but_nothing_else():
+    assert decide(*v("confidentiality", no_substantive_change="true", discloses_to_affiliates="false"), True).rule_id == "SYS-COSMETIC"
+    # a non-refundable fee is a real term, not an absent one
+    assert decide(*v("payment_terms", no_substantive_change="true", start_up_fee_refundable="false"), True).rule_id != "SYS-COSMETIC"
+    assert decide(*v("confidentiality", no_substantive_change="true", marking_required="true"), True).rule_id == "CONF-C3"
+
+
+@pytest.mark.parametrize("state", ["the state the parties later select", "England", "TBD"])
+def test_only_a_named_us_state_can_satisfy_choice_of_law(state):
+    verdict = decide(*v("governing_law", governing_law_state=state, institution_is_public="true"), True)
+    assert verdict.outcome == "human_review"
+
+
+def test_a_public_institutions_named_state_is_accepted():
+    assert decide(*v("governing_law", governing_law_state="State of Wisconsin", institution_is_public="true"), True).rule_id == "GOV-A2"
+
+
+def test_booleans_forgive_stray_punctuation_but_not_emptiness():
+    assert rules._bool(">true") is True and rules._bool("/false") is False
+    assert rules._bool("") is None and rules._bool("maybe") is None

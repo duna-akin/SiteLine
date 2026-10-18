@@ -47,6 +47,22 @@ BAND_SOURCES = {
 }
 WIDENED_CLAUSES = {src[0] for src in BAND_SOURCES.values()}
 STRICTNESS = {"accept": 0, "counter": 1, "escalate": 2}
+US_STATES = {
+    "alabama", "alaska", "arizona", "arkansas", "california", "colorado", "connecticut", "delaware", "florida", "georgia",
+    "hawaii", "idaho", "illinois", "indiana", "iowa", "kansas", "kentucky", "louisiana", "maine", "maryland",
+    "massachusetts", "michigan", "minnesota", "mississippi", "missouri", "montana", "nebraska", "nevada", "new hampshire",
+    "new jersey", "new mexico", "new york", "north carolina", "north dakota", "ohio", "oklahoma", "oregon", "pennsylvania",
+    "rhode island", "south carolina", "south dakota", "tennessee", "texas", "utah", "vermont", "virginia", "washington",
+    "west virginia", "wisconsin", "wyoming", "district of columbia",
+}
+# Fields where "false" only says a term adverse to Sponsor is absent (unlike, say, a non-refundable fee)
+ABSENT_WHEN_FALSE = {
+    "discloses_to_affiliates", "marking_required", "public_records_disclosure", "mutual_indemnity", "covers_lost_wages",
+    "covers_pain_and_suffering", "covers_travel", "removes_injury_exclusions", "review_window_open_ended",
+    "site_may_file_patents", "requires_baa", "blocks_secondary_research", "ml_training_restriction",
+    "restricts_data_transfer", "termination_for_convenience", "arbitration_abroad", "arbitration_domestic",
+    "sovereign_immunity_waiver_required",
+}
 
 
 @dataclass
@@ -69,7 +85,7 @@ def _num(v: str | None) -> float | None:
 def _bool(v: str | None) -> bool | None:
     if v is None:
         return None
-    s = str(v).strip().lower()
+    s = re.sub(r"[^a-z0-9]", "", str(v).lower())  # forgive stray punctuation such as ">true"
     if s in ("true", "yes", "1"):
         return True
     if s in ("false", "no", "0"):
@@ -532,6 +548,8 @@ def _choice_of_law(v: dict, ch: dict, **_) -> Verdict | None:
     state = (v.get("governing_law_state") or "").strip()
     if not state:
         return None  # whether the institution is public only qualifies a choice of law
+    if re.sub(r"^(the )?(state|commonwealth) of ", "", state.lower()).strip(" .") not in US_STATES:
+        return None  # a deferred, foreign or unnamed jurisdiction: a person reads it
     home = SPONSOR["homeState"].lower()
     if home in state.lower():
         return Verdict("accept", "GOV-A1", "Sponsor’s home-state law → matches the standard.")
@@ -602,7 +620,9 @@ def decide(change: dict, extraction: dict, quotes_ok: bool, lenient: dict | None
     if conflicts := sorted(f for f, vals in seen.items() if len(vals) > 1):
         return Verdict("human_review", "SYS-CONFLICT", f"The extraction gave conflicting values for {', '.join(conflicts)} → human review.")
     values = {v["field"]: v["value"] for v in extraction.get("values", [])}
-    if _bool(values.pop("no_substantive_change", None)) and not values and not extraction.get("novel_issue"):
+    # A cosmetic edit may also note that an adverse term is absent; any other value is a real term
+    if (_bool(values.pop("no_substantive_change", None)) and not extraction.get("novel_issue")
+            and all(f in ABSENT_WHEN_FALSE and _bool(x) is False for f, x in values.items())):
         return Verdict("accept", "SYS-COSMETIC", "Wording or formatting edit with no change to rights or obligations → accept.")
     clause = extraction.get("clause_type", "")
     pb = Playbook(playbook)
