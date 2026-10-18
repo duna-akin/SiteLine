@@ -5,11 +5,11 @@ import { ArrowRight, RotateCw, Upload } from 'lucide-react'
 import { DataMap } from '@/components/siteline/DataMap'
 import { EscalationQueue } from '@/components/siteline/EscalationQueue'
 import { InboundFeed } from '@/components/siteline/InboundFeed'
-import { byMoney, isOnUs, openSites, usd, usdK } from '@/components/siteline/priority-style'
-import { RadarLegend, SiteRadar } from '@/components/siteline/SiteRadar'
+import { byMoney, isOnUs, openSites, usd } from '@/components/siteline/priority-style'
+import { SiteBars, SiteBarsLegend } from '@/components/siteline/SiteBars'
 import { TextBubble } from '@/components/siteline/TextBubble'
 import { formatClock } from '@/lib/format'
-import { agreementPath, byArrival, hasPriorityLine, notTriaged } from '@/lib/sites'
+import { byArrival, hasPriorityLine } from '@/lib/sites'
 import { SPONSOR, approvers } from '@/mocks/playbook'
 import { useDemo } from '@/state/demo'
 import { useDesk } from '@/state/desk'
@@ -112,7 +112,7 @@ function PhoneTile({ queue }: { queue: EscalationQueueItem[] }) {
   )
 }
 
-function RadarTile() {
+function SitesTile() {
   const { agreements } = useDesk()
   const sites = openSites(agreements ?? [])
   const ranked = byMoney(sites).slice(0, RANKED_SHOWN)
@@ -122,28 +122,14 @@ function RadarTile() {
         <h2 id="r-h">Open sites <span className="badge tabular">{sites.length}</span></h2>
         <Link to="/sites" className="link">See all sites <ArrowRight aria-hidden className="size-4" /></Link>
       </div>
-      <div className="grid items-center gap-5 sm:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
-        <SiteRadar sites={sites} />
-        <ol className="rank-list" aria-label="Open sites by money at risk">
-          {ranked.map((a) => (
-            <li key={a.id}>
-              <Link to={agreementPath(a)}>
-                <span className="n">{a.siteNumber}</span>
-                <span className="nm">{a.siteName} · {a.daysOpen} d</span>
-                {notTriaged(a) ? (
-                  <span className="pill s-info">Not triaged</span>
-                ) : a.priority?.moneyAtRiskPerWeek != null ? (
-                  <b className="tabular">{usdK(a.priority.moneyAtRiskPerWeek)}/wk</b>
-                ) : (
-                  <span className="pill s-neutral">Unknown</span>
-                )}
-              </Link>
-            </li>
-          ))}
-          {ranked.length === 0 && <li className="empty">No open sites yet. Triage a redline to add one.</li>}
-        </ol>
-      </div>
-      <RadarLegend />
+      {ranked.length ? (
+        <>
+          <SiteBars sites={ranked} label="Open sites by money at risk" />
+          <SiteBarsLegend />
+        </>
+      ) : (
+        <p className="empty">No open sites yet. Triage a redline to add one.</p>
+      )}
     </section>
   )
 }
@@ -240,7 +226,7 @@ export function HomePage() {
       <div className="grid grid-cols-1 gap-6 pb-4 min-[1081px]:grid-cols-12">
         <QueueTile queue={queue} />
         <PhoneTile queue={queue} />
-        <RadarTile />
+        <SitesTile />
         <InboundTile />
         <DataTile />
       </div>

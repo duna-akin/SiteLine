@@ -24,7 +24,7 @@
   --ok-bg: #E7EDE9;
   --neutral-bg: #EEEEEE;
 
-  /* Radar blips by stuck clauses (they differ in lightness as well as hue) */
+  /* Site bars by stuck clauses (they differ in lightness as well as hue) */
   --radar-ok: #7E9A88;
   --radar-warn: #BCA77E;
   --radar-bad: #8C4A4A;

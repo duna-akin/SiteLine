@@ -4,7 +4,7 @@ import { ArrowRight, RotateCw } from 'lucide-react'
 import { PriorityBadge } from '@/components/siteline/PriorityBadge'
 import { outcomeBg, outcomeVar } from '@/components/siteline/outcome-style'
 import { byPriority, openSites, priorityPill, priorityShort, usd } from '@/components/siteline/priority-style'
-import { RadarLegend, SiteRadar } from '@/components/siteline/SiteRadar'
+import { SiteBars, SiteBarsLegend } from '@/components/siteline/SiteBars'
 import { agreementPath, notTriaged } from '@/lib/sites'
 import { cn } from '@/lib/utils'
 import { clauseLabel, outcomeLabel, outcomeOrder } from '@/mocks/playbook'
@@ -79,8 +79,8 @@ export function SitesPage() {
         <span className="eyebrow">Portfolio</span>
         <h1>Sites</h1>
         <p>
-          Every site still negotiating. On the radar, farther out means open longer, bigger means more money at risk per week of delay,
-          and colour shows how many clauses are stuck. Past the dashed ring is over the {TARGET_DAYS}-day start-up target.
+          Every site still negotiating. Each bar shows how long the site has been open; past the dashed line is over the {TARGET_DAYS}-day
+          start-up target. Colour shows how many clauses are stuck.
         </p>
         <dl className="stats">
           <Stat value={String(sites.length)} label="Open sites" />
@@ -91,11 +91,17 @@ export function SitesPage() {
       </section>
 
       <div className="grid grid-cols-1 gap-6 min-[1081px]:grid-cols-12">
-        <section aria-labelledby="radar-h" className="tile min-[1081px]:col-span-7">
-          <div className="tile-head"><h2 id="radar-h">Open sites <span className="badge tabular">{sites.length}</span></h2></div>
-          <p className="tile-sub">Choose a blip to see that site.</p>
-          <SiteRadar sites={sites} selected={selectedId} onSelect={select} className="mx-auto max-w-[520px]" />
-          <RadarLegend />
+        <section aria-labelledby="open-h" className="tile min-[1081px]:col-span-7">
+          <div className="tile-head"><h2 id="open-h">Open sites <span className="badge tabular">{sites.length}</span></h2></div>
+          <p className="tile-sub">Choose a site to see its details.</p>
+          {ranked.length ? (
+            <>
+              <SiteBars sites={ranked} selected={selectedId} onSelect={select} />
+              <SiteBarsLegend />
+            </>
+          ) : (
+            <p className="empty">No open sites yet.</p>
+          )}
         </section>
 
         <aside aria-live="polite" aria-labelledby="pick-h" className="tile min-[1081px]:col-span-5">
