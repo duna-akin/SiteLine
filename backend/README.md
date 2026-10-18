@@ -113,6 +113,11 @@ Cloudflare. ngrok's browser warning page does not affect server-to-server webhoo
 
 ## Sample redlines
 
+Every generated redline (the Site 07 demo, these samples and the seeded inbound emails' attachments)
+is the same fictional form agreement, `cta_base.py`, with one site's tracked changes applied: key
+terms, recitals, seventeen articles, the signature page and two exhibits, so each one reads as a
+whole contract on the Review page.
+
 `data/samples/` holds nine fictional CTAs (Sites 21–29), one per playbook clause, for demos and
 tests. Upload any of them on the Inbound page. They triage from seed extractions, so no key is
 needed, and each change lands on the rule ID listed in `samples.py`.
@@ -139,6 +144,7 @@ needed, and each change lands on the rule ID listed in `samples.py`.
 - `storage.py`: final agreed documents in the S3 bucket (or `var/documents/`), served back as precedent sources
 - `approvals.py`, `photon.py`, `voice.py`: texts, replies, no-reply timer, calls
 - `export.py`, `docx_writer.py`: the Word counter-proposal
+- `cta_base.py`: the sponsor's full form agreement that every generated redline is built on
 - `samples.py`: the nine per-clause sample redlines, their seed extractions and expected rule IDs
 - `evals/`: labeled set, harness, Chalk runner
 - `data/`: playbook, demo redline, seed cache, seeded inbound emails (fictional). Runtime state goes to `var/` (git-ignored).

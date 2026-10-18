@@ -3,6 +3,14 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · A full form agreement
+
+### Changed
+
+- **Every generated redline is a whole contract.** A new fictional form CTA for NSO-417 (`cta_base.py`) has key terms, recitals, seventeen articles (definitions, study conduct, investigator, regulatory and safety, study drug, payment, records and audit, confidentiality, indemnification, subject injury, data protection, publication, IP, term and termination, insurance, compliance, general), a signature page and two exhibits (study summary, budget and payment schedule), about 2,900 words. The Site 07 demo, the nine sample redlines and the seeded inbound emails' attachments are that form with one site's tracked changes applied.
+- The seeded inbound attachments make at most one change per section, in document order, with the rest of the agreement unchanged around it (they used to be twelve redlined paragraphs alone, with repeated and conflicting sections out of order).
+- Changed paragraphs keep their exact headings and wording, so seed extractions, quote checks and every expected outcome and rule ID are unchanged; the priority figures' seeds were regenerated for the new text and the stale ones dropped.
+
 ## [Unreleased] · The contract is the review screen
 
 ### Changed
