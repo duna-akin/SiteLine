@@ -14,7 +14,7 @@ def main() -> None:
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, default=8000)
     serve.add_argument("--reload", action="store_true")
-    sub.add_parser("make-demo", help="Write the Site 07 demo redline and its seed extraction cache")
+    sub.add_parser("make-demo", help="Write the Site 07 demo redline, the clean form agreement and the seed extraction cache")
     sub.add_parser("cache-demo", help="Extract the demo file with OpenAI and save it as the seed cache")
     sub.add_parser("make-samples", help="Write the nine per-clause sample redlines and their seed extractions")
     parse = sub.add_parser("parse", help="Print the tracked changes in a .docx as JSON")
@@ -32,10 +32,11 @@ def main() -> None:
 
         uvicorn.run("siteline.api:app", host=args.host, port=args.port, reload=args.reload)
     elif args.cmd == "make-demo":
-        from siteline.demo import write_demo
+        from siteline.demo import write_demo, write_template
         from siteline.demo_cache import write_seed
 
         print(write_demo())
+        print(write_template())
         print(f"seed cache: {write_seed()} entries")
     elif args.cmd == "make-samples":
         from siteline.samples import write_samples

@@ -408,7 +408,7 @@ SIGNATURES = [
 
 
 def _exhibits(site: Site) -> list[tuple[str, list[str]]]:
-    fee = f"USD {site.usd_per_subject:,}" if site.usd_per_subject else "the amount agreed in writing"
+    fee = f"USD {site.usd_per_subject:,}" if site.usd_per_subject else "USD [amount]"
     return [
         ("Exhibit A. Study Summary", [
             "Protocol: NSO-417-201, a Phase II, open-label, multi-center study of NSO-417 in adults with relapsed "
@@ -445,16 +445,18 @@ def _title(section: str) -> str:
     return re.sub(r"^§\d+\.\d+\s*", "", section)
 
 
-def agreement_blocks(site: Site, edits: list[Edit], note: str) -> list[Block]:
+def agreement_blocks(site: Site, edits: list[Edit], note: str, terms: list[str] | None = None) -> list[Block]:
     """The form agreement for one site, with that site's edits applied in document order.
 
-    `note` is the closing sentence of the preamble that says the document is fictional."""
+    `note` is the closing sentence of the preamble that says the document is fictional; `terms`
+    replaces the enrollment and payment key terms (the blank form uses placeholders)."""
 
     def text(t: str) -> list[dict]:
         return [{"type": "text", "text": t}]
 
     fig = {"targetSubjects": site.subjects, "months": site.months, "perPatientUsd": site.usd_per_subject}
-    terms = [enrollment_sentence(fig), payment_sentence(fig)] if None not in fig.values() else []
+    if terms is None:
+        terms = [enrollment_sentence(fig), payment_sentence(fig)] if None not in fig.values() else []
     b: list[Block] = [
         ("Title", text("Clinical Trial Agreement"), None, None),
         ("", text("Protocol NSO-417: Phase II study of NSO-417 in relapsed solid tumors"), None, None),
@@ -510,3 +512,13 @@ def agreement_blocks(site: Site, edits: list[Edit], note: str) -> list[Block]:
         b.append(("Heading1", text(title), None, None))
         b.extend(("", text(p), None, None) for p in paras)
     return b
+
+
+def form_blocks() -> list[Block]:
+    """The blank form, with no site's edits: placeholders where a site's details go."""
+    site = Site("[number]", "[Institution]", "[City, State]", "[legal status of Institution]")
+    terms = [
+        "Enrollment: Institution will use reasonable efforts to enroll [number] subjects over an enrollment period of [number] months.",
+        "Per-patient payment: Sponsor will pay Institution USD [amount] per enrolled subject, as set out in Exhibit B.",
+    ]
+    return agreement_blocks(site, [], "This form is fictional and was written for Siteline demos and tests.", terms)

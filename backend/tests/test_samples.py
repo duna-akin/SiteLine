@@ -208,6 +208,18 @@ def test_all_samples_share_one_portfolio(upload):
     assert Counter(d["owner"] for d in queue if d["id"].startswith(tuple(f"s{s.number}-" for s in SAMPLES))) == want
 
 
+def test_committed_template_is_the_clean_form():
+    """data/templates holds the form every redline is built on; run `uv run siteline make-demo` if not."""
+    from siteline.demo import TEMPLATE_PATH, template_bytes
+
+    committed = parse_docx(TEMPLATE_PATH.read_bytes())
+    assert committed["changes"] == [] and committed["paragraphs"] == parse_docx(template_bytes())["paragraphs"]
+    # Every article of the form, with no site's details filled in
+    text = "\n".join("".join(seg["text"] for seg in p["segments"]) for p in committed["paragraphs"])
+    assert "Article 17. General" in text and "Exhibit B. Budget and Payment Schedule" in text
+    assert "Institution: [Institution], [City, State]" in text
+
+
 @pytest.mark.parametrize("s", SAMPLES, ids=IDS)
 def test_committed_samples_are_current(s, seeds):
     """data/samples and the seed cache match samples.py; run `uv run siteline make-samples` if not."""

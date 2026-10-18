@@ -3,17 +3,19 @@
 All text is written for this demo. It is not real contract language and comes from
 no real sponsor, site or agreement (PRD clean-room rule).
 
-Run `uv run siteline make-demo` to (re)write data/demo/NSO-417_CTA_Site07_redline.docx.
+Run `uv run siteline make-demo` to (re)write data/demo/NSO-417_CTA_Site07_redline.docx and the
+clean form, data/templates/NSO-417_CTA_form.docx.
 """
 
 from __future__ import annotations
 
 from siteline.config import DATA_DIR
-from siteline.cta_base import Block, Edit, Site, agreement_blocks
+from siteline.cta_base import Block, Edit, Site, agreement_blocks, form_blocks
 from siteline.docx_writer import DocxWriter
 
 DEMO_FILE_NAME = "NSO-417_CTA_Site07_redline.docx"
 DEMO_PATH = DATA_DIR / "demo" / DEMO_FILE_NAME
+TEMPLATE_PATH = DATA_DIR / "templates" / "NSO-417_CTA_form.docx"
 
 SITE = {
     "agreementId": "site-07",
@@ -214,6 +216,17 @@ def write_demo() -> str:
     DEMO_PATH.parent.mkdir(parents=True, exist_ok=True)
     DEMO_PATH.write_bytes(demo_bytes())
     return str(DEMO_PATH)
+
+
+def template_bytes() -> bytes:
+    return build_redline(form_blocks(), "NSO-417 Clinical Trial Agreement (sponsor form)")
+
+
+def write_template() -> str:
+    """The clean form agreement every redline is built on, for reading or opening in Word."""
+    TEMPLATE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    TEMPLATE_PATH.write_bytes(template_bytes())
+    return str(TEMPLATE_PATH)
 
 
 def ensure_demo() -> bytes:
