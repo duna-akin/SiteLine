@@ -3,6 +3,12 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · Open sites as bars
+
+### Changed
+
+- **The open-sites radar is now a ranked bar list** on Home and Sites. Each site gets one row: its bar is days open on a 0–180 day scale, with a dashed line at the 90-day target, and its colour shows stuck clauses. Money at risk per week and the stuck count are plain text. On Home the bars replace both the radar and the ranked list next to it (top six by money at risk). On Sites, clicking a row selects that site.
+
 ## [Unreleased] · An enforced playbook
 
 ### Changed
