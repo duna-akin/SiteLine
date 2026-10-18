@@ -25,9 +25,7 @@ def _position(pb, clause, position):
 
 
 def test_default_is_valid():
-    from siteline.rules import RULE_IDS
-
-    assert validate_playbook(default_playbook(), set(RULE_IDS)) == []
+    assert validate_playbook(default_playbook()) == []
 
 
 def test_render_fills_placeholders():
@@ -41,25 +39,24 @@ def test_render_fills_placeholders():
 def test_validate_rejects_inverted_limits():
     pb = default_playbook()
     _position(pb, "payment_terms", "start_up_fee")["limits"]["escalate_above"]["value"] = 5
-    errors = validate_playbook(pb, _ids(pb))
+    errors = validate_playbook(pb)
     assert any("payment_terms" in e and "start_up_fee" in e for e in errors), errors
 
 
 def test_validate_rejects_unknown_placeholder():
     pb = default_playbook()
     _position(pb, "payment_terms", "start_up_fee")["standard"] = "Up to {nope}"
-    assert any("{nope}" in e for e in validate_playbook(pb, _ids(pb)))
+    assert any("{nope}" in e for e in validate_playbook(pb))
 
 
 def test_validate_requires_exact_rule_ids():
     pb = default_playbook()
-    ids = _ids(pb)
     pos = _position(pb, "payment_terms", "start_up_fee")
     pos["rules"] = [r for r in pos["rules"] if r["id"] != "PAY-C2"]
-    assert any("PAY-C2" in e for e in validate_playbook(pb, ids))
+    assert any("PAY-C2" in e for e in validate_playbook(pb))
     pb = default_playbook()
     _position(pb, "payment_terms", "start_up_fee")["rules"].append({"id": "PAY-Z9", "outcome": "accept", "when": "Never."})
-    assert any("PAY-Z9" in e for e in validate_playbook(pb, ids))
+    assert any("PAY-Z9" in e for e in validate_playbook(pb))
 
 
 def test_old_saved_playbook_migrates_owners():
@@ -81,3 +78,44 @@ def test_save_and_reset_log():
     log = playbook_log()
     assert len(log) == 2 and all(e["by"] == "Test reviewer" and e["summary"] for e in log)
     assert load_playbook() == default_playbook()
+
+
+def _engine_ok(pb):
+    return validate_playbook(pb)
+
+
+def test_validate_rejects_non_finite_limits():
+    pb = default_playbook()
+    _position(pb, "payment_terms", "overhead")["limits"]["standard"]["value"] = float("nan")
+    assert any("overhead" in e for e in _engine_ok(pb))
+    pb = default_playbook()
+    _position(pb, "payment_terms", "overhead")["limits"]["escalate_above"]["value"] = float("inf")
+    assert any("overhead" in e for e in _engine_ok(pb))
+
+
+@pytest.mark.parametrize("break_it,needle", [
+    (lambda pb: _position(pb, "payment_terms", "overhead")["limits"].update(cap=_position(pb, "payment_terms", "overhead")["limits"].pop("escalate_above")), "escalate_above"),
+    (lambda pb: _position(pb, "payment_terms", "overhead")["limits"]["standard"].pop("unit"), "unit"),
+    (lambda pb: _position(pb, "confidentiality", "survival").update(id="term"), "survival"),
+    (lambda pb: _position(pb, "payment_terms", "overhead").update(id="indirect"), "overhead"),
+])
+def test_validate_rejects_playbooks_the_engine_cannot_run(break_it, needle):
+    pb = default_playbook()
+    break_it(pb)
+    assert any(needle in e for e in _engine_ok(pb))
+
+
+def test_validate_rejects_rules_moved_between_positions():
+    pb = default_playbook()
+    fee, overhead = _position(pb, "payment_terms", "start_up_fee"), _position(pb, "payment_terms", "overhead")
+    moved = next(r for r in fee["rules"] if r["id"] == "PAY-C2")
+    fee["rules"].remove(moved)
+    overhead["rules"].append(moved)
+    assert any("PAY-C2" in e for e in _engine_ok(pb))
+
+
+def test_validate_reports_malformed_shapes_instead_of_crashing():
+    assert validate_playbook({"clauses": [1]})
+    pb = default_playbook()
+    pb["clauses"][0]["positions"][0]["limits"] = "ten"
+    assert validate_playbook(pb)

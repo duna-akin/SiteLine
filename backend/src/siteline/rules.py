@@ -36,12 +36,14 @@ RULE_IDS = frozenset({
 RULE_ALIASES = {"PAY-F2": "PAY-C2", "CONF-F1": "CONF-C1", "IND-F1": "IND-C1", "PUB-F1": "PUB-C1", "TERM-F1": "TERM-C1",
                 "GOV-F1": "GOV-C1", "PUB-A2": "PUB-A1"}
 
-# The bands site priority may widen: (clause, position, accept-line limit, floor limit). Leniency moves
-# only the accept line, by a share of the gap to the escalate floor (priority.py caps it at 0.75).
+# The bands site priority may widen: (clause, position, accept-line limit, floor limit, label, unit, rule,
+# direction). "up" means higher values are worse for Sponsor (a fee); "down" means lower ones are (a
+# term). Leniency moves only the accept line, by a share of the gap to the escalate floor (priority.py
+# caps it at 0.75); a band whose floor equals its accept line has nothing to widen.
 BAND_SOURCES = {
-    "start_up_fee_pct": ("payment_terms", "start_up_fee", "standard", "escalate_above", "Start-up fee", "%", "PAY-A3P"),
-    "survival_years": ("confidentiality", "survival", "accept_min", "escalate_below", "Confidentiality survival", " years", "CONF-A2P"),
-    "review_days": ("publication", "review", "standard", "escalate_below", "Publication review", " days", "PUB-A2P"),
+    "start_up_fee_pct": ("payment_terms", "start_up_fee", "standard", "escalate_above", "Start-up fee", "%", "PAY-A3P", "up"),
+    "survival_years": ("confidentiality", "survival", "accept_min", "escalate_below", "Confidentiality survival", " years", "CONF-A2P", "down"),
+    "review_days": ("publication", "review", "standard", "escalate_below", "Publication review", " days", "PUB-A2P", "down"),
 }
 WIDENED_CLAUSES = {src[0] for src in BAND_SOURCES.values()}
 STRICTNESS = {"accept": 0, "counter": 1, "escalate": 2}
@@ -81,9 +83,9 @@ def _norm(v: str | None) -> str:
 
 def bands(playbook: dict | None = None) -> dict[str, dict]:
     pb = Playbook(playbook)
-    return {field: {"clause": c, "label": label, "unit": unit, "ruleId": rid,
+    return {field: {"clause": c, "label": label, "unit": unit, "ruleId": rid, "direction": direction,
                     "standard": pb.limit(c, p, line), "floor": pb.limit(c, p, floor)}
-            for field, (c, p, line, floor, label, unit, rid) in BAND_SOURCES.items()}
+            for field, (c, p, line, floor, label, unit, rid, direction) in BAND_SOURCES.items()}
 
 
 def band_limit(field: str, share: float, playbook: dict | None = None) -> float:
@@ -96,8 +98,10 @@ def _widened(field: str, value: float, lenient: dict | None, pb: Playbook) -> Ve
     if not lenient or lenient["share"] <= 0:
         return None
     b = bands(pb.pb)[field]
+    if b["floor"] == b["standard"]:
+        return None
     limit = round(b["standard"] + lenient["share"] * (b["floor"] - b["standard"]), 2)
-    if not (value <= limit if b["floor"] > b["standard"] else value >= limit):
+    if not (value <= limit if b["direction"] == "up" else value >= limit):
         return None
     why = describe(lenient)
     return Verdict(
@@ -150,17 +154,21 @@ def _drop_phrase(text: str, pattern: str) -> str | None:
 Limit = Callable[[str], float]
 PositionRule = Callable[..., "Verdict | None"]
 POSITIONS: dict[tuple[str, str], PositionRule] = {}
+# What each position's function needs from the playbook: the rule IDs it returns and the limits it
+# reads. validate_playbook checks a playbook against this, so a saved playbook always runs.
+ENGINE: dict[tuple[str, str], dict[str, frozenset[str]]] = {}
 
 
-def position(clause: str, pid: str) -> Callable[[PositionRule], PositionRule]:
+def position(clause: str, pid: str, rules: set[str], limits: set[str] = frozenset()) -> Callable[[PositionRule], PositionRule]:
     def register(fn: PositionRule) -> PositionRule:
         POSITIONS[(clause, pid)] = fn
+        ENGINE[(clause, pid)] = {"rules": frozenset(rules), "limits": frozenset(limits)}
         return fn
 
     return register
 
 
-@position("payment_terms", "net_days")
+@position("payment_terms", "net_days", {"PAY-A1", "PAY-A2", "PAY-E1"}, {"accept_min", "standard"})
 def _net_days(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
     net = _num(v.get("net_days"))
     if net is None:
@@ -173,7 +181,7 @@ def _net_days(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
     return Verdict("accept", "PAY-A1", f"Net {net:g} meets the Net {lim('standard'):g} standard.")
 
 
-@position("payment_terms", "start_up_fee")
+@position("payment_terms", "start_up_fee", {"PAY-A3", "PAY-A3P", "PAY-C2", "PAY-E2"}, {"escalate_above", "standard"})
 def _start_up_fee(v: dict, ch: dict, lim: Limit, widen: Callable, **_) -> Verdict | None:
     fee = _num(v.get("start_up_fee_pct"))
     if fee is None:
@@ -192,7 +200,7 @@ def _start_up_fee(v: dict, ch: dict, lim: Limit, widen: Callable, **_) -> Verdic
     return Verdict("accept", "PAY-A3", f"Start-up fee of {fee:g}% is within the {std:g}% standard.")
 
 
-@position("payment_terms", "overhead")
+@position("payment_terms", "overhead", {"PAY-A4", "PAY-C3", "PAY-E3"}, {"escalate_above", "standard"})
 def _overhead(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
     rate = _num(v.get("overhead_pct"))
     if rate is None:
@@ -206,7 +214,7 @@ def _overhead(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
     return Verdict("accept", "PAY-A4", f"Overhead of {rate:g}% is within the {std:g}% standard.")
 
 
-@position("payment_terms", "holdback")
+@position("payment_terms", "holdback", {"PAY-A5", "PAY-C4"}, {"accept_min", "standard"})
 def _holdback(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
     held = _num(v.get("holdback_pct"))
     if held is None:
@@ -217,7 +225,7 @@ def _holdback(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
     return Verdict("accept", "PAY-A5", f"Holdback of {held:g}% is within the {lim('accept_min'):g}% fallback.")
 
 
-@position("payment_terms", "screen_failures")
+@position("payment_terms", "screen_failures", {"PAY-A6", "PAY-C5", "PAY-E4"}, {"escalate_above", "standard"})
 def _screen_failures(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
     raw = v.get("screen_failures_per_enrolled")
     if raw is None:
@@ -232,7 +240,7 @@ def _screen_failures(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
     return Verdict("accept", "PAY-A6", f"Screen failures paid at {ratio:g} per enrolled subject, within {std:g}.")
 
 
-@position("confidentiality", "survival")
+@position("confidentiality", "survival", {"CONF-A1", "CONF-A2", "CONF-A2P", "CONF-C1", "CONF-E1"}, {"accept_min", "escalate_below", "standard"})
 def _survival(v: dict, ch: dict, lim: Limit, widen: Callable, **_) -> Verdict | None:
     years = _num(v.get("survival_years"))
     if years is None:
@@ -250,7 +258,7 @@ def _survival(v: dict, ch: dict, lim: Limit, widen: Callable, **_) -> Verdict | 
     return Verdict("accept", "CONF-A1", f"Survival of {years:g} years meets the {std:g}-year standard.")
 
 
-@position("confidentiality", "trade_secrets")
+@position("confidentiality", "trade_secrets", {"CONF-A3", "CONF-E2"})
 def _trade_secrets(v: dict, ch: dict, **_) -> Verdict | None:
     kept = _bool(v.get("trade_secrets_perpetual"))
     if kept is False:
@@ -260,21 +268,21 @@ def _trade_secrets(v: dict, ch: dict, **_) -> Verdict | None:
     return None
 
 
-@position("confidentiality", "affiliates")
+@position("confidentiality", "affiliates", {"CONF-C2"})
 def _affiliates(v: dict, ch: dict, **_) -> Verdict | None:
     if _bool(v.get("discloses_to_affiliates")):
         return Verdict("counter", "CONF-C2", "Disclosure widened to affiliates or collaborators → restore the form’s need-to-know recipients.", ch["original"])
     return None
 
 
-@position("confidentiality", "marking")
+@position("confidentiality", "marking", {"CONF-C3"})
 def _marking(v: dict, ch: dict, **_) -> Verdict | None:
     if _bool(v.get("marking_required")):
         return Verdict("counter", "CONF-C3", "Protection limited to marked information → restore the form’s definition.", ch["original"])
     return None
 
 
-@position("confidentiality", "public_records")
+@position("confidentiality", "public_records", {"CONF-A4", "CONF-E3"})
 def _public_records(v: dict, ch: dict, **_) -> Verdict | None:
     if not _bool(v.get("public_records_disclosure")):
         return None
@@ -287,7 +295,7 @@ def _public_records(v: dict, ch: dict, **_) -> Verdict | None:
     return None
 
 
-@position("indemnification", "carve_out")
+@position("indemnification", "carve_out", {"IND-A1", "IND-A2", "IND-C1", "IND-E1"})
 def _carve_out(v: dict, ch: dict, **_) -> Verdict | None:
     carve = _norm(v.get("carve_out_standard"))
     if carve == "none":
@@ -302,14 +310,14 @@ def _carve_out(v: dict, ch: dict, **_) -> Verdict | None:
     return None
 
 
-@position("indemnification", "mutual")
+@position("indemnification", "mutual", {"IND-E2"})
 def _mutual(v: dict, ch: dict, **_) -> Verdict | None:
     if _bool(v.get("mutual_indemnity")):
         return Verdict("escalate", "IND-E2", "Site adds mutual indemnity → escalate to Legal.", ch["original"])
     return None
 
 
-@position("indemnification", "claim_notice")
+@position("indemnification", "claim_notice", {"IND-A3", "IND-C2"}, {"accept_max"})
 def _claim_notice(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
     days = _num(v.get("claim_notice_days"))
     if days is None:
@@ -321,21 +329,21 @@ def _claim_notice(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
     return Verdict("accept", "IND-A3", f"Claim notice within {days:g} days is within {cap:g}.")
 
 
-@position("indemnification", "defense")
+@position("indemnification", "defense", {"IND-E3"})
 def _defense(v: dict, ch: dict, **_) -> Verdict | None:
     if _bool(v.get("sponsor_controls_defense")) is False:
         return Verdict("escalate", "IND-E3", "Sponsor loses control of the defense or settlement → escalate to Legal.", ch["original"])
     return None
 
 
-@position("indemnification", "additional_insured")
+@position("indemnification", "additional_insured", {"IND-A4"})
 def _additional_insured(v: dict, ch: dict, **_) -> Verdict | None:
     if _bool(v.get("additional_insured")):
         return Verdict("accept", "IND-A4", "Site named as additional insured on Sponsor’s policy → accepted.")
     return None
 
 
-@position("subject_injury", "covered_costs")
+@position("subject_injury", "covered_costs", {"SI-A3", "SI-E1"})
 def _covered_costs(v: dict, ch: dict, **_) -> Verdict | None:
     if _bool(v.get("covers_lost_wages")) or _bool(v.get("covers_pain_and_suffering")):
         counter = _drop_phrase(ch["revised"], r",?\s*including lost wages[^,.;]*,?") or ch["original"]
@@ -345,7 +353,7 @@ def _covered_costs(v: dict, ch: dict, **_) -> Verdict | None:
     return None
 
 
-@position("subject_injury", "coordination")
+@position("subject_injury", "coordination", {"SI-A1", "SI-A2"})
 def _coordination(v: dict, ch: dict, **_) -> Verdict | None:
     coord = _norm(v.get("coordination_with_insurance"))
     if coord == "sponsor_pays_first":
@@ -355,21 +363,21 @@ def _coordination(v: dict, ch: dict, **_) -> Verdict | None:
     return None
 
 
-@position("subject_injury", "cap")
+@position("subject_injury", "cap", {"SI-E2"})
 def _cap(v: dict, ch: dict, **_) -> Verdict | None:
     if _norm(v.get("reimbursement_cap")) == "uncapped":
         return Verdict("escalate", "SI-E2", "Uncapped subject-injury reimbursement → escalate to Finance.", ch["original"])
     return None
 
 
-@position("subject_injury", "exclusions")
+@position("subject_injury", "exclusions", {"SI-E3"})
 def _exclusions(v: dict, ch: dict, **_) -> Verdict | None:
     if _bool(v.get("removes_injury_exclusions")):
         return Verdict("escalate", "SI-E3", "Subject-injury exclusions deleted → escalate to Finance.", ch["original"], ch["original"])
     return None
 
 
-@position("publication", "review")
+@position("publication", "review", {"PUB-A1", "PUB-A2P", "PUB-C1", "PUB-E2", "PUB-E3"}, {"escalate_below", "standard"})
 def _review(v: dict, ch: dict, lim: Limit, widen: Callable, **_) -> Verdict | None:
     days = _num(v.get("review_days"))
     floor, std = lim("escalate_below"), lim("standard")
@@ -388,7 +396,7 @@ def _review(v: dict, ch: dict, lim: Limit, widen: Callable, **_) -> Verdict | No
     return Verdict("accept", "PUB-A1", f"Review window of {days:g} days meets the {std:g}-day standard.")
 
 
-@position("publication", "patent_delay")
+@position("publication", "patent_delay", {"PUB-A3", "PUB-E1"})
 def _patent_delay(v: dict, ch: dict, **_) -> Verdict | None:
     delay = _norm(v.get("patent_delay"))
     if delay == "removed":
@@ -398,7 +406,7 @@ def _patent_delay(v: dict, ch: dict, **_) -> Verdict | None:
     return None
 
 
-@position("publication", "multisite")
+@position("publication", "multisite", {"PUB-A4", "PUB-C2"}, {"accept_min", "standard"})
 def _multisite(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
     months = _num(v.get("multisite_wait_months"))
     if months is None:
@@ -410,7 +418,7 @@ def _multisite(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
     return Verdict("accept", "PUB-A4", f"Multi-site wait of {months:g} months is within the {fallback:g}-month fallback.")
 
 
-@position("intellectual_property", "inventions")
+@position("intellectual_property", "inventions", {"IP-A1", "IP-E1"})
 def _inventions(v: dict, ch: dict, **_) -> Verdict | None:
     own = _norm(v.get("invention_ownership"))
     if own in ("joint", "institution"):
@@ -420,49 +428,49 @@ def _inventions(v: dict, ch: dict, **_) -> Verdict | None:
     return None
 
 
-@position("intellectual_property", "research_license")
+@position("intellectual_property", "research_license", {"IP-A2"})
 def _research_license(v: dict, ch: dict, **_) -> Verdict | None:
     if _bool(v.get("site_research_license")):
         return Verdict("accept", "IP-A2", "Site keeps a non-exclusive research license → matches the pre-approved fallback.")
     return None
 
 
-@position("intellectual_property", "background_ip")
+@position("intellectual_property", "background_ip", {"IP-A3"})
 def _background_ip(v: dict, ch: dict, **_) -> Verdict | None:
     if _bool(v.get("background_ip_retained")):
         return Verdict("accept", "IP-A3", "Background IP stays with its owner → consistent with the standard; reply to the comment.")
     return None
 
 
-@position("intellectual_property", "patent_prosecution")
+@position("intellectual_property", "patent_prosecution", {"IP-C1"})
 def _patent_prosecution(v: dict, ch: dict, **_) -> Verdict | None:
     if _bool(v.get("site_may_file_patents")):
         return Verdict("counter", "IP-C1", "Site may file patents in its own name → restore Sponsor’s control of filings.", ch["original"])
     return None
 
 
-@position("data_privacy", "baa")
+@position("data_privacy", "baa", {"DP-E1"})
 def _baa(v: dict, ch: dict, **_) -> Verdict | None:
     if _bool(v.get("requires_baa")):
         return Verdict("escalate", "DP-E1", "Site requires a Business Associate Agreement → escalate to Privacy.", ch["original"])
     return None
 
 
-@position("data_privacy", "secondary_research")
+@position("data_privacy", "secondary_research", {"DP-E2"})
 def _secondary_research(v: dict, ch: dict, **_) -> Verdict | None:
     if _bool(v.get("blocks_secondary_research")):
         return Verdict("escalate", "DP-E2", "Site blocks secondary research use → escalate to Privacy.", ch["original"])
     return None
 
 
-@position("data_privacy", "data_use_addendum")
+@position("data_privacy", "data_use_addendum", {"DP-A2"})
 def _data_use_addendum(v: dict, ch: dict, **_) -> Verdict | None:
     if _bool(v.get("data_use_addendum")):
         return Verdict("accept", "DP-A2", "Limited data-use addendum → matches the pre-approved fallback.")
     return None
 
 
-@position("data_privacy", "incident_notice")
+@position("data_privacy", "incident_notice", {"DP-A3", "DP-C1"}, {"accept_min"})
 def _incident_notice(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
     days = _num(v.get("incident_notice_days"))
     if days is None:
@@ -474,14 +482,14 @@ def _incident_notice(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
     return Verdict("accept", "DP-A3", f"Security-incident notice within {days:g} business days is within {floor:g}.")
 
 
-@position("data_privacy", "data_transfer")
+@position("data_privacy", "data_transfer", {"DP-E3"})
 def _data_transfer(v: dict, ch: dict, **_) -> Verdict | None:
     if _bool(v.get("restricts_data_transfer")):
         return Verdict("escalate", "DP-E3", "Study Data restricted to one place → escalate to Privacy.", ch["original"])
     return None
 
 
-@position("termination", "site_notice")
+@position("termination", "site_notice", {"TERM-A0", "TERM-A1", "TERM-C1", "TERM-E2"}, {"accept_max", "escalate_below", "standard"})
 def _site_notice(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
     days = _num(v.get("site_notice_days"))
     if days is None:
@@ -498,7 +506,7 @@ def _site_notice(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
                    _replace_quantity(ch["revised"], "days", _qty(cap)))
 
 
-@position("termination", "convenience")
+@position("termination", "convenience", {"TERM-A2", "TERM-E1"})
 def _convenience(v: dict, ch: dict, **_) -> Verdict | None:
     if not _bool(v.get("termination_for_convenience")):
         return None
@@ -507,7 +515,7 @@ def _convenience(v: dict, ch: dict, **_) -> Verdict | None:
     return Verdict("escalate", "TERM-E1", "Site adds termination for convenience without paying non-cancellable costs → escalate to Legal.", ch["original"])
 
 
-@position("termination", "sponsor_notice")
+@position("termination", "sponsor_notice", {"TERM-A3", "TERM-C2"}, {"accept_max"})
 def _sponsor_notice(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
     days = _num(v.get("sponsor_notice_days"))
     if days is None:
@@ -519,7 +527,7 @@ def _sponsor_notice(v: dict, ch: dict, lim: Limit, **_) -> Verdict | None:
     return Verdict("accept", "TERM-A3", f"Sponsor notice of {days:g} days is within {cap:g}.")
 
 
-@position("governing_law", "choice_of_law")
+@position("governing_law", "choice_of_law", {"GOV-A1", "GOV-A2", "GOV-E2"})
 def _choice_of_law(v: dict, ch: dict, **_) -> Verdict | None:
     state = (v.get("governing_law_state") or "").strip()
     if not state:
@@ -532,7 +540,7 @@ def _choice_of_law(v: dict, ch: dict, **_) -> Verdict | None:
     return Verdict("escalate", "GOV-E2", f"{state} law for a private institution → escalate to Legal.", ch["original"])
 
 
-@position("governing_law", "venue")
+@position("governing_law", "venue", {"GOV-C1"})
 def _venue(v: dict, ch: dict, **_) -> Verdict | None:
     if _norm(v.get("venue")) in ("site_courts_exclusive", "site_courts_nonexclusive", "other"):
         counter = _drop_phrase(ch["revised"], r",?\s*with (?:exclusive |non-exclusive )?venue in [^.;]*")
@@ -540,7 +548,7 @@ def _venue(v: dict, ch: dict, **_) -> Verdict | None:
     return None
 
 
-@position("governing_law", "arbitration")
+@position("governing_law", "arbitration", {"GOV-C2", "GOV-E1"})
 def _arbitration(v: dict, ch: dict, **_) -> Verdict | None:
     if _bool(v.get("arbitration_abroad")) or _bool(v.get("sovereign_immunity_waiver_required")):
         return Verdict("escalate", "GOV-E1", "Mandatory arbitration abroad or a sovereign immunity demand → escalate to Legal.", ch["original"])
@@ -566,6 +574,11 @@ def _decide_clause(clause: str, values: dict, change: dict, lenient: dict | None
     win = max(fired, key=lambda x: STRICTNESS[x.outcome])
     if others := [f for f in fired if f is not win]:
         win.rule_text += " Also: " + " ".join(f"{f.rule_id} {f.rule_text}" for f in others)
+        if sum(f.outcome != "accept" for f in fired) > 1:
+            # Two positions object: a counter built for one would concede the other, so hold the form
+            win.counter_text = change["original"]
+            if win.fallback_text is not None:
+                win.fallback_text = change["original"]
     return win
 
 

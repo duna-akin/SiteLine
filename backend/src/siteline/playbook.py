@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import copy
 import json
+import math
 import re
 import time
 from typing import Literal
@@ -180,18 +181,24 @@ class Playbook:
 
 
 def _num(v: object) -> bool:
-    return isinstance(v, int | float) and not isinstance(v, bool)
+    return isinstance(v, int | float) and not isinstance(v, bool) and math.isfinite(v)
 
 
-def validate_playbook(pb: object, rule_ids: set[str]) -> list[str]:
-    """Problems with a playbook as strings (empty when valid). `rule_ids` is every rule ID the engine
-    can return; the playbook must list each exactly once."""
+def validate_playbook(pb: object, engine: dict | None = None) -> list[str]:
+    """Problems with a playbook as strings (empty when valid). `engine` (default: rules.ENGINE) maps each
+    (clause, position) the rules engine runs to the rule IDs it returns and the limits it reads; a valid
+    playbook has exactly those positions, rules and limits, so a saved playbook always runs."""
+    if engine is None:
+        from siteline.rules import ENGINE as engine  # rules imports this module
     if not isinstance(pb, dict) or not isinstance(pb.get("clauses"), list):
         return ["A playbook is an object with a list of clauses"]
     errors: list[str] = []
     seen_clauses: set[str] = set()
     seen_rules: dict[str, str] = {}
     for c in pb["clauses"]:
+        if not isinstance(c, dict):
+            errors.append("Each clause must be an object")
+            continue
         ct = c.get("clauseType")
         where = str(ct)
         if ct not in CLAUSE_TYPES:
@@ -204,43 +211,73 @@ def validate_playbook(pb: object, rule_ids: set[str]) -> list[str]:
             errors.append(f"{where}: owner must be legal, finance or privacy")
         if not str(c.get("label", "")).strip():
             errors.append(f"{where}: label is empty")
+        positions = c.get("positions")
+        if not isinstance(positions, list):
+            errors.append(f"{where}: positions must be a list")
+            continue
         ids: set[str] = set()
-        for p in c.get("positions") or []:
+        for p in positions:
+            if not isinstance(p, dict):
+                errors.append(f"{where}: each position must be an object")
+                continue
             pid = p.get("id")
             at = f"{where} / {pid}"
             if not pid or pid in ids:
                 errors.append(f"{at}: position id missing or repeated")
             ids.add(pid)
+            need = engine.get((ct, pid))
+            if need is None:
+                errors.append(f"{at}: the rules engine has no position {pid!r} in {ct}")
             for k in ("issue", *TEXT_FIELDS, "rationale"):
-                if not str(p.get(k, "")).strip():
-                    errors.append(f"{at}: {k} is empty")
-            limits = p.get("limits") or {}
+                if not isinstance(p.get(k), str) or not p[k].strip():
+                    errors.append(f"{at}: {k} must be non-empty text")
+            if not isinstance(p.get("talkingPoints", []), list) or not all(isinstance(t, str) for t in p.get("talkingPoints", [])):
+                errors.append(f"{at}: talkingPoints must be a list of text")
+            limits = p.get("limits")
+            if not isinstance(limits, dict):
+                errors.append(f"{at}: limits must be an object")
+                limits = {}
             for k, lim in limits.items():
                 if not isinstance(lim, dict) or not _num(lim.get("value")) or lim["value"] < 0:
-                    errors.append(f"{at}: limit {k} must be a number of 0 or more")
+                    errors.append(f"{at}: limit {k} must be a finite number of 0 or more")
+                elif not isinstance(lim.get("unit"), str) or not isinstance(lim.get("label"), str):
+                    errors.append(f"{at}: limit {k} needs a unit and a label")
+            if need is not None and (missing := need["limits"] - set(limits)):
+                errors.append(f"{at}: the rules read limits {', '.join(sorted(missing))}")
             vals = {k: lim["value"] for k, lim in limits.items() if isinstance(lim, dict) and _num(lim.get("value"))}
             for lo, hi in ORDER:
                 if lo in vals and hi in vals and vals[lo] > vals[hi]:
                     errors.append(f"{at}: {limits[lo].get('label', lo)} ({_fmt(vals[lo])}) must not exceed {limits[hi].get('label', hi)} ({_fmt(vals[hi])})")
-            texts = [p.get(k, "") for k in (*TEXT_FIELDS, "rationale")] + list(p.get("talkingPoints") or [])
-            texts += [r.get("when", "") for r in p.get("rules") or []]
+            rules = p.get("rules")
+            if not isinstance(rules, list) or not rules or not all(isinstance(r, dict) for r in rules):
+                errors.append(f"{at}: rules must be a non-empty list")
+                rules = []
+            texts = [p.get(k, "") for k in (*TEXT_FIELDS, "rationale")] + [t for t in p.get("talkingPoints") or [] if isinstance(t, str)]
+            texts += [r.get("when", "") for r in rules]
             for name in {m for t in texts for m in PLACEHOLDER.findall(str(t))} - set(limits):
                 errors.append(f"{at}: {{{name}}} names no limit")
-            if not p.get("rules"):
-                errors.append(f"{at}: no rule enforces this position")
-            for r in p.get("rules") or []:
-                rid = r.get("id", "")
+            listed = set()
+            for r in rules:
+                rid = str(r.get("id", ""))
+                listed.add(rid)
                 if rid in seen_rules:
                     errors.append(f"{at}: rule {rid} is already listed under {seen_rules[rid]}")
                 seen_rules[rid] = at
                 letter = rid.split("-")[-1][:1] if "-" in rid else ""
                 if OUTCOME_LETTER.get(r.get("outcome")) != letter:
                     errors.append(f"{at}: rule {rid} must have outcome {next((o for o, l in OUTCOME_LETTER.items() if l == letter), '?')}")
+            if need is not None and listed != need["rules"]:
+                if wrong := sorted(listed - need["rules"]):
+                    errors.append(f"{at}: the engine does not decide {', '.join(wrong)} in this position")
+                if missing := sorted(need["rules"] - listed):
+                    errors.append(f"{at}: rules this position enforces are not listed: {', '.join(missing)}")
+        for (ect, epid) in engine:
+            if ect == ct and epid not in ids:
+                errors.append(f"{where}: position {epid} is missing")
     if missing := set(CLAUSE_TYPES) - seen_clauses:
         errors.append("Missing clause types: " + ", ".join(sorted(missing)))
-    if missing := rule_ids - set(seen_rules):
-        errors.append("Rules the engine uses but the playbook does not list: " + ", ".join(sorted(missing)))
-    if extra := set(seen_rules) - rule_ids:
+    engine_rules = {r for need in engine.values() for r in need["rules"]}
+    if extra := set(seen_rules) - engine_rules:
         errors.append("Rules the playbook lists but the engine does not have: " + ", ".join(sorted(extra)))
     return errors
 

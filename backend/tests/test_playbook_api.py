@@ -105,3 +105,13 @@ def test_newly_escalated_suggestion_texts_its_approver(client):
     notice = next(c for c in r.json()["changes"] if c["to"]["ruleId"] == "TERM-E2")
     d = store.find_decision(notice["changeId"])[1]
     assert d["outcome"] == "escalate" and d["approval"]["state"] == "sent"
+
+
+def test_save_texts_only_the_escalations_it_creates(client):
+    old = next(d for d in store.get_decisions("site-07") if d["outcome"] == "escalate")
+    store.update_decision(old["id"], approval={"state": "none"})  # never texted at triage (e.g. a failed send)
+    pb = copy.deepcopy(default_playbook())
+    _position(pb, "start_up_fee")["limits"]["standard"]["value"] = 5  # re-decides §6.3 on the same agreement
+    r = client.put("/api/playbook", json={"playbook": pb, "by": "Test"})
+    assert r.json()["changes"] and all(c["changeId"] != old["id"] for c in r.json()["changes"])
+    assert store.find_decision(old["id"])[1]["approval"]["state"] == "none"

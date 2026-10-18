@@ -167,3 +167,22 @@ def test_counters_substitute_or_restore_the_form(clause, values, revised, expect
 
 def test_aliases_point_at_live_rules():
     assert set(rules.RULE_ALIASES.values()) <= set(RULE_IDS)
+
+
+def test_priority_never_widens_a_band_whose_floor_equals_its_standard():
+    pb = copy.deepcopy(default_playbook())
+    fee = next(p for c in pb["clauses"] for p in c["positions"] if p["id"] == "start_up_fee")
+    fee["limits"]["escalate_above"]["value"] = 10  # "escalate anything over 10%"
+    high = {"level": "high", "share": 0.5, "days": 0, "bucket": "0-30", "moneyAtRiskPerWeek": 11200}
+    verdict = decide(*v("payment_terms", start_up_fee_pct=60, start_up_fee_refundable="true"), True, high, pb)
+    assert verdict.rule_id != "PAY-A3P" and verdict.outcome != "accept"
+
+
+def test_two_positions_firing_counter_with_the_form():
+    change, ex = v("payment_terms", revised="Holdback deleted; overhead twenty-eight percent (28%).", overhead_pct=28, holdback_pct=0)
+    verdict = decide(change, ex, True)
+    assert verdict.rule_id == "PAY-C3" and verdict.counter_text == FORM
+
+
+def test_engine_positions_declare_exactly_the_rule_ids():
+    assert {r for need in rules.ENGINE.values() for r in need["rules"]} == set(RULE_IDS)

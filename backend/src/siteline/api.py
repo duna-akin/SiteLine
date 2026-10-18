@@ -20,7 +20,7 @@ from siteline.extraction import SEED_CACHE
 from siteline.playbook import (SPONSOR, approvers, load_playbook, playbook_log, render, reset_playbook,
                                save_playbook, strip_rendered, validate_playbook)
 from siteline.pipeline import Job, TriageOptions, replay_playbook, reprioritize_all, triage
-from siteline.rules import RULE_ALIASES, RULE_IDS, bands
+from siteline.rules import RULE_ALIASES, bands
 
 log = logging.getLogger("siteline.api")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -412,15 +412,17 @@ class PlaybookBody(BaseModel):
 def _checked(raw: dict) -> tuple[dict, list[str]]:
     """The templates of a submitted playbook (rendered *Text keys dropped) and what is wrong with it."""
     pb = strip_rendered(raw)
-    return pb, validate_playbook(pb, set(RULE_IDS))
+    return pb, validate_playbook(pb)
 
 
 async def _apply_playbook() -> list[dict]:
-    """Re-decide open suggestions under the saved playbook, text the approver of any new escalation,
-    and push the updates to the browser."""
+    """Re-decide open suggestions under the saved playbook, text the approver of each escalation this
+    save created (and no other), and push the updates to the browser."""
     changes = replay_playbook(load_playbook())
+    for c in changes:
+        if c["to"]["outcome"] == "escalate" and c["from"]["outcome"] != "escalate":
+            await approvals.send_text(c["changeId"])
     for agreement_id in {c["agreementId"] for c in changes}:
-        await approvals.start_for_agreement(agreement_id)
         events.publish("agreement.updated", {"agreement": store.get_agreement(agreement_id)})
     for c in changes:
         if hit := store.find_decision(c["changeId"]):

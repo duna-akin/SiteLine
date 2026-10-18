@@ -66,8 +66,10 @@ function Position({ clause, p, onChange }: { clause: PlaybookClause; p: Playbook
           {Object.entries(p.limits).map(([k, lim]) => (
             <label key={k} className="flex items-center gap-2 text-sm">
               <span className="text-muted">{lim.label}</span>
-              <input type="number" min={0} step="any" value={lim.value} className="field w-20 py-1 text-right tabular"
-                onChange={(e) => onChange({ ...p, limits: { ...p.limits, [k]: { ...lim, value: e.target.value === '' ? 0 : Number(e.target.value) } } })} />
+              {/* An empty box stays empty (NaN) and blocks Save, rather than quietly becoming 0 */}
+              <input type="number" min={0} step="any" value={Number.isNaN(lim.value) ? '' : lim.value} aria-invalid={Number.isNaN(lim.value)}
+                className={cn('field w-20 py-1 text-right tabular', Number.isNaN(lim.value) && 'border-high')}
+                onChange={(e) => onChange({ ...p, limits: { ...p.limits, [k]: { ...lim, value: e.target.value === '' ? NaN : Number(e.target.value) } } })} />
               <span className="text-muted">{lim.unit.trim()}</span>
             </label>
           ))}
@@ -231,6 +233,7 @@ export function PlaybookPage() {
   }
 
   const positions = pb?.clauses.reduce((n, c) => n + c.positions.length, 0) ?? 0
+  const blank = pb?.clauses.flatMap((c) => c.positions.filter((p) => Object.values(p.limits).some((l) => Number.isNaN(l.value))).map((p) => p.issue)) ?? []
   const ruleCount = pb?.clauses.reduce((n, c) => n + c.positions.reduce((m, p) => m + p.rules.length, 0), 0) ?? 0
 
   return (
@@ -255,7 +258,8 @@ export function PlaybookPage() {
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPending({ action: 'reset', changes: null })} disabled={!pb || busy}>
               <RotateCcw aria-hidden className="size-4" /> Reset to default
             </button>
-            <button type="button" className="btn btn-primary btn-sm" onClick={() => void askSave()} disabled={!pb || !dirty || busy}>
+            <button type="button" className="btn btn-primary btn-sm" onClick={() => void askSave()} disabled={!pb || !dirty || busy || blank.length > 0}
+              title={blank.length ? `Fill in every limit first: ${blank.join(', ')}` : undefined}>
               {busy && !pending ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Save aria-hidden className="size-4" />}
               {dirty ? 'Save playbook' : 'Saved'}
             </button>
@@ -268,6 +272,7 @@ export function PlaybookPage() {
         )}
       </section>
 
+      {blank.length > 0 && <p role="status" className="alert mb-6">Fill in every limit before saving: {blank.join(', ')}.</p>}
       {errors.length > 0 && (
         <div role="alert" className="alert mb-6">
           <p className="font-semibold">Not saved.</p>
