@@ -76,7 +76,7 @@ function QueueTile({ queue }: { queue: EscalationQueueItem[] }) {
       )}
       {rest.length > 0 && (
         <div className="q-more">
-          <span>{plural(rest.length, 'more')} for {restSites.map((n) => `Site ${n}`).join(', ')}</span>
+          <span>{rest.length} more for {restSites.map((n) => `Site ${n}`).join(', ')}</span>
           <Link to="/inbound#queue" className="btn btn-secondary btn-sm">See all <ArrowRight aria-hidden className="size-4" /></Link>
         </div>
       )}
