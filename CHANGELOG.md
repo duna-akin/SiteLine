@@ -12,10 +12,13 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The Priority page edits the cost-of-delay inputs, shows each input's source and the live value of a trial day, and logs changes to them. Configs saved before this load with the new defaults filled in.
 - The per-patient amount is still extracted and shown, but it no longer decides priority; only the enrollment target and period are required.
 - The `--radar-*` colour tokens are now `--stuck-none`, `--stuck-some` and `--stuck-many`.
+- The Data page opens with Siteline vs the LLM-only baseline. Below it, "Where your data lives" lists two stores: Postgres for executed agreements' confirmed terms, kept as precedents, and S3 for the agreements' files. Each shows whether it is live and, when off, where the data goes instead.
 
 ### Removed
 
 - The "What approvers see" text preview on the home page. The escalation queue now spans the full row.
+- The "Where your data lives" tile on the home page. It is on the Data page.
+- The data flow diagram (email, upload, parser, OpenAI), the priority-figures and sandbox rows, and the Integrations list on the Data page.
 
 ## [Unreleased] · Open sites as bars
 
