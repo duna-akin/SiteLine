@@ -91,7 +91,8 @@ export function InboundPage() {
             <span className="pill s-neutral">Agent inbox</span>
           </div>
           <p className="tile-sub">
-            Sites email a redline straight to the agent and it lands here.{' '}
+            Sites email a redline straight to the agent and it lands here. Only an email with exactly one .docx
+            attached gets through; anything else is blocked.{' '}
             {imap ? 'The mailbox is checked every 30 s.' : 'No mailbox is connected (IMAP), so these are the seeded emails.'}
           </p>
           <div className="well mb-4 flex items-center gap-2 py-1 pr-1 pl-3">
