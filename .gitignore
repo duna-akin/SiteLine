@@ -30,3 +30,10 @@ idea
 .vscode/
 .zed/
 docs/superpowers/
+
+# Root Chalk starter project (kept locally; the app is in backend/ and frontend/)
+/pyproject.toml
+/uv.lock
+/chalk.yaml
+/.chalkignore
+.claude/skills/
