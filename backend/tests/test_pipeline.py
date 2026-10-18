@@ -54,6 +54,16 @@ def test_quote_verification_forgives_only_typography():
     assert not verify_quote("“sixty days”", ch) and not verify_quote("“”", ch)
 
 
+def test_an_accepted_carve_out_must_be_named_in_its_quote():
+    from siteline.verify import verify_value
+
+    ch = {"original": "", "revised": "except to the extent caused by the intentional fraud or gross negligence of Institution", "segments": []}
+    gross = {"field": "carve_out_standard", "value": "gross_negligence_or_willful_misconduct"}
+    assert not verify_value({**gross, "quote": "intentional fraud"}, ch)  # fraud only is not the fallback
+    assert verify_value({**gross, "quote": "gross negligence"}, ch)
+    assert verify_value({"field": "carve_out_standard", "value": "none", "quote": "intentional fraud"}, ch)
+
+
 def test_rules_escalate_and_fail_safe():
     ch = {"kind": "replacement", "original": "Net forty-five (45) days", "revised": "Net ten (10) days"}
     ex = {"clause_type": "payment_terms", "confidence": 0.95, "values": [{"field": "net_days", "value": "10", "quote": "ten (10)"}]}

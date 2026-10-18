@@ -65,8 +65,20 @@ def number_in_quote(value: str, quote: str) -> bool:
     return False
 
 
+# Accepting values of a choice field that the value's own quote must name: the model can't round a
+# standard it was not given (say, "intentional fraud") to the nearest one the playbook accepts.
+NAMED_IN_QUOTE = {
+    ("carve_out_standard", "negligence"): r"negligen",
+    ("carve_out_standard", "gross_negligence_or_willful_misconduct"): r"gross(ly)? negligen|will?ful",
+}
+
+
 def verify_value(v: dict, change: dict, context: str = "") -> bool:
-    """The value's quote is verbatim in the change and, for a numeric field, states that number."""
+    """The value's quote is verbatim in the change and states the value: the number for a numeric
+    field, the standard's own words for an accepted choice."""
     if not verify_quote(v["quote"], change, context):
+        return False
+    named = NAMED_IN_QUOTE.get((v["field"], str(v["value"]).strip().lower()))
+    if named and not re.search(named, normalize(v["quote"]).lower()):
         return False
     return v["field"] not in NUMERIC_FIELDS or number_in_quote(v["value"], v["quote"])
