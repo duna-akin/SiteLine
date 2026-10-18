@@ -1,12 +1,10 @@
 import { Suspense, useEffect, useRef, useState } from 'react'
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { Menu, Search, Upload, UserRound, X } from 'lucide-react'
+import { Menu, Search, Upload, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 
 import { SiteSearch } from '@/components/siteline/SiteSearch'
-import { SponsorChip } from '@/components/siteline/SponsorChip'
 import { cn } from '@/lib/utils'
-import { SPONSOR } from '@/mocks/playbook'
 import { useDemo } from '@/state/demo'
 import { useDesk } from '@/state/desk'
 
@@ -86,10 +84,6 @@ export function AppShell() {
           <Link to="/" aria-label="Siteline home" className="shrink-0 rounded-[6px]">
             <Wordmark />
           </Link>
-          <span aria-hidden className="hidden h-6 w-px bg-line xl:block" />
-          <span className="hidden text-[13px] text-muted xl:block">
-            <span className="font-medium text-ink">{SPONSOR.protocol}</span> · {SPONSOR.name}
-          </span>
           <nav aria-label="Primary" className="hidden items-center min-[1081px]:flex">
             <Tabs newEmail={newEmail} />
           </nav>
@@ -108,9 +102,6 @@ export function AppShell() {
               <Upload aria-hidden className="size-4" />
               <span className="max-sm:sr-only">Upload redline</span>
             </Link>
-            <span className="hidden size-10 place-items-center rounded-full border border-line text-muted sm:grid" title="Signed in" role="img" aria-label="Signed in">
-              <UserRound aria-hidden className="size-4" />
-            </span>
             <button
               type="button"
               className="btn btn-secondary size-10 p-0 min-[1081px]:hidden"
@@ -153,18 +144,6 @@ export function AppShell() {
           <Outlet />
         </Suspense>
       </main>
-
-      <footer className="mt-12 border-t border-line bg-surface">
-        <div className="wrap flex flex-col gap-4 py-6 text-[13px] text-muted md:flex-row md:items-center md:justify-between">
-          <p>Fictional demo data. Clean room: public sources only. Built for HackHarvard 2026.</p>
-          <div className="flex flex-wrap gap-2">
-            <SponsorChip sponsor="Photon" label="Photon 2.0 · approvals" />
-            <SponsorChip sponsor="Daytona" label="Daytona · sandboxes" />
-            <SponsorChip sponsor="Chalk" label="Chalk · Agent Evals" />
-            <SponsorChip sponsor="OpenAI" label="OpenAI · extraction" />
-          </div>
-        </div>
-      </footer>
 
       <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-4 z-50 flex flex-col items-center gap-2 px-4">
         <AnimatePresence>
