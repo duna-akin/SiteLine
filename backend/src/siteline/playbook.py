@@ -90,6 +90,14 @@ def _log(by: str, summary: str) -> None:
     LOG_PATH.write_text(json.dumps([*playbook_log(), {"at": int(time.time() * 1000), "by": by, "summary": summary}], indent=1))
 
 
+def record_moved(n: int) -> None:
+    """How many open suggestions the last save or reset re-decided, on its log entry."""
+    log = playbook_log()
+    if log:
+        log[-1]["moved"] = n
+        LOG_PATH.write_text(json.dumps(log, indent=1))
+
+
 def _changes(old: dict, new: dict) -> str:
     """One line naming what an edit changed: limits (old → new), owners, and positions whose text moved."""
     out: list[str] = []
@@ -124,7 +132,8 @@ def reset_playbook(by: str) -> None:
 
 
 def _fmt(v: float) -> str:
-    return f"{v:g}"
+    """A limit as the Playbook page writes it (lib/playbook.ts formatNumber): no exponent, up to 4 decimals."""
+    return str(int(v)) if float(v).is_integer() else f"{v:.4f}".rstrip("0").rstrip(".")
 
 
 def _fill(text: str, limits: dict) -> str:

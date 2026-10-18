@@ -115,3 +115,29 @@ def test_save_texts_only_the_escalations_it_creates(client):
     r = client.put("/api/playbook", json={"playbook": pb, "by": "Test"})
     assert r.json()["changes"] and all(c["changeId"] != old["id"] for c in r.json()["changes"])
     assert store.find_decision(old["id"])[1]["approval"]["state"] == "none"
+
+
+def test_reset_can_be_previewed(client):
+    pb = copy.deepcopy(default_playbook())
+    _position(pb, "start_up_fee")["limits"]["standard"]["value"] = 5
+    client.put("/api/playbook", json={"playbook": pb, "by": "Test"})
+    changes = client.post("/api/playbook/preview", json={"reset": True}).json()["changes"]
+    assert [c["to"]["ruleId"] for c in changes] == ["PAY-A3P"]  # back to the widened accept
+    assert _position(load_playbook(), "start_up_fee")["limits"]["standard"]["value"] == 5  # nothing saved
+
+
+def test_log_records_how_many_decisions_moved(client):
+    pb = copy.deepcopy(default_playbook())
+    _position(pb, "start_up_fee")["limits"]["standard"]["value"] = 5
+    client.put("/api/playbook", json={"playbook": pb, "by": "Test"})
+    client.delete("/api/playbook", params={"by": "Test"})
+    assert [e["moved"] for e in playbook_log()] == [1, 1]
+
+
+def test_agreement_mid_triage_is_not_redecided(client, monkeypatch):
+    from siteline import pipeline
+
+    monkeypatch.setattr(pipeline, "IN_FLIGHT", {"site-07"})  # a new redline from Site 07 is being triaged
+    pb = copy.deepcopy(default_playbook())
+    _position(pb, "start_up_fee")["limits"]["standard"]["value"] = 5
+    assert client.post("/api/playbook/preview", json={"playbook": pb}).json()["changes"] == []

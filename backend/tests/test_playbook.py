@@ -119,3 +119,9 @@ def test_validate_reports_malformed_shapes_instead_of_crashing():
     pb = default_playbook()
     pb["clauses"][0]["positions"][0]["limits"] = "ten"
     assert validate_playbook(pb)
+
+
+def test_numbers_render_the_same_way_as_the_browser():
+    from siteline.playbook import _fmt
+
+    assert (_fmt(0.333), _fmt(0.5), _fmt(10), _fmt(1000000), _fmt(12.5)) == ("0.333", "0.5", "10", "1000000", "12.5")

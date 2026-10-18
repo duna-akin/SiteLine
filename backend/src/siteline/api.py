@@ -17,8 +17,8 @@ from siteline import approvals, events, export, inbound_email, photon, precedent
 from siteline.config import is_fictional_phone, settings
 from siteline.demo import DEMO_FILE_NAME, ensure_demo
 from siteline.extraction import SEED_CACHE
-from siteline.playbook import (SPONSOR, approvers, load_playbook, playbook_log, render, reset_playbook,
-                               save_playbook, strip_rendered, validate_playbook)
+from siteline.playbook import (SPONSOR, approvers, default_playbook, load_playbook, playbook_log, render, reset_playbook,
+                               record_moved, save_playbook, strip_rendered, validate_playbook)
 from siteline.pipeline import Job, TriageOptions, replay_playbook, reprioritize_all, triage
 from siteline.rules import RULE_ALIASES, bands
 
@@ -405,8 +405,14 @@ def _playbook_settings() -> dict:
 
 
 class PlaybookBody(BaseModel):
-    playbook: dict
+    playbook: dict = Field(default_factory=dict)
     by: str = Field(default="Reviewer", min_length=1, max_length=80)
+
+
+class PlaybookPreviewBody(BaseModel):
+    playbook: dict | None = None
+    # Preview a reset to the default playbook instead
+    reset: bool = False
 
 
 def _checked(raw: dict) -> tuple[dict, list[str]]:
@@ -419,6 +425,7 @@ async def _apply_playbook() -> list[dict]:
     """Re-decide open suggestions under the saved playbook, text the approver of each escalation this
     save created (and no other), and push the updates to the browser."""
     changes = replay_playbook(load_playbook())
+    record_moved(len(changes))
     for c in changes:
         if c["to"]["outcome"] == "escalate" and c["from"]["outcome"] != "escalate":
             await approvals.send_text(c["changeId"])
@@ -436,9 +443,9 @@ async def get_playbook() -> dict:
 
 
 @app.post("/api/playbook/preview")
-async def preview_playbook(body: PlaybookBody) -> dict:
-    """What saving `playbook` would change: open suggestions only, nothing is saved."""
-    pb, errors = _checked(body.playbook)
+async def preview_playbook(body: PlaybookPreviewBody) -> dict:
+    """What saving `playbook` (or resetting to the default) would change: open suggestions only, nothing is saved."""
+    pb, errors = _checked(default_playbook() if body.reset else body.playbook or {})
     if errors:
         return JSONResponse({"errors": errors}, status_code=422)
     return {"changes": replay_playbook(pb, dry_run=True)}

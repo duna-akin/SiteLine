@@ -206,7 +206,7 @@ def leniency_now(agreement: dict, cfg: dict | None = None) -> dict:
 
 def _live_agreements() -> list[dict]:
     return [a for aid in list(store.state()["decisions"])
-            if (a := store.state()["agreements"].get(aid)) and a.get("status") not in ("sent_to_site", "executed")]
+            if (a := store.state()["agreements"].get(aid)) and aid not in IN_FLIGHT and a.get("status") not in ("sent_to_site", "executed")]
 
 
 def reprioritize_all(cfg: dict | None = None, dry_run: bool = False) -> list[dict]:
@@ -220,13 +220,25 @@ def replay_playbook(pb: dict, dry_run: bool = False) -> list[dict]:
     return [c for a in _live_agreements() for c in redecide_open(a["id"], leniency_now(a), dry_run, playbook=pb)]
 
 
+# Agreements whose new redline is being triaged right now: their stored decisions are about to be
+# replaced, so playbook and priority edits leave them alone.
+IN_FLIGHT: set[str] = set()
+
+
 async def triage(data: bytes, file_name: str, options: TriageOptions, source: str = "upload", job: Job | None = None,
                  received_at: str | None = None) -> dict:
     """Run the full pipeline and store the agreement. Returns the agreement summary.
     `received_at` is when the redline arrived (an email's timestamp); days waiting count from it."""
+    job = job or Job("pending", file_name)
+    try:
+        return await _triage(data, file_name, options, source, job, received_at)
+    finally:
+        IN_FLIGHT.discard(job.agreement_id)
+
+
+async def _triage(data: bytes, file_name: str, options: TriageOptions, source: str, job: Job, received_at: str | None) -> dict:
     from siteline import approvals  # circular: approvals reads decisions
 
-    job = job or Job("pending", file_name)
     job.step("upload", "done", f"{file_name} · {max(1, len(data) // 1024)} KB")
 
     use_daytona = settings.daytona_enabled and not options.local_parser
@@ -256,6 +268,7 @@ async def triage(data: bytes, file_name: str, options: TriageOptions, source: st
 
     meta = site_meta(parsed, file_name)
     job.agreement_id = meta["agreementId"]
+    IN_FLIGHT.add(job.agreement_id)
 
     job.step("extract", "active", f"{len(parsed['changes'])} changes in parallel", "OpenAI")
     text = priority.document_text(parsed)
