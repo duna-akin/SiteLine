@@ -14,6 +14,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Counter rules are renamed `…-C#` (`PAY-F2` → `PAY-C2`, `CONF-F1` → `CONF-C1`, `IND-F1` → `IND-C1`, `PUB-F1` → `PUB-C1`, `TERM-F1` → `TERM-C1`, `GOV-F1` → `GOV-C1`). The 75-day publication line is gone: 60 days or more is `PUB-A1`. Older decisions keep their IDs and still link to their position.
 - The Playbook page shows each position with its rules, editable wording and limits, and the change log; a decision's rule ID links to its position.
 - Coverage: every rule is the expected outcome of a sample redline change (with a seed extraction), and the eval set has 81 new labeled rows (243 in all).
+- Reset previews what it will re-decide, like Save; any edit after a preview drops it, so the dialog always matches what happens; the change log records how many open suggestions each save or reset re-decided; Priority settings reload their bands after a playbook save; a malformed imported file shows an error instead of breaking the page; limits read the same on the page and in the engine's text; an agreement whose new redline is being triaged is left alone.
+- Home is titled "Central Contract Intelligence".
 
 ## [Unreleased] · Email inbox
 
