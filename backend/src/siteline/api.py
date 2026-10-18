@@ -17,9 +17,10 @@ from siteline import approvals, events, export, inbound_email, photon, precedent
 from siteline.config import is_fictional_phone, settings
 from siteline.demo import DEMO_FILE_NAME, ensure_demo
 from siteline.extraction import SEED_CACHE
-from siteline.playbook import SPONSOR, approvers, load_playbook, save_playbook, validate_playbook
-from siteline.pipeline import Job, TriageOptions, reprioritize_all, triage
-from siteline.rules import bands
+from siteline.playbook import (SPONSOR, approvers, load_playbook, playbook_log, render, reset_playbook,
+                               save_playbook, strip_rendered, validate_playbook)
+from siteline.pipeline import Job, TriageOptions, replay_playbook, reprioritize_all, triage
+from siteline.rules import RULE_IDS, bands
 
 log = logging.getLogger("siteline.api")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -399,18 +400,62 @@ async def source_document(key: str) -> Response:
 # ---- playbook ---------------------------------------------------------------------------
 
 
+def _playbook_settings() -> dict:
+    return {"playbook": render(load_playbook()), "log": playbook_log()}
+
+
+class PlaybookBody(BaseModel):
+    playbook: dict
+    by: str = Field(default="Reviewer", min_length=1, max_length=80)
+
+
+def _checked(raw: dict) -> tuple[dict, list[str]]:
+    """The templates of a submitted playbook (rendered *Text keys dropped) and what is wrong with it."""
+    pb = strip_rendered(raw)
+    return pb, validate_playbook(pb, set(RULE_IDS))
+
+
+async def _apply_playbook() -> list[dict]:
+    """Re-decide open suggestions under the saved playbook, text the approver of any new escalation,
+    and push the updates to the browser."""
+    changes = replay_playbook(load_playbook())
+    for agreement_id in {c["agreementId"] for c in changes}:
+        await approvals.start_for_agreement(agreement_id)
+        events.publish("agreement.updated", {"agreement": store.get_agreement(agreement_id)})
+    for c in changes:
+        if hit := store.find_decision(c["changeId"]):
+            events.publish("decision.updated", {"agreementId": hit[0], "decision": hit[1]})
+    return changes
+
+
 @app.get("/api/playbook")
-async def get_playbook() -> list[dict]:
-    return load_playbook()
+async def get_playbook() -> dict:
+    return _playbook_settings()
+
+
+@app.post("/api/playbook/preview")
+async def preview_playbook(body: PlaybookBody) -> dict:
+    """What saving `playbook` would change: open suggestions only, nothing is saved."""
+    pb, errors = _checked(body.playbook)
+    if errors:
+        return JSONResponse({"errors": errors}, status_code=422)
+    return {"changes": replay_playbook(pb, dry_run=True)}
 
 
 @app.put("/api/playbook")
-async def put_playbook(rules: list[dict]) -> dict:
-    errors = validate_playbook(rules)
+async def put_playbook(body: PlaybookBody) -> dict:
+    pb, errors = _checked(body.playbook)
     if errors:
         return JSONResponse({"errors": errors}, status_code=422)
-    save_playbook(rules)
-    return {"saved": len(rules), "at": store.now_ms()}
+    save_playbook(pb, body.by.strip())
+    return {**_playbook_settings(), "changes": await _apply_playbook()}
+
+
+@app.delete("/api/playbook")
+async def delete_playbook(by: str = "Reviewer") -> dict:
+    """Back to the default playbook, re-deciding open suggestions under it."""
+    reset_playbook(by.strip() or "Reviewer")
+    return {**_playbook_settings(), "changes": await _apply_playbook()}
 
 
 # ---- site priority ----------------------------------------------------------------------

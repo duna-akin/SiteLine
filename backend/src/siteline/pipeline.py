@@ -12,7 +12,7 @@ from siteline import events, precedent, priority, store
 from siteline.config import settings
 from siteline.extraction import extract_all, extract_document
 from siteline.playbook import load_playbook, owner_for
-from siteline.rules import WIDENED_CLAUSES, Verdict, decide
+from siteline.rules import RULE_ALIASES, WIDENED_CLAUSES, Verdict, decide
 from siteline.sandbox import SandboxError, parse_in_daytona, parse_local
 from siteline.verify import verify_value
 
@@ -103,9 +103,10 @@ class Job:
 
 
 def _verdict(change: dict, ex: dict, values: list[dict], clause: str, site_name: str, agreement_id: str,
-             history: list[dict], lenient: dict | None, round_started: str | None = None) -> tuple[Verdict, dict | None]:
+             history: list[dict], lenient: dict | None, round_started: str | None = None,
+             playbook: dict | None = None) -> tuple[Verdict, dict | None]:
     quotes_ok = all(v["verified"] for v in values)
-    verdict = decide(change, ex, quotes_ok, lenient)
+    verdict = decide(change, ex, quotes_ok, lenient, playbook)
     # After the rules and their fail-safes: has this site been granted this before? Always checked,
     # including widened accepts, so the reviewer sees the precedent next to the suggestion.
     return precedent.review(verdict, clause, {v["field"]: v["value"] for v in values}, site_name, agreement_id, history,
@@ -165,29 +166,33 @@ def build_decisions(agreement_id: str, parsed: dict, extractions: list[dict], si
     return out
 
 
-def redecide_open(agreement_id: str, lenient: dict, dry_run: bool = False) -> list[dict]:
+def redecide_open(agreement_id: str, lenient: dict, dry_run: bool = False, playbook: dict | None = None,
+                  clauses: set[str] | None = None) -> list[dict]:
     """Re-run the rules on suggestions nobody has acted on yet (no confirmation, override or
-    approval) in the widened clauses, with new leniency. Returns the outcomes that change;
-    with dry_run nothing is saved (the settings preview)."""
+    approval) under `lenient` and `playbook` (default: the saved one), in `clauses` (default: every
+    clause). Returns the outcomes that change; with dry_run nothing is saved (the settings preview).
+    A rule renamed since the decision was made (RULE_ALIASES) does not count as a change."""
     a = store.state()["agreements"].get(agreement_id, {})
     history = store.precedents_for_site(a.get("siteName", ""))
+    pb = playbook or load_playbook()
     changed = []
     for d in store.get_decisions(agreement_id):
         if d.get("confirmation") or d.get("override") or d["approval"]["state"] != "none":
             continue
-        if "extractedClauseType" not in d or d["extractedClauseType"] not in WIDENED_CLAUSES:
+        if "extractedClauseType" not in d or (clauses is not None and d["extractedClauseType"] not in clauses):
             continue
         ex = {"clause_type": d["extractedClauseType"], "values": [{k: v[k] for k in ("field", "value", "quote")} for v in d["extracted"]],
               "confidence": d["confidence"], "novel_issue": d["novelIssue"], "error": d["extractionError"], "rationale": d["rationale"]}
         verdict, prec = _verdict(d, ex, d["extracted"], d["clauseType"], a.get("siteName", ""), agreement_id, history, lenient,
-                                 a.get("roundStartedAt"))
-        if verdict.rule_id != d["ruleId"]:
+                                 a.get("roundStartedAt"), pb)
+        owner = owner_for(d["clauseType"], pb)
+        if verdict.rule_id != RULE_ALIASES.get(d["ruleId"], d["ruleId"]) or owner != d["owner"]:
             changed.append({"agreementId": agreement_id, "changeId": d["id"], "section": d["section"],
-                            "from": {"outcome": d["outcome"], "ruleId": d["ruleId"]},
-                            "to": {"outcome": verdict.outcome, "ruleId": verdict.rule_id}})
+                            "from": {"outcome": d["outcome"], "ruleId": d["ruleId"], "owner": d["owner"]},
+                            "to": {"outcome": verdict.outcome, "ruleId": verdict.rule_id, "owner": owner}})
         if dry_run:
             continue
-        store.update_decision(d["id"], outcome=verdict.outcome, ruleId=verdict.rule_id, ruleText=verdict.rule_text,
+        store.update_decision(d["id"], outcome=verdict.outcome, ruleId=verdict.rule_id, ruleText=verdict.rule_text, owner=owner,
                               counterText=verdict.counter_text, fallbackText=verdict.fallback_text, precedent=prec, leniency=lenient)
     return changed
 
@@ -199,14 +204,20 @@ def leniency_now(agreement: dict, cfg: dict | None = None) -> dict:
     return priority.leniency_for(prio, priority.days_since(agreement.get("redlineReceivedAt")), cfg)
 
 
+def _live_agreements() -> list[dict]:
+    return [a for aid in list(store.state()["decisions"])
+            if (a := store.state()["agreements"].get(aid)) and a.get("status") not in ("sent_to_site", "executed")]
+
+
 def reprioritize_all(cfg: dict | None = None, dry_run: bool = False) -> list[dict]:
-    """Re-decide open suggestions on every live agreement under `cfg` (default: the saved config)."""
-    out: list[dict] = []
-    for agreement_id in list(store.state()["decisions"]):
-        a = store.state()["agreements"].get(agreement_id)
-        if a and a.get("status") not in ("sent_to_site", "executed"):
-            out += redecide_open(agreement_id, leniency_now(a, cfg), dry_run)
-    return out
+    """Re-decide open suggestions in the widened clauses on every live agreement under `cfg` (default:
+    the saved config)."""
+    return [c for a in _live_agreements() for c in redecide_open(a["id"], leniency_now(a, cfg), dry_run, clauses=WIDENED_CLAUSES)]
+
+
+def replay_playbook(pb: dict, dry_run: bool = False) -> list[dict]:
+    """Re-decide open suggestions in every clause on every live agreement under playbook `pb`."""
+    return [c for a in _live_agreements() for c in redecide_open(a["id"], leniency_now(a), dry_run, playbook=pb)]
 
 
 async def triage(data: bytes, file_name: str, options: TriageOptions, source: str = "upload", job: Job | None = None,
