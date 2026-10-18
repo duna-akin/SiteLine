@@ -24,27 +24,42 @@ FIELDS: dict[str, tuple[str, str]] = {
     "net_days": ("payment_terms", "integer days to pay an invoice, e.g. 30"),
     "start_up_fee_pct": ("payment_terms", "start-up fee as a percent of the study budget, number only, e.g. 15"),
     "start_up_fee_refundable": ("payment_terms", "true or false"),
+    "overhead_pct": ("payment_terms", "indirect cost (overhead) rate as a percent of direct costs, number only, e.g. 28"),
+    "holdback_pct": ("payment_terms", "percent of each payment withheld until database lock, number; 0 when the holdback is deleted"),
+    "screen_failures_per_enrolled": ("payment_terms", "screen failures paid per enrolled subject as a decimal, e.g. 0.33 for one per three enrolled, or uncapped"),
     "survival_years": ("confidentiality", "years confidentiality survives after study close, number"),
     "trade_secrets_perpetual": ("confidentiality", "true or false: trade secrets stay protected with no end date"),
+    "discloses_to_affiliates": ("confidentiality", "true or false: the site may share Confidential Information with affiliates or outside collaborators"),
+    "marking_required": ("confidentiality", "true or false: only information marked confidential is protected"),
+    "public_records_disclosure": ("confidentiality", "true or false: the site may disclose the agreement or information under a public-records law"),
+    "public_records_notice": ("confidentiality", "true or false: the site notifies Sponsor before a public-records disclosure"),
     "carve_out_standard": ("indemnification", "negligence | gross_negligence_or_willful_misconduct | none"),
     "adjudication_required": ("indemnification", "true or false: carve-out applies only once finally adjudicated"),
     "mutual_indemnity": ("indemnification", "true or false: site's indemnity becomes mutual / sponsor must be indemnified in turn"),
+    "claim_notice_days": ("indemnification", "integer days the site has to notify Sponsor of a claim"),
+    "sponsor_controls_defense": ("indemnification", "true or false: Sponsor controls the defense and settlement of indemnified claims"),
+    "additional_insured": ("indemnification", "true or false: Sponsor names the site as an additional insured on its policy"),
     "covers_lost_wages": ("subject_injury", "true or false"),
     "covers_pain_and_suffering": ("subject_injury", "true or false"),
     "covers_travel": ("subject_injury", "true or false"),
     "reimbursement_cap": ("subject_injury", "capped | uncapped"),
     "coordination_with_insurance": ("subject_injury", "net_of_insurance | sponsor_pays_first"),
+    "removes_injury_exclusions": ("subject_injury", "true or false: the exclusions (underlying disease, standard of care, protocol deviations) are deleted"),
     "review_days": ("publication", "integer days the sponsor has to review a publication"),
     "review_window_open_ended": ("publication", "true or false: a qualifier like 'or as otherwise agreed' makes the window open-ended"),
     "patent_delay": ("publication", "retained | removed"),
     "patent_delay_days": ("publication", "integer days of extra delay for patent filings"),
+    "multisite_wait_months": ("publication", "integer months the site waits for the multi-site publication before publishing on its own"),
     "invention_ownership": ("intellectual_property", "sponsor | joint | institution"),
     "site_research_license": ("intellectual_property", "true or false: site keeps a non-exclusive research license"),
     "background_ip_retained": ("intellectual_property", "true or false: each party keeps its background IP"),
+    "site_may_file_patents": ("intellectual_property", "true or false: the site may file patents on study inventions in its own name"),
     "requires_baa": ("data_privacy", "true or false: sponsor must sign a business associate agreement"),
     "blocks_secondary_research": ("data_privacy", "true or false: sponsor may not use data for secondary research"),
     "data_use_addendum": ("data_privacy", "true or false: sponsor signs a limited data-use addendum"),
     "ml_training_restriction": ("data_privacy", "true or false: limits on using study data to train AI/ML models"),
+    "incident_notice_days": ("data_privacy", "integer business days Sponsor has to notify the site of a security incident"),
+    "restricts_data_transfer": ("data_privacy", "true or false: Study data must stay in one state or country"),
     "site_notice_days": ("termination", "integer days' notice the institution must give to terminate"),
     "sponsor_notice_days": ("termination", "integer days' notice the sponsor must give to terminate"),
     "termination_for_convenience": ("termination", "true or false: site may terminate for convenience"),
@@ -52,8 +67,9 @@ FIELDS: dict[str, tuple[str, str]] = {
     "governing_law_state": ("governing_law", "the state or country whose law governs, e.g. Wisconsin"),
     "venue": ("governing_law", "sponsor_courts | silent | site_courts_exclusive | site_courts_nonexclusive | other"),
     "arbitration_abroad": ("governing_law", "true or false: mandatory arbitration outside the US"),
+    "arbitration_domestic": ("governing_law", "true or false: disputes go to arbitration in the United States instead of court"),
     "sovereign_immunity_waiver_required": ("governing_law", "true or false: sponsor must waive or accept the site's sovereign immunity terms"),
-    "institution_is_public": ("governing_law", "true or false: the institution is a public (state) institution"),
+    "institution_is_public": ("governing_law", "true or false: the institution is a public (state) institution (may be quoted from the agreement context; also used for public-records terms)"),
     "no_substantive_change": ("any", "true when the edit only fixes typos, formatting or numbering and does not change any right or obligation"),
 }
 
@@ -94,7 +110,7 @@ Fields you may report (value formats):
 {fields}
 
 How to answer:
-- clause_type: the playbook clause type the change belongs to.
+- clause_type: the playbook clause type the change belongs to. Public-records disclosure terms are confidentiality, wherever they sit in the agreement.
 - values: the fields this change sets or alters, as they stand after the site's edit. Include a field only when the text supports it. When the site deletes a provision, report the resulting state (for example patent_delay = removed, coordination_with_insurance = sponsor_pays_first). For a comment on unchanged text, report the facts of that text.
 - quote: copy the exact words from the change text that support the value, character for character, including punctuation and curly quotes. Quote from the revised text for added or kept language and from the original text for deleted language. Keep each quote short (a clause, not a paragraph). Never paraphrase, join separate passages, or fill gaps.
 - novel_issue: if the change adds an obligation, restriction or right that no playbook clause addresses (for example, limits on training AI models), describe it in one sentence. Otherwise null.

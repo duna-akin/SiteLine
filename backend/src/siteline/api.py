@@ -19,7 +19,7 @@ from siteline.demo import DEMO_FILE_NAME, ensure_demo
 from siteline.extraction import SEED_CACHE
 from siteline.playbook import SPONSOR, approvers, load_playbook, save_playbook, validate_playbook
 from siteline.pipeline import Job, TriageOptions, reprioritize_all, triage
-from siteline.rules import BANDS
+from siteline.rules import bands
 
 log = logging.getLogger("siteline.api")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -419,7 +419,7 @@ async def put_playbook(rules: list[dict]) -> dict:
 def _priority_settings() -> dict:
     return {
         "config": priority.load_config(),
-        "bands": [{"field": f, **b} for f, b in BANDS.items()],
+        "bands": [{"field": f, **b} for f, b in bands().items()],
         "maxShare": priority.MAX_SHARE,
         "weeksPerMonth": priority.WEEKS_PER_MONTH,
         "log": priority.config_log()[-20:][::-1],

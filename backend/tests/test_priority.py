@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 from siteline import approvals, priority, store
 from siteline.demo import demo_bytes
 from siteline.demo_cache import SEED
-from siteline.rules import BANDS, decide
+from siteline.rules import bands, decide
 
 CHANGE = {"original": "the old text", "revised": "the new text", "kind": "replacement", "segments": []}
 
@@ -95,14 +95,14 @@ def test_no_leniency_ever_lifts_an_escalation():
 
 def test_same_redline_differs_for_high_and_standard_sites():
     fee, conf = SEED[1], SEED[2]  # demo §6.3: 15% non-refundable fee; §11: 4-year survival
-    assert decide(CHANGE, fee, True, lenient("standard")).rule_id == "PAY-F2"
+    assert decide(CHANGE, fee, True, lenient("standard")).rule_id == "PAY-C2"
     high = decide(CHANGE, fee, True, lenient("high"))
     assert high.outcome == "accept" and high.rule_id == "PAY-A3P"
     assert "high priority ($11,200/week at risk), 0 days waiting → 50% of the gap" in high.rule_text.lower()
-    assert decide(CHANGE, conf, True, lenient("standard")).rule_id == "CONF-F1"
+    assert decide(CHANGE, conf, True, lenient("standard")).rule_id == "CONF-C1"
     assert decide(CHANGE, conf, True, lenient("high")).rule_id == "CONF-A2P"
     assert decide(CHANGE, _ex("publication", review_days=45), True, lenient("high")).rule_id == "PUB-A2P"
-    assert decide(CHANGE, _ex("publication", review_days=40), True, lenient("high")).rule_id == "PUB-F1"
+    assert decide(CHANGE, _ex("publication", review_days=40), True, lenient("high")).rule_id == "PUB-C1"
 
 
 def test_fail_safes_win_over_leniency():
@@ -113,7 +113,7 @@ def test_fail_safes_win_over_leniency():
 
 
 def test_band_table_matches_the_rules():
-    assert {f: (b["standard"], b["floor"]) for f, b in BANDS.items()} == {
+    assert {f: (b["standard"], b["floor"]) for f, b in bands().items()} == {
         "start_up_fee_pct": (10, 20), "survival_years": (5, 3), "review_days": (60, 30)}
 
 
@@ -183,13 +183,13 @@ def test_saving_config_redecides_only_open_suggestions(site07):
     cfg = priority.load_config()
     strict = {**cfg, "leniency": {"standard": [0, 0, 0], "elevated": [0, 0, 0], "high": [0, 0, 0]}}
     preview = site07.post("/api/priority-config/preview", json={"config": strict}).json()["changes"]
-    assert [c["to"]["ruleId"] for c in preview] == ["CONF-F1"]  # the confirmed fee is left alone
+    assert [c["to"]["ruleId"] for c in preview] == ["CONF-C1"]  # the confirmed fee is left alone
     assert store.get_agreement("site-07")  # preview saved nothing
     assert any(d["ruleId"] == "CONF-A2P" for d in store.get_decisions("site-07"))
     r = site07.put("/api/priority-config", json={"config": strict, "by": "Test"})
     assert r.status_code == 200 and r.json()["log"][0]["by"] == "Test"
     rules = {d["ruleId"] for d in store.get_decisions("site-07")}
-    assert "PAY-A3P" in rules and "CONF-F1" in rules and "CONF-A2P" not in rules
+    assert "PAY-A3P" in rules and "CONF-C1" in rules and "CONF-A2P" not in rules
     bad = site07.put("/api/priority-config", json={"config": {**cfg, "leniency": {**cfg["leniency"], "high": [1, 1, 1]}}})
     assert bad.status_code == 422
 

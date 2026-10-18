@@ -4,7 +4,7 @@ The model extracts three figures from the whole agreement (extraction.extract_do
 with a verbatim quote. Everything here is arithmetic on those figures and the editable
 config (data/priority_config.json; edits from the UI go to var/priority_config.json).
 Leniency is a share of the gap between a playbook standard and its escalate floor
-(rules.BANDS), capped at MAX_SHARE, so no setting can move an escalate floor.
+(rules.bands(), from the playbook's limits), capped at MAX_SHARE, so no setting can move an escalate floor.
 """
 
 from __future__ import annotations

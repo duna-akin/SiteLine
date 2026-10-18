@@ -182,7 +182,7 @@ def test_only_high_priority_widens_the_site21_fee(upload):
     assert (fee["ruleId"], fee["leniency"]["level"], fee["leniency"]["share"]) == ("PAY-A3P", "high", 0.5)
     # The same extraction without leniency is the standard counter at 10%
     v = rules.decide(fee, {"clause_type": "payment_terms", "confidence": fee["confidence"], "values": fee["extracted"]}, True)
-    assert (v.outcome, v.rule_id) == ("counter", "PAY-F2")
+    assert (v.outcome, v.rule_id) == ("counter", "PAY-C2")
 
 
 def test_whole_document_holds_every_paragraph_and_change(upload):
