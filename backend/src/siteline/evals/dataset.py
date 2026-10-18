@@ -141,9 +141,9 @@ def build() -> list[dict]:
                      I("consider in good faith any request to delay publication"), T(".")],
                     "escalate", "patent delay made optional"))
     out.append(repl("§12.1 Sponsor Review", "publication", "Institution shall provide Sponsor ", qty(60) + " days", qty(45) + " days, or as otherwise agreed,",
-                    " to review any proposed publication.", "human_review", "open-ended qualifier"))
+                    " to review any proposed publication.", "escalate", "open-ended qualifier (the playbook escalates an open-ended window)"))
     out.append(repl("§12.1 Sponsor Review", "publication", "Institution shall provide Sponsor ", qty(60) + " days", "a reasonable period",
-                    " to review any proposed publication.", "human_review", "undefined review period"))
+                    " to review any proposed publication.", "escalate", "undefined review period (the playbook escalates an open-ended window)"))
 
     # Intellectual property
     ip = "All inventions arising from the Protocol or Study Drug shall "
