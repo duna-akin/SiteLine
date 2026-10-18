@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · Email inbox
+
+### Changed
+
+- **One redline per email:** the mailbox poller only accepts an email with exactly one attachment, and that attachment must be a non-empty `.docx`. Anything else (no attachment, several attachments, a PDF) is blocked: marked read, logged with the reason, and never recorded or triaged. Inline signature images don't count as attachments.
+- **The address on screen is the real mailbox:** with IMAP connected and no `SITELINE_INBOUND_ADDRESS`, the Inbound and Home pages show `IMAP_USER` instead of the placeholder `redlines@siteline.demo`.
+
 ## [Unreleased] · Redline on Sites
 
 ### Added
