@@ -10,8 +10,19 @@ export function DataPage() {
 
   const executed = (agreements ?? []).filter((a) => a.status === 'executed')
   const lastDoc = executed.map((a) => a.finalDocumentKey).filter(Boolean).at(-1)
+  const sandboxed = (agreements ?? []).filter((a) => a.parser === 'daytona')
+  const lastSandbox = sandboxed.map((a) => a.sandboxId).filter(Boolean).at(-1)
   // Each store: whether it is live, what it holds, and where that goes without it
   const stores = [
+    {
+      name: 'Daytona sandbox',
+      live: Boolean(integrations?.daytona),
+      holds: 'Each file is opened in a fresh sandbox with network access blocked. Only the parsed text reaches the model, then the sandbox is deleted.',
+      detail: sandboxed.length
+        ? `${sandboxed.length} file${sandboxed.length === 1 ? '' : 's'} parsed in a sandbox${lastSandbox ? ` · last ${lastSandbox}` : ''}`
+        : 'No files parsed in a sandbox yet',
+      off: 'Off: files are parsed on the server',
+    },
     {
       name: 'Postgres',
       live: integrations?.precedentStore === 'postgres',
@@ -44,7 +55,7 @@ export function DataPage() {
         {!integrations ? (
           <div className="h-24 animate-pulse rounded-[6px] bg-sunken" aria-hidden />
         ) : (
-          <ul className="grid gap-2.5 md:grid-cols-2">
+          <ul className="grid gap-2.5 md:grid-cols-3">
             {stores.map((s) => (
               <li key={s.name} className="flex items-start justify-between gap-3 rounded-[6px] border border-line bg-surface px-4 py-3">
                 <div className="min-w-0">
