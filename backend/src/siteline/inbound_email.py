@@ -1,13 +1,16 @@
 """Inbound email (P2): a site emails its redline; Siteline triages the .docx attachment.
 
-With IMAP_* set, a poller checks the mailbox every 30 s for unread mail with a .docx.
-The two seeded inbox emails get generated fictional redlines so they can be triaged too.
+With IMAP_* set, a poller checks the mailbox every 30 s. It accepts an email only when it carries
+exactly one attachment and that attachment is a .docx; any other email is blocked: marked read,
+logged, and never recorded or triaged. The two seeded inbox emails get generated fictional
+redlines so they can be triaged too.
 """
 
 from __future__ import annotations
 
 import asyncio
 import email
+import email.message
 import imaplib
 import json
 import logging
@@ -87,10 +90,51 @@ def _connect() -> imaplib.IMAP4_SSL:
     return imap
 
 
+def _attachments(msg: email.message.Message) -> list[email.message.Message]:
+    """Parts that are attached files. Inline images (signature logos) don't count; an inline part
+    with a file name that isn't an image does, since some mail clients attach that way."""
+    out = []
+    for part in msg.walk():
+        if part.is_multipart() or not part.get_filename():
+            continue
+        if part.get_content_disposition() == "inline" and part.get_content_maintype() == "image":
+            continue
+        out.append(part)
+    return out
+
+
+def screen(msg: email.message.Message) -> tuple[dict | None, str]:
+    """The redline in this email, or None and why it's blocked. Only an email with exactly one
+    attachment, a non-empty .docx, gets through."""
+    parts = _attachments(msg)
+    if not parts:
+        return None, "no attachment"
+    if len(parts) > 1:
+        return None, f"{len(parts)} attachments"
+    name = _decode(parts[0].get_filename())
+    if not name.lower().endswith(".docx"):
+        return None, f"attachment is not a .docx ({name})"
+    payload = parts[0].get_payload(decode=True)
+    if not payload:
+        return None, "empty attachment"
+    sender = parseaddr(msg.get("From", ""))
+    try:
+        received = parsedate_to_datetime(msg.get("Date")).isoformat()
+    except (TypeError, ValueError):
+        received = store.iso_now()
+    return {
+        "from": sender[1],
+        "siteName": sender[0] or sender[1].split("@")[-1],
+        "subject": _decode(msg.get("Subject")),
+        "attachment": name,
+        "receivedAt": received,
+        "data": payload,
+    }, ""
+
+
 def _fetch_unseen() -> list[dict]:
-    """Unread emails with a .docx attachment, each with its IMAP uid. They are read with
-    BODY.PEEK so they stay unread until poll_once has recorded them; an email without a .docx
-    is marked read here."""
+    """Unread emails that pass screen(), each with its IMAP uid. They are read with BODY.PEEK so
+    they stay unread until poll_once has recorded them; a blocked email is marked read here."""
     out = []
     with _connect() as imap:
         status, data = imap.uid("search", None, "UNSEEN")
@@ -101,30 +145,11 @@ def _fetch_unseen() -> list[dict]:
             if status != "OK" or not msg_data or not isinstance(msg_data[0], tuple):
                 continue
             msg = email.message_from_bytes(msg_data[0][1])
-            found = None
-            for part in msg.walk():
-                name = _decode(part.get_filename())
-                if name.lower().endswith(".docx"):
-                    payload = part.get_payload(decode=True)
-                    if payload:
-                        sender = parseaddr(msg.get("From", ""))
-                        try:
-                            received = parsedate_to_datetime(msg.get("Date")).isoformat()
-                        except (TypeError, ValueError):
-                            received = store.iso_now()
-                        found = {
-                            "uid": uid.decode(),
-                            "from": sender[1],
-                            "siteName": sender[0] or sender[1].split("@")[-1],
-                            "subject": _decode(msg.get("Subject")),
-                            "attachment": name,
-                            "receivedAt": received,
-                            "data": payload,
-                        }
-                        break
+            found, reason = screen(msg)
             if found:
-                out.append(found)
+                out.append({"uid": uid.decode()} | found)
             else:
+                log.info("Blocked inbound email %r from %s: %s", _decode(msg.get("Subject")), parseaddr(msg.get("From", ""))[1], reason)
                 imap.uid("store", uid, "+FLAGS", "\\Seen")
     return out
 
