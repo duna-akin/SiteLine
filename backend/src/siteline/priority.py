@@ -1,8 +1,23 @@
-"""Site priority: money at risk per week of delay, and how much leniency it buys.
+"""Site priority: value lost per week a site's contract is held up, and how much leniency it buys.
 
-The model extracts three figures from the whole agreement (extraction.extract_document), each
-with a verbatim quote. Everything here is arithmetic on those figures and the editable
-config (data/priority_config.json; edits from the UI go to var/priority_config.json).
+The model extracts the site's enrollment figures from the whole agreement
+(extraction.extract_document), each with a verbatim quote. Everything here is arithmetic on
+those figures and the editable config (data/priority_config.json; edits from the UI go to
+var/priority_config.json).
+
+Value lost per week of site delay (risk-adjusted NPV of the trial delay it causes):
+
+    trial delay per site-week  = 7 days × site enrollment rate / study enrollment rate
+    value of one trial day     = p × sales per day / (1 + r)^L  +  direct trial cost per day
+    money at risk per week     = trial delay per site-week × value of one trial day
+
+Enrollment is the trial's critical path: the study ends when planned enrollment is reached,
+so a week without this site's patients pushes the end out by the time the rest of the study
+takes to enroll them. A later end with a fixed patent expiry removes that many days of sales
+at launch, L years away; they are discounted at r and weighted by p, the chance the drug is
+approved at all. Direct trial costs are paid now, so they are neither discounted nor weighted.
+Defaults and their sources are in COST_SOURCES and the backend README.
+
 Leniency is a share of the gap between a playbook standard and its escalate floor
 (rules.bands(), from the playbook's limits), capped at MAX_SHARE, so no setting can move an escalate floor.
 """
@@ -22,6 +37,33 @@ WEEKS_PER_MONTH = 52 / 12
 MAX_SHARE = 0.75
 MIN_CONFIDENCE = 0.80
 LEVELS = ("high", "elevated", "standard")
+COST_OF_DELAY = {
+    "trialEnrollmentMonths": "months the whole study plans to enroll over",
+    "salesPerDayUsd": "sales per day once on the market",
+    "probabilityOfApproval": "chance the drug is approved, from its current phase",
+    "yearsToLaunch": "years from now until launch",
+    "discountRate": "annual discount rate (cost of capital)",
+    "trialCostPerDayUsd": "direct cost of running the trial for a day",
+}
+COST_SOURCES = {
+    "salesPerDayUsd": "Tufts CSDD 2024 (Smith, DiMasi, Getz): median oncology sales per day, $840,000 (2023 US$)",
+    "probabilityOfApproval": "BIO/Informa/QLS 2021: likelihood of approval from Phase II, solid tumors, 9.3%",
+    "yearsToLaunch": "BIO/Informa/QLS 2021: oncology Phase II 3.7 + Phase III 3.1 + review 0.8 = 7.6 years",
+    "discountRate": "DiMasi, Grabowski, Hansen 2016: 10.5% real cost of capital",
+    "trialCostPerDayUsd": "Tufts CSDD 2024: Phase II direct trial cost per day, $23,737 (2023 US$)",
+    "trialEnrollmentMonths": "Study plan (fictional NSO-417): 340 patients over 24 months",
+}
+# Bounds for each cost-of-delay input: (low, high, low is exclusive)
+COST_BOUNDS = {
+    "trialEnrollmentMonths": (0, 240, True),
+    "salesPerDayUsd": (0, 100_000_000, False),
+    "probabilityOfApproval": (0, 1, True),
+    "yearsToLaunch": (0, 30, False),
+    "discountRate": (0, 1, False),
+    "trialCostPerDayUsd": (0, 10_000_000, False),
+}
+# Figures the money-at-risk formula needs; the per-patient amount is read and shown, not used
+REQUIRED = ("enrollment_target_subjects", "enrollment_period_months")
 FIGURES = {
     "enrollment_target_subjects": "integer number of subjects this institution is expected to enroll",
     "enrollment_period_months": "integer months over which this institution enrolls",
@@ -37,8 +79,11 @@ LOG_PATH = RUNTIME_DIR / "priority_config_log.json"
 
 
 def load_config() -> dict:
-    path = SAVED_PATH if SAVED_PATH.exists() else DEFAULT_PATH
-    return json.loads(path.read_text())
+    """The saved config, with any key it predates (e.g. costOfDelay) filled from the defaults."""
+    default = json.loads(DEFAULT_PATH.read_text())
+    if not SAVED_PATH.exists():
+        return default
+    return {**default, **json.loads(SAVED_PATH.read_text())}
 
 
 def _is_num(v: Any) -> bool:
@@ -49,7 +94,7 @@ def validate_config(cfg: Any) -> list[str]:
     if not isinstance(cfg, dict):
         return ["Config must be an object"]
     errors: list[str] = []
-    extra = set(cfg) - {"plannedEnrollment", "thresholds", "daysBuckets", "leniency"}
+    extra = set(cfg) - {"plannedEnrollment", "thresholds", "daysBuckets", "leniency", "costOfDelay"}
     if extra:
         errors.append("Unknown keys: " + ", ".join(sorted(extra)))
     planned = cfg.get("plannedEnrollment")
@@ -75,6 +120,14 @@ def validate_config(cfg: Any) -> list[str]:
                 errors.append(f"leniency.{level} must be three numbers, one per days-waiting bucket")
             elif not all(0 <= x <= MAX_SHARE for x in row):
                 errors.append(f"leniency.{level}: each share must be between 0 and {MAX_SHARE}")
+    c = cfg.get("costOfDelay")
+    if not isinstance(c, dict) or set(c) != set(COST_OF_DELAY):
+        errors.append("costOfDelay needs exactly " + ", ".join(COST_OF_DELAY))
+    else:
+        for key, (low, high, open_low) in COST_BOUNDS.items():
+            v = c[key]
+            if not _is_num(v) or not (low < v if open_low else low <= v) or v > high:
+                errors.append(f"costOfDelay.{key} must be a number {'above' if open_low else 'from'} {low:g} {'and at most' if open_low else 'to'} {high:g}")
     return errors
 
 
@@ -137,30 +190,43 @@ def assess(inputs: dict | None, cfg: dict | None = None) -> dict:
     if inputs.get("source") == "contract" and inputs.get("confidence", 0) < MIN_CONFIDENCE:
         return _unknown(inputs, "Enrollment figures were read with low confidence → treated as standard.")
     by_field = {f["field"]: f for f in inputs.get("figures", [])}
-    missing = [name for name in FIGURES if name not in by_field]
+    missing = [name for name in REQUIRED if name not in by_field]
     if missing:
         return _unknown(inputs, "Contract does not state " + ", ".join(m.replace("_", " ") for m in missing) + " → treated as standard.")
-    if not all(by_field[name].get("verified") for name in FIGURES):
+    if not all(by_field[name].get("verified") for name in REQUIRED):
         return _unknown(inputs, "A figure's quote was not found verbatim in the contract → treated as standard.")
-    target, months, per_patient = (_num(by_field[name]["value"]) for name in FIGURES)
-    if not target or not months or not per_patient or target <= 0 or months <= 0 or per_patient <= 0:
+    target, months = (_num(by_field[name]["value"]) for name in REQUIRED)
+    if not target or not months or target <= 0 or months <= 0:
         return _unknown(inputs, "Enrollment figures are not usable numbers → treated as standard.")
-    per_week = target / (months * WEEKS_PER_MONTH)
-    at_risk = per_week * per_patient
+    c = cfg["costOfDelay"]
+    site_rate = target / months  # patients a month
+    study_rate = cfg["plannedEnrollment"] / c["trialEnrollmentMonths"]
+    rate_share = min(1.0, site_rate / study_rate)
+    delay_days = 7 * rate_share  # trial days lost per week this site is held up
+    lost_sales = c["probabilityOfApproval"] * c["salesPerDayUsd"] / (1 + c["discountRate"]) ** c["yearsToLaunch"]
+    day_value = lost_sales + c["trialCostPerDayUsd"]
+    at_risk = delay_days * day_value
     t = cfg["thresholds"]
     level = "high" if at_risk >= t["high"] else "elevated" if at_risk >= t["elevated"] else "standard"
     share = target / cfg["plannedEnrollment"]
+    per_patient = _num(by_field.get("per_patient_amount_usd", {}).get("value")) if by_field.get("per_patient_amount_usd", {}).get("verified") else None
     return {
         "level": level,
         "moneyAtRiskPerWeek": round(at_risk),
-        "patientsPerWeek": round(per_week, 2),
+        "patientsPerWeek": round(site_rate / WEEKS_PER_MONTH, 2),
         "shareOfPlanned": round(share, 3),
+        "shareOfEnrollmentRate": round(rate_share, 4),
+        "trialDelayDaysPerWeek": round(delay_days, 2),
+        "trialDayValueUsd": round(day_value),
+        "lostSalesPerTrialDayUsd": round(lost_sales),
+        "trialCostPerDayUsd": round(c["trialCostPerDayUsd"]),
         "targetSubjects": target,
         "enrollmentMonths": months,
         "perPatientUsd": per_patient,
         "reason": (
-            f"≈{money(at_risk)}/week at risk: {target:g} subjects over {months:g} months × "
-            f"{money(per_patient)} per patient ({share:.0%} of planned enrollment)."
+            f"≈{money(at_risk)}/week at risk: {target:g} subjects over {months:g} months is {rate_share:.0%} of the study's "
+            f"enrollment rate, so each week this site waits delays the trial ≈{delay_days:.1f} days. A trial day is worth "
+            f"≈{money(day_value)}: {money(lost_sales)} in risk-adjusted, discounted sales plus {money(c['trialCostPerDayUsd'])} in trial costs."
         ),
         "source": inputs.get("source"),
         "figures": inputs.get("figures", []),
@@ -203,7 +269,7 @@ def leniency_for(prio: dict, days: int, cfg: dict | None = None) -> dict:
 
 
 def describe(lenient: dict) -> str:
-    """'high priority ($11,200/week at risk), 0 days waiting → 50% of the gap'"""
+    """'high priority ($79,473/week at risk), 0 days waiting → 50% of the gap'"""
     at_risk = lenient.get("moneyAtRiskPerWeek")
     risk = f" ({money(at_risk)}/week at risk)" if at_risk is not None else ""
     return f"{lenient['level']} priority{risk}, {lenient['days']} days waiting → {lenient['share']:.0%} of the gap"

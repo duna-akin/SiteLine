@@ -41,7 +41,7 @@ def test_stale_seeded_attachment_is_rebuilt_and_triages_with_priority(tmp_path, 
 
     agreement = asyncio.run(go())
     assert agreement["priority"]["level"] == "standard"
-    assert agreement["priority"]["moneyAtRiskPerWeek"] == 2308  # 20 subjects / 24 months × $12,000
+    assert agreement["priority"]["moneyAtRiskPerWeek"] == 24835  # 20 subjects / 24 months, 5.9% of the study's rate
 
 
 def test_old_outcome_names_load_as_the_new_ones(tmp_path, monkeypatch):

@@ -30,15 +30,35 @@ def lenient(level: str, days: int = 0) -> dict:
 def test_site07_figures_give_high_priority():
     p = priority.assess(figures())
     assert p["level"] == "high"
-    assert p["moneyAtRiskPerWeek"] == 11200  # 48 subjects / (18 × 52/12 weeks) × $18,200
+    # 48/18 a month against the study's 340/24 → 18.8% of its enrollment rate → 1.32 trial days a week;
+    # a trial day = 9.3% × $840,000 / 1.105^7.6 + $23,737 ≈ $60,314
+    assert p["shareOfEnrollmentRate"] == pytest.approx((48 / 18) / (340 / 24), abs=0.0001)
+    assert p["trialDayValueUsd"] == round(0.093 * 840_000 / 1.105 ** 7.6 + 23_737)
+    assert p["moneyAtRiskPerWeek"] == 79473
     assert p["shareOfPlanned"] == pytest.approx(48 / 340, abs=0.001)
-    assert "≈$11,200/week at risk" in p["reason"]
+    assert "≈$79,473/week at risk" in p["reason"]
+
+
+def test_money_at_risk_is_the_npv_of_the_trial_delay():
+    cfg = priority.load_config()
+    c = cfg["costOfDelay"]
+    base = priority.assess(figures(), cfg)["moneyAtRiskPerWeek"]
+    no_sales = {**cfg, "costOfDelay": {**c, "salesPerDayUsd": 0}}
+    assert priority.assess(figures(), no_sales)["moneyAtRiskPerWeek"] == round(7 * (48 / 18) / (340 / 24) * 23_737)
+    later = {**cfg, "costOfDelay": {**c, "yearsToLaunch": c["yearsToLaunch"] + 1}}
+    assert priority.assess(figures(), later)["moneyAtRiskPerWeek"] < base  # sales further out are worth less today
+    surer = {**cfg, "costOfDelay": {**c, "probabilityOfApproval": 0.5}}
+    assert priority.assess(figures(), surer)["moneyAtRiskPerWeek"] > base
+    # the per-patient amount is shown but does not change the value lost
+    assert priority.assess(figures(usd="99000"), cfg)["moneyAtRiskPerWeek"] == base
+    # one site can never delay the trial by more than the week it waits
+    assert priority.assess(figures("340", "1"), cfg)["trialDelayDaysPerWeek"] == 7
 
 
 def test_levels_follow_the_thresholds():
-    assert priority.assess(figures("30", "24", "16000"))["level"] == "elevated"  # ≈$4,615
-    assert priority.assess(figures("20", "24", "12000"))["level"] == "standard"  # ≈$2,308
-    cfg = {**priority.load_config(), "thresholds": {"high": 2000, "elevated": 1000}}
+    assert priority.assess(figures("40", "24", "12000"))["level"] == "elevated"  # ≈$49,670
+    assert priority.assess(figures("20", "24", "12000"))["level"] == "standard"  # ≈$24,835
+    cfg = {**priority.load_config(), "thresholds": {"high": 20000, "elevated": 10000}}
     assert priority.assess(figures("20", "24", "12000"), cfg)["level"] == "high"
 
 
@@ -48,7 +68,7 @@ def test_levels_follow_the_thresholds():
     figures(verified=False),
     figures(confidence=0.5),
     figures(months="0"),
-    {**figures(), "figures": figures()["figures"][:2]},
+    {**figures(), "figures": figures()["figures"][::2]},  # no enrollment period
 ])
 def test_missing_or_unverified_figures_are_unknown(inputs):
     p = priority.assess(inputs)
@@ -128,6 +148,17 @@ def test_config_bounds_are_enforced():
     assert priority.validate_config({**ok, "thresholds": {"high": 100, "elevated": 500}})
     assert priority.validate_config({**ok, "daysBuckets": [90, 30]})
     assert priority.validate_config({**ok, "escalateFloor": 99})
+    assert priority.validate_config({**ok, "costOfDelay": {**ok["costOfDelay"], "probabilityOfApproval": 0}})
+    assert priority.validate_config({**ok, "costOfDelay": {**ok["costOfDelay"], "discountRate": 1.5}})
+    assert priority.validate_config({k: v for k, v in ok.items() if k != "costOfDelay"})
+
+
+def test_config_saved_before_cost_of_delay_still_loads(monkeypatch, tmp_path):
+    old = {k: v for k, v in priority.load_config().items() if k != "costOfDelay"}
+    path = tmp_path / "saved.json"
+    path.write_text(__import__("json").dumps(old))
+    monkeypatch.setattr(priority, "SAVED_PATH", path)
+    assert priority.validate_config(priority.load_config()) == []
 
 
 # ---- pipeline + API: Site 07 end to end ----------------------------------------------
@@ -157,7 +188,7 @@ def site07(tmp_path, monkeypatch):
 
 def test_site07_triages_to_high_priority_with_widened_rules(site07):
     a = store.get_agreement("site-07")
-    assert a["priority"]["level"] == "high" and a["priority"]["moneyAtRiskPerWeek"] == 11200
+    assert a["priority"]["level"] == "high" and a["priority"]["moneyAtRiskPerWeek"] == 79473
     rules = {d["ruleId"] for d in store.get_decisions("site-07")}
     assert {"PAY-A3P", "CONF-A2P"} <= rules
     assert all(d["precedent"] is None or d["precedent"]["sameSite"] for d in store.get_decisions("site-07"))
@@ -197,7 +228,7 @@ def test_saving_config_redecides_only_open_suggestions(site07):
 def test_approver_text_carries_the_stakes(site07):
     d = next(d for d in store.get_decisions("site-07") if d["outcome"] == "escalate")
     text = approvals.message_text("site-07", d)
-    assert "Site 07 = high priority, ≈$11,200/week at risk (14% of planned enrollment)." in text
+    assert "Site 07 = high priority, ≈$79,473/week at risk (14% of planned enrollment)." in text
 
 
 def test_escalation_queue_puts_money_at_risk_first(site07, monkeypatch):

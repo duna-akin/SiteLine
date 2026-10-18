@@ -478,6 +478,7 @@ def _priority_settings() -> dict:
         "bands": [{"field": f, **b} for f, b in bands().items()],
         "maxShare": priority.MAX_SHARE,
         "weeksPerMonth": priority.WEEKS_PER_MONTH,
+        "costSources": priority.COST_SOURCES,
         "log": priority.config_log()[-20:][::-1],
     }
 

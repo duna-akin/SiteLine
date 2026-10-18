@@ -40,7 +40,7 @@ def _short(text: str, n: int = 220) -> str:
 
 
 def priority_line(agreement_id: str) -> str:
-    """'Site 07 = high priority, ≈$11,200/week at risk (14% of planned enrollment).' or ''."""
+    """'Site 07 = high priority, ≈$79,473/week at risk (14% of planned enrollment).' or ''."""
     a = store.state()["agreements"].get(agreement_id, {})
     prio = priority.assess(a.get("priorityInputs"))
     if prio["moneyAtRiskPerWeek"] is None:
