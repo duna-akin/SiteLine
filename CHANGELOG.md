@@ -3,6 +3,19 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · Eval fixes
+
+### Fixed
+
+- **Eval accuracy is now 94.2% (was 79.0%), with 0% unsafe accepts and 94.8% escalation recall.** The LLM-only baseline scores 91.8%. Every remaining miss goes to human review.
+- **Quotes wrapped in quotation marks** (“…”) now verify when the text inside is verbatim; 22 rows had failed only on that. Quote pass rate is 99.6%, and priority figures use the same check.
+- **An accepted carve-out must be named in its quote.** A carve-out cut to "intentional fraud" was rounded to gross negligence and accepted (the one unsafe accept). Quotes for `negligence` or `gross_negligence_or_willful_misconduct` must now contain those words, or the row goes to human review.
+- **Termination for convenience** is reported only when the change grants it, so changing only the notice period no longer escalates as `TERM-E1` (8 rows).
+- **Choice of law** must name a US state; "the state the parties later select" had been accepted as `GOV-A2`. `institution_is_public` is asked for with governing-law and public-records terms.
+- **Values:** booleans with stray punctuation (`>true`) are read; empty values still go to human review. A cosmetic edit that only notes an adverse term is absent (`discloses_to_affiliates = false`) counts as cosmetic. The prompt never quotes its own labels ("Tracked edits").
+- **Relabelled lc-055 and lc-056** from human review to escalate: the playbook escalates an open-ended review window (`PUB-E3`).
+- **Rate limits:** the merged extraction prompt is about 9,400 tokens, so live eval calls are 16 in flight with up to 8 retries. A cold run takes about 1–3 minutes; a re-run with stored answers takes about 2 s.
+
 ## [Unreleased] · A re-run eval takes seconds
 
 ### Changed
