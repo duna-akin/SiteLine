@@ -101,6 +101,12 @@ class Job:
         self.log_lines.append(line)
         events.publish("triage.log", {"jobId": self.id, "line": line})
 
+    def sandbox_phase(self, phase: str, state: str, seconds: float | None, detail: str) -> None:
+        events.publish(
+            "triage.sandbox",
+            {"jobId": self.id, "phase": phase, "state": state, "seconds": seconds, "detail": detail},
+        )
+
 
 def _verdict(change: dict, ex: dict, values: list[dict], clause: str, site_name: str, agreement_id: str,
              history: list[dict], lenient: dict | None, round_started: str | None = None,
@@ -246,7 +252,7 @@ async def _triage(data: bytes, file_name: str, options: TriageOptions, source: s
     if use_daytona:
         job.step("sandbox", "active", "Starting a fresh sandbox for this file", "Daytona")
         try:
-            parsed, sandbox_id = await parse_in_daytona(data, job.log, label=job.id)
+            parsed, sandbox_id = await parse_in_daytona(data, job.log, label=job.id, phase=job.sandbox_phase)
             job.step("sandbox", "done", f"Sandbox {sandbox_id} · network blocked", "Daytona")
         except SandboxError as e:
             job.log(f"Sandbox failed: {e}. Falling back to the local parser.")
