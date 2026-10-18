@@ -12,6 +12,6 @@ npm run lint
 - Needs the API in `../backend` (`uv run siteline serve`); Vite proxies `/api` to `http://127.0.0.1:8000`.
 - `src/api/index.ts` is the API client; `src/api/events.ts` follows live server events (triage progress, approver replies, eval runs).
 - `src/mocks/` now only holds static labels and the fictional playbook copy used by the editor's Reset.
-- Theme tokens live in `src/styles/theme.css`. Put the Makcasa and AV Estiana `.woff2` files in `src/assets/fonts/`.
+- Theme tokens live in `src/styles/theme.css`. Fonts (IBM Plex Serif, Sans and Mono) load from Google Fonts in `index.html`.
 
 Demo path: Upload → Triage redline → Open decision list → reply on the phone (or Simulate no reply → voice call) → Export counter-proposal.

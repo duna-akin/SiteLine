@@ -24,3 +24,19 @@ idea
 .claude/settings.local.json
 
 .superpowers/
+
+# Editor settings and planning notes (kept locally)
+.helix/
+.vscode/
+.zed/
+docs/superpowers/
+
+# Root Chalk starter project (kept locally; the app is in backend/ and frontend/)
+/pyproject.toml
+/uv.lock
+/chalk.yaml
+/.chalkignore
+.claude/skills/
+
+# Local agent notes
+CLAUDE.md
