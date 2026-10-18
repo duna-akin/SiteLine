@@ -45,7 +45,7 @@ function Tabs({ newEmail, onNavigate, stacked }: { newEmail: boolean; onNavigate
           stacked
             ? cn('min-h-11 justify-between rounded-[6px] px-3', current ? 'bg-page text-ink' : 'text-muted hover:bg-page hover:text-ink')
             : cn(
-                'h-16 px-3 after:absolute after:inset-x-3 after:bottom-0 after:h-[2px] after:transition-colors',
+                'h-16 flex-1 justify-center px-3 after:absolute after:inset-x-3 after:bottom-0 after:h-[2px] after:transition-colors',
                 current ? 'text-ink after:bg-accent' : 'text-muted after:bg-transparent hover:text-ink',
               ),
         )}
@@ -84,7 +84,7 @@ export function AppShell() {
           <Link to="/" aria-label="Siteline home" className="shrink-0 rounded-[6px]">
             <Wordmark />
           </Link>
-          <nav aria-label="Primary" className="hidden items-center min-[1081px]:flex">
+          <nav aria-label="Primary" className="hidden flex-1 items-center min-[1081px]:flex">
             <Tabs newEmail={newEmail} />
           </nav>
           <div className="ml-auto flex items-center gap-2">
