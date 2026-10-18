@@ -168,7 +168,7 @@ async def get_document(agreement_id: str) -> dict:
 
 
 class OverrideBody(BaseModel):
-    outcome: Literal["accept", "fallback", "escalate", "human_review", "novel"]
+    outcome: Literal["accept", "fallback", "escalate", "human_review"]
     reason: str = Field(min_length=8, max_length=1000)
 
 

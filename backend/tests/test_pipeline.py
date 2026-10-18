@@ -41,8 +41,7 @@ def test_seed_extraction_gives_the_demo_mix(parsed):
     assert outcomes.count("accept") == 3
     assert outcomes.count("fallback") == 4
     assert outcomes.count("escalate") == 4
-    assert outcomes.count("human_review") == 2
-    assert outcomes.count("novel") == 1
+    assert outcomes.count("human_review") == 3  # incl. change 8, a term no playbook rule covers
     assert outcomes[11] == "human_review"  # change 12's quote is not in the redline
 
 

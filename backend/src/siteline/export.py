@@ -17,7 +17,7 @@ from siteline.docx_writer import DocxWriter
 from siteline.playbook import SPONSOR, approvers
 
 SPONSOR_AUTHOR = f"{SPONSOR['name']} (via Siteline)"
-OUTCOME_LABEL = {"accept": "Accept", "fallback": "Fallback", "escalate": "Escalate", "human_review": "Human review", "novel": "Novel"}
+OUTCOME_LABEL = {"accept": "Accept", "fallback": "Fallback", "escalate": "Escalate", "human_review": "Human review"}
 
 
 def final_text(d: dict) -> tuple[str, str | None]:

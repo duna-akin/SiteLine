@@ -21,7 +21,7 @@ from siteline.samples import SAMPLES, matched, sample_bytes, seed_entries
 from siteline.verify import verify_value
 
 IDS = [f"site{s.number}-{s.slug}" for s in SAMPLES]
-PENDING = ("escalate", "human_review", "novel")
+PENDING = ("escalate", "human_review")
 
 
 @pytest.fixture(scope="module")
@@ -85,7 +85,7 @@ def test_samples_reach_every_rule_and_outcome():
     need = {i for i in ids if not i.endswith("P")} - {"SYS-ERROR"}
     got = {c.expect[1] for s in SAMPLES for c in s.changes}
     assert need <= got, f"no sample reaches {sorted(need - got)}"
-    assert {"NONE", "PAY-A3P"} <= got
+    assert "PAY-A3P" in got
     assert {c.expect[0] for s in SAMPLES for c in s.changes} == set(store.OUTCOMES)
     assert {s.priority for s in SAMPLES} == {"high", "elevated", "standard"}
 

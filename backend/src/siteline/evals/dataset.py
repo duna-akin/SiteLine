@@ -3,8 +3,8 @@ manager would assign under the playbook.
 
 Every change is generated from templates written for this project (no real contract
 text). Labels follow the playbook, not Siteline's rules code, and include cases the rules
-do not cover: cosmetic edits (accept), ambiguous wording (human review) and terms the
-playbook never mentions (novel).
+do not cover: cosmetic edits (accept), and ambiguous wording or terms the playbook never
+mentions (both human review).
 
 After those 150 come 12 escalations judged with the site's history (precedent_items): six
 where precedent should turn them into accepts and six where it must not.
@@ -218,7 +218,7 @@ def build() -> list[dict]:
     ]
     for section, text in novel:
         out.append(item(section, "data_privacy" if "Machine" in section or "AI" in section or "Data" in section else "payment_terms",
-                        [I(text)], "novel", "no playbook rule", mark="ins"))
+                        [I(text)], "human_review", "no playbook rule", mark="ins"))
 
     # Ambiguous wording (a person should read it)
     amb = [

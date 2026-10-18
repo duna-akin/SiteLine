@@ -37,7 +37,7 @@ def seed_attachment(e: dict) -> bytes:
     from siteline.evals.dataset import load_dataset
 
     rng = random.Random(e["id"])
-    pool = [it for it in load_dataset() if it["gold"] != "novel" and it["section"].split(".")[0] in FORM_ARTICLES]
+    pool = [it for it in load_dataset() if it["note"] != "no playbook rule" and it["section"].split(".")[0] in FORM_ARTICLES]
     rng.shuffle(pool)
     picked: dict[str, dict] = {}
     for it in pool:

@@ -28,7 +28,7 @@ from siteline.rules import Verdict, decide
 from siteline.sandbox import SandboxError, parse_in_daytona
 from siteline.verify import verify_quote, verify_value
 
-OUTCOMES = ["accept", "fallback", "escalate", "human_review", "novel"]
+OUTCOMES = ["accept", "fallback", "escalate", "human_review"]
 # Both tiers: every row is also decided for a high-priority site at the widest allowed leniency
 HIGH_TIER = {"level": "high", "share": MAX_SHARE, "days": 120, "bucket": "eval", "moneyAtRiskPerWeek": 25000}
 RESULTS_DIR = DATA_DIR / "evals"
@@ -58,8 +58,7 @@ Pick exactly one outcome:
 - accept: the change meets the standard or a pre-approved fallback, or changes nothing of substance.
 - fallback: counter the change with the pre-approved fallback.
 - escalate: the change hits an escalation trigger; the clause owner must approve.
-- human_review: the wording is ambiguous and a person must read it.
-- novel: the change adds a term the playbook does not address.
+- human_review: the wording is ambiguous, or the change adds a term the playbook does not address; a person must read it.
 Also give a verbatim quote from the change that supports your answer, and one sentence of rationale."""
 
 

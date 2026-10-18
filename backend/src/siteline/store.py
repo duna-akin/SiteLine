@@ -19,7 +19,7 @@ log = logging.getLogger("siteline.store")
 
 STATE_PATH = RUNTIME_DIR / "state.json"
 SEED_PATH = DATA_DIR / "seed_portfolio.json"
-OUTCOMES = ("accept", "fallback", "escalate", "human_review", "novel")
+OUTCOMES = ("accept", "fallback", "escalate", "human_review")
 
 _lock = threading.RLock()
 _state: dict[str, Any] = {}
@@ -64,6 +64,15 @@ def load() -> None:
             for e in _state["emails"]:
                 if "enrollment" not in e and "enrollment" in seeded_emails.get(e["id"], {}):
                     e["enrollment"] = seeded_emails[e["id"]]["enrollment"]
+            # State saved while "novel" was its own outcome: it is human review now (SYS-NOVEL)
+            for d in (d for ds in _state["decisions"].values() for d in ds):
+                if d["outcome"] == "novel":
+                    d["outcome"], d["ruleId"] = "human_review", "SYS-NOVEL"
+                if (d.get("override") or {}).get("outcome") == "novel":
+                    d["override"]["outcome"] = "human_review"
+            for a in _state["agreements"].values():
+                if mix := a.get("outcomeMix"):
+                    mix["human_review"] = mix.get("human_review", 0) + mix.pop("novel", 0)
         else:
             _state = _seed()
 
@@ -122,12 +131,12 @@ def effective_outcome(d: dict) -> str:
     return (d.get("override") or {}).get("outcome") or d["outcome"]
 
 
-UNRESOLVED = ("human_review", "novel")
+UNRESOLVED = ("human_review",)
 
 
 def is_waiting(d: dict) -> bool:
     """Blocked on an approver's reply or a reviewer's decision. A change whose outcome (after any
-    override) is human review or novel still needs that decision: export holds it as pending."""
+    override) is human review still needs that decision: export holds it as pending."""
     o = effective_outcome(d)
     return (o == "escalate" and d["approval"]["state"] != "answered") or o in UNRESOLVED
 

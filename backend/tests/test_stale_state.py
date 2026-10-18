@@ -42,3 +42,20 @@ def test_stale_seeded_attachment_is_rebuilt_and_triages_with_priority(tmp_path, 
     agreement = asyncio.run(go())
     assert agreement["priority"]["level"] == "standard"
     assert agreement["priority"]["moneyAtRiskPerWeek"] == 2308  # 20 subjects / 24 months × $12,000
+
+
+def test_old_novel_decisions_load_as_human_review(tmp_path, monkeypatch):
+    """State saved while "novel" was its own outcome reads as human review (SYS-NOVEL)."""
+    seed = json.loads(store.SEED_PATH.read_text())
+    novel = {"id": "c1", "outcome": "novel", "ruleId": "NONE", "approval": {"state": "none"}}
+    overridden = {"id": "c2", "outcome": "accept", "ruleId": "PAY-A1", "approval": {"state": "none"},
+                  "override": {"outcome": "novel", "reason": "new term", "at": 0}}
+    path = tmp_path / "state.json"
+    path.write_text(json.dumps({**seed, "agreements": {"site-07": {"id": "site-07", "outcomeMix": {"accept": 1, "novel": 1}}},
+                                "decisions": {"site-07": [novel, overridden]}, "documents": {}}))
+    monkeypatch.setattr(store, "STATE_PATH", path)
+    store.load()
+    d1, d2 = store.get_decisions("site-07")
+    assert (d1["outcome"], d1["ruleId"]) == ("human_review", "SYS-NOVEL")
+    assert d2["override"]["outcome"] == "human_review" and store.is_waiting(d2)
+    assert store.state()["agreements"]["site-07"]["outcomeMix"] == {"accept": 1, "human_review": 1}
