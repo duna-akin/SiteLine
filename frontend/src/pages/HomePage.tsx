@@ -2,7 +2,6 @@ import { useState, type DragEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowRight, RotateCw, Upload } from 'lucide-react'
 
-import { DataMap } from '@/components/siteline/DataMap'
 import { EscalationQueue } from '@/components/siteline/EscalationQueue'
 import { InboundFeed } from '@/components/siteline/InboundFeed'
 import { byMoney, isOnUs, openSites, usd } from '@/components/siteline/priority-style'
@@ -147,20 +146,6 @@ function InboundTile() {
   )
 }
 
-function DataTile() {
-  const { integrations } = useDemo()
-  const { agreements } = useDesk()
-  return (
-    <section className="tile min-[1081px]:col-span-12" aria-labelledby="data-h">
-      <div className="tile-head">
-        <h2 id="data-h">Where your data lives</h2>
-        <Link to="/data" className="link">Data and evals <ArrowRight aria-hidden className="size-4" /></Link>
-      </div>
-      <DataMap integrations={integrations} agreements={agreements ?? []} />
-    </section>
-  )
-}
-
 export function HomePage() {
   const { agreements, queue, error, refresh } = useDesk()
 
@@ -181,7 +166,7 @@ export function HomePage() {
       <div className="wrap pb-12" role="status" aria-label="Loading your desk">
         <div className="hello pt-9 pb-6"><div className="h-12 w-2/3 animate-pulse rounded-[6px] bg-sunken" /></div>
         <div className="grid grid-cols-1 gap-6 min-[1081px]:grid-cols-12">
-          {['min-[1081px]:col-span-12', 'min-[1081px]:col-span-7', 'min-[1081px]:col-span-5', 'min-[1081px]:col-span-12'].map((span, i) => (
+          {['min-[1081px]:col-span-12', 'min-[1081px]:col-span-7', 'min-[1081px]:col-span-5'].map((span, i) => (
             <div key={i} className={`tile h-64 animate-pulse ${span}`} />
           ))}
         </div>
@@ -201,7 +186,6 @@ export function HomePage() {
         <QueueTile queue={queue} />
         <SitesTile />
         <InboundTile />
-        <DataTile />
       </div>
     </div>
   )
