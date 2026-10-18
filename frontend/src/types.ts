@@ -204,12 +204,17 @@ export interface PriorityFigure {
   verified: boolean
 }
 
-/** Money at risk per week of delay, computed by the backend from the figures and the config. */
+/** Value lost per week the site is held up (risk-adjusted NPV of the trial delay), computed by the backend. */
 export interface SitePriority {
   level: PriorityLevel
   moneyAtRiskPerWeek: number | null
   patientsPerWeek?: number
   shareOfPlanned?: number
+  shareOfEnrollmentRate?: number
+  trialDelayDaysPerWeek?: number
+  trialDayValueUsd?: number
+  lostSalesPerTrialDayUsd?: number
+  trialCostPerDayUsd?: number
   reason: string
   source?: 'contract' | 'study plan' | null
   figures: PriorityFigure[]
@@ -239,12 +244,23 @@ export interface Decision extends Change {
 
 export interface PriorityConfig {
   plannedEnrollment: number
-  /** Dollars at risk per week: at or above high → high, at or above elevated → elevated. */
+  /** Value lost per week of site delay: at or above high → high, at or above elevated → elevated. */
   thresholds: { high: number; elevated: number }
   /** Upper bounds of the first two days-waiting buckets, e.g. [30, 90]. */
   daysBuckets: [number, number]
   /** Share of the gap per level, one per days-waiting bucket, each 0 to maxShare. */
   leniency: Record<'high' | 'elevated' | 'standard', [number, number, number]>
+  /** Inputs to the value of one day of trial delay (see backend priority.py). */
+  costOfDelay: CostOfDelay
+}
+
+export interface CostOfDelay {
+  trialEnrollmentMonths: number
+  salesPerDayUsd: number
+  probabilityOfApproval: number
+  yearsToLaunch: number
+  discountRate: number
+  trialCostPerDayUsd: number
 }
 
 export interface PriorityBand {
@@ -269,6 +285,8 @@ export interface PrioritySettings {
   bands: PriorityBand[]
   maxShare: number
   weeksPerMonth: number
+  /** Where each cost-of-delay default comes from. */
+  costSources: Record<keyof CostOfDelay, string>
   log: PriorityConfigChange[]
 }
 

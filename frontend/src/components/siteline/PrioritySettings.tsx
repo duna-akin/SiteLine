@@ -5,11 +5,17 @@ import * as api from '@/api'
 import { priorityPill, priorityShort, usd } from '@/components/siteline/priority-style'
 import { cn } from '@/lib/utils'
 import { useDemo } from '@/state/demo'
-import type { PriorityBand, PriorityConfig, PrioritySettings as Settings, RedecidedChange } from '@/types'
+import type { CostOfDelay, PriorityBand, PriorityConfig, PrioritySettings as Settings, RedecidedChange } from '@/types'
 
 const LEVELS = ['high', 'elevated', 'standard'] as const
 
 const pct = (share: number) => `${Math.round(share * 100)}%`
+
+/** Risk-adjusted, discounted sales lost per trial day, and the whole day with trial costs (mirrors priority.assess). */
+function trialDay(c: CostOfDelay) {
+  const sales = (c.probabilityOfApproval * c.salesPerDayUsd) / (1 + c.discountRate) ** c.yearsToLaunch
+  return { sales, total: sales + c.trialCostPerDayUsd }
+}
 
 /** The accept line a share of the gap gives this band (mirrors rules.band_limit). */
 const bandLimit = (b: PriorityBand, share: number) => Math.round((b.standard + share * (b.floor - b.standard)) * 100) / 100
@@ -126,6 +132,12 @@ export function PrioritySettings() {
   }
 
   const sites = preview ? new Set(preview.map((c) => c.agreementId)).size : 0
+  const cost = draft.costOfDelay
+  const day = trialDay(cost)
+  const setCost = (key: keyof CostOfDelay, v: number) => edit({ ...draft, costOfDelay: { ...cost, [key]: v } })
+  const wasCost = (key: keyof CostOfDelay, fmt: (v: number) => string) =>
+    cost[key] !== saved.costOfDelay[key] ? fmt(saved.costOfDelay[key]) : undefined
+  const pctOf = (v: number) => `${Math.round(v * 1000) / 10}%`
 
   return (
     <div className="grid grid-cols-1 gap-6 min-[1081px]:grid-cols-12">
@@ -133,18 +145,46 @@ export function PrioritySettings() {
         <section aria-labelledby="levels-h" className="tile">
           <div className="tile-head"><h3 id="levels-h" className="text-[19px]">Priority levels</h3></div>
           <p className="tile-sub">
-            Money at risk per week of delay = patients per week × per-patient amount, at {settings.weeksPerMonth.toFixed(2)} weeks a month. A site without usable figures is “unknown” and treated as standard.
+            Money at risk per week = trial days lost while this site waits × the value of a trial day (below). A site enrolling 10% of
+            the study’s patients per month delays the trial about 0.7 days for each week it waits. A site without usable enrollment
+            figures is “unknown” and treated as standard.
           </p>
           <div className="flex flex-col gap-2.5">
-            <Field label="High" hint="at or above, per week" prefix="$" suffix="/ week" min={1} max={10_000_000} step={500} slider={[0, 25_000]}
+            <Field label="High" hint="at or above, per week" prefix="$" suffix="/ week" min={1} max={10_000_000} step={1000} slider={[0, 300_000]}
               value={draft.thresholds.high} was={draft.thresholds.high !== saved.thresholds.high ? usd(saved.thresholds.high) : undefined}
               onChange={(v) => edit({ ...draft, thresholds: { ...draft.thresholds, high: v } })} />
-            <Field label="Elevated" hint="at or above, per week" prefix="$" suffix="/ week" min={1} max={10_000_000} step={500} slider={[0, 25_000]}
+            <Field label="Elevated" hint="at or above, per week" prefix="$" suffix="/ week" min={1} max={10_000_000} step={1000} slider={[0, 300_000]}
               value={draft.thresholds.elevated} was={draft.thresholds.elevated !== saved.thresholds.elevated ? usd(saved.thresholds.elevated) : undefined}
               onChange={(v) => edit({ ...draft, thresholds: { ...draft.thresholds, elevated: v } })} />
             <Field label="Planned enrollment" hint="patients across the study" suffix="patients" min={1} max={100_000} slider={[1, 2_000]}
               value={draft.plannedEnrollment} was={draft.plannedEnrollment !== saved.plannedEnrollment ? String(saved.plannedEnrollment) : undefined}
               onChange={(v) => edit({ ...draft, plannedEnrollment: v })} />
+            <Field label="Study enrollment period" hint={settings.costSources.trialEnrollmentMonths} suffix="months" min={1} max={240} slider={[6, 60]}
+              value={cost.trialEnrollmentMonths} was={wasCost('trialEnrollmentMonths', (v) => `${v} months`)}
+              onChange={(v) => setCost('trialEnrollmentMonths', v)} />
+          </div>
+        </section>
+
+        <section aria-labelledby="cod-h" className="tile">
+          <div className="tile-head"><h3 id="cod-h" className="text-[19px]">Value of a trial day</h3></div>
+          <p className="tile-sub">
+            A later finish with a fixed patent expiry loses a day of sales at launch. That day is weighted by the chance of approval and
+            discounted back to today; the trial’s own running cost is added undiscounted. With these inputs a trial day is
+            worth <b className="text-ink tabular">≈{usd(day.total)}</b> ({usd(day.sales)} in sales + {usd(cost.trialCostPerDayUsd)} in trial costs).
+          </p>
+          <div className="flex flex-col gap-2.5">
+            <Field label="Sales per day" hint={settings.costSources.salesPerDayUsd} prefix="$" suffix="/ day" min={0} max={100_000_000} step={10_000} slider={[0, 3_000_000]}
+              value={cost.salesPerDayUsd} was={wasCost('salesPerDayUsd', usd)} onChange={(v) => setCost('salesPerDayUsd', v)} />
+            <Field label="Chance of approval" hint={settings.costSources.probabilityOfApproval} suffix="%" min={0.1} max={100} step={0.1} slider={[1, 100]}
+              value={Math.round(cost.probabilityOfApproval * 1000) / 10} was={wasCost('probabilityOfApproval', pctOf)}
+              onChange={(v) => setCost('probabilityOfApproval', v / 100)} />
+            <Field label="Years to launch" hint={settings.costSources.yearsToLaunch} suffix="years" min={0} max={30} step={0.1} slider={[0, 15]}
+              value={cost.yearsToLaunch} was={wasCost('yearsToLaunch', (v) => `${v} years`)} onChange={(v) => setCost('yearsToLaunch', v)} />
+            <Field label="Discount rate" hint={settings.costSources.discountRate} suffix="% a year" min={0} max={100} step={0.5} slider={[0, 25]}
+              value={Math.round(cost.discountRate * 1000) / 10} was={wasCost('discountRate', pctOf)}
+              onChange={(v) => setCost('discountRate', v / 100)} />
+            <Field label="Trial cost per day" hint={settings.costSources.trialCostPerDayUsd} prefix="$" suffix="/ day" min={0} max={10_000_000} step={500} slider={[0, 100_000]}
+              value={cost.trialCostPerDayUsd} was={wasCost('trialCostPerDayUsd', usd)} onChange={(v) => setCost('trialCostPerDayUsd', v)} />
           </div>
         </section>
 
@@ -292,6 +332,7 @@ export function PrioritySettings() {
                       High {usd(entry.old.thresholds.high)} → {usd(entry.new.thresholds.high)} · elevated {usd(entry.old.thresholds.elevated)} → {usd(entry.new.thresholds.elevated)}
                       {JSON.stringify(entry.old.leniency) !== JSON.stringify(entry.new.leniency) && ' · leniency matrix changed'}
                       {JSON.stringify(entry.old.daysBuckets) !== JSON.stringify(entry.new.daysBuckets) && ` · buckets ${entry.old.daysBuckets.join('/')} → ${entry.new.daysBuckets.join('/')}`}
+                      {JSON.stringify(entry.old.costOfDelay) !== JSON.stringify(entry.new.costOfDelay) && ' · cost-of-delay inputs changed'}
                     </p>
                     <p className="text-xs text-muted">{entry.by} · {new Date(entry.at).toLocaleString()}</p>
                   </div>

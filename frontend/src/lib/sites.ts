@@ -19,7 +19,7 @@ export function whoLine(item: EscalationQueueItem, now: number) {
   return `${ownerLabel[d.owner]} · ${status}`
 }
 
-/** Matches the backend's priority line in an escalation text ("Site 07 = high priority, ≈$11,200/week at risk …"). */
+/** Matches the backend's priority line in an escalation text ("Site 07 = high priority, ≈$79,473/week at risk …"). */
 export const PRIORITY_LINE = /^Site \S+ = .*priority/
 
 export const hasPriorityLine = (text: string) => text.split('\n').some((l) => PRIORITY_LINE.test(l))
