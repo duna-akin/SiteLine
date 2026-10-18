@@ -49,6 +49,9 @@ def test_quote_verification_forgives_only_typography():
     ch = {"original": "", "revised": "Sponsor’s  review lasts sixty (60) days.", "segments": []}
     assert verify_quote("Sponsor's review lasts sixty (60) days", ch)
     assert not verify_quote("Sponsor review lasts sixty days", ch)
+    # wrapping quotation marks are forgiven; the text inside must still be verbatim
+    assert verify_quote("“sixty (60) days.”", ch) and verify_quote("'review lasts'", ch)
+    assert not verify_quote("“sixty days”", ch) and not verify_quote("“”", ch)
 
 
 def test_rules_escalate_and_fail_safe():

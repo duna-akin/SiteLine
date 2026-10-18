@@ -14,6 +14,14 @@ def normalize(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def unwrap(quote: str) -> str:
+    """A normalized quote without the quotation marks the model sometimes wraps it in: “like this”."""
+    q = normalize(quote)
+    while len(q) >= 2 and q[0] == q[-1] and q[0] in "\"'":
+        q = q[1:-1].strip()
+    return q
+
+
 def sources(change: dict, context: str = "") -> list[str]:
     """The change's own text, its tracked spans and comment, plus the agreement preamble
     (party names and status are often quoted from there)."""
@@ -23,10 +31,9 @@ def sources(change: dict, context: str = "") -> list[str]:
 
 
 def verify_quote(quote: str, change: dict, context: str = "") -> bool:
-    q = normalize(quote)
-    if len(q) < 3:
-        return False
-    return any(q in s for s in sources(change, context))
+    """Verbatim, forgiving only typography and wrapping quotation marks."""
+    texts = sources(change, context)
+    return any(len(q) >= 3 and any(q in s for s in texts) for q in {normalize(quote), unwrap(quote)})
 
 
 # Fields whose value is a number; that number must appear in the value's own quote.

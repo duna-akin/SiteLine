@@ -31,7 +31,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from siteline.config import DATA_DIR, RUNTIME_DIR
-from siteline.verify import normalize
+from siteline.verify import normalize, unwrap
 
 WEEKS_PER_MONTH = 52 / 12
 MAX_SHARE = 0.75
@@ -171,8 +171,8 @@ def inputs_from_extraction(ex: dict, text: str) -> dict:
     doc = normalize(text)
     figures = []
     for f in ex.get("figures", []):
-        q = normalize(f.get("quote") or "")
-        figures.append({**f, "verified": len(q) >= 3 and q in doc})
+        quotes = {normalize(f.get("quote") or ""), unwrap(f.get("quote") or "")}
+        figures.append({**f, "verified": any(len(q) >= 3 and q in doc for q in quotes)})
     return {"source": "contract", "figures": figures, "error": None, "confidence": float(ex.get("confidence") or 0)}
 
 
