@@ -159,8 +159,8 @@ export function OverrideForm({ d, onDone }: { d: Decision; onDone: () => void })
   )
 }
 
-/** Siteline's decision on one redlined paragraph, unfolded under it in the contract. */
-export function DecisionDetail({ d }: { d: Decision }) {
+/** Siteline's decision on one redlined paragraph, shown beside the contract or under the paragraph. */
+export function DecisionDetail({ d, className }: { d: Decision; className?: string }) {
   const { clearOverride, confirm, unconfirm } = useDemo()
   const [editing, setEditing] = useState(false)
   const outcome = effectiveOutcome(d)
@@ -170,13 +170,13 @@ export function DecisionDetail({ d }: { d: Decision }) {
   const OwnerIcon = ownerIcon[d.owner]
 
   return (
-    <div className="panel mt-2 mb-4 p-4 font-sans sm:p-5" style={{ borderLeft: `3px solid ${outcomeVar[outcome]}` }}>
+    <div className={cn('panel @container p-4 font-sans sm:p-5', className)} style={{ borderLeft: `3px solid ${outcomeVar[outcome]}` }}>
       <p className="eyebrow">
         Change {String(d.index).padStart(2, '0')} · {kindLabel[d.kind]} · {clauseLabel[d.clauseType]}
         {d.override && <span className="ml-2 normal-case">Siteline said <s>{outcomeLabel[d.outcome]}</s></span>}
       </p>
 
-      <dl className="mt-3 grid gap-4 text-sm md:grid-cols-2 [&>div]:min-w-0">
+      <dl className="mt-3 grid gap-4 text-sm @md:grid-cols-2 [&>div]:min-w-0">
         <div>
           <dt className="eyebrow">Rule fired</dt>
           <dd className="mt-1">
@@ -209,7 +209,7 @@ export function DecisionDetail({ d }: { d: Decision }) {
             </span>
           </dd>
         </div>
-        <div className="md:col-span-2">
+        <div className="@md:col-span-2">
           <dt className={cn('eyebrow flex items-center gap-1.5', d.quoteVerified ? 'text-ok' : 'text-high')}>
             {d.quoteVerified ? <ShieldCheck aria-hidden className="size-3.5" /> : <ShieldAlert aria-hidden className="size-3.5" />}
             {d.quoteVerified ? 'Quote verified verbatim' : 'Quote failed verification'}
@@ -224,7 +224,7 @@ export function DecisionDetail({ d }: { d: Decision }) {
           </dd>
         </div>
         {d.precedent && (
-          <div className="md:col-span-2">
+          <div className="@md:col-span-2">
             <dt className="eyebrow flex items-center gap-1.5 text-accent"><History aria-hidden className="size-3.5" /> Precedent</dt>
             <dd className="mt-1">{d.precedent.summary}</dd>
             {d.precedent.sameSite
@@ -242,7 +242,7 @@ export function DecisionDetail({ d }: { d: Decision }) {
           </div>
         )}
         {d.counterText != null && (outcome === 'fallback' || outcome === 'escalate') && (
-          <div className="md:col-span-2">
+          <div className="@md:col-span-2">
             <dt className="eyebrow">{outcome === 'fallback' ? 'Counter sent back' : 'If rejected, sponsor holds'}</dt>
             <dd className="mt-1 text-muted">{d.counterText || 'Delete the inserted text.'}</dd>
           </div>
@@ -259,7 +259,7 @@ export function DecisionDetail({ d }: { d: Decision }) {
             </span>
           </dd>
         </div>
-        <div className="flex flex-wrap items-end justify-start gap-2 md:justify-end">
+        <div className="flex flex-wrap items-end justify-start gap-2 @md:justify-end">
           {canConfirm && (
             <button type="button" className="btn btn-primary" onClick={() => void confirm(d.id)}>
               <Check aria-hidden className="size-4" /> {d.precedent ? 'Confirm precedent' : 'Confirm suggestion'}

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Check, ChevronDown, MessageSquare } from 'lucide-react'
+import { Check, ChevronDown, ChevronLeft, ChevronRight, MessageSquare, X } from 'lucide-react'
 
 import { DecisionDetail } from '@/components/siteline/DecisionDetail'
 import { OutcomeBadge } from '@/components/siteline/outcome'
@@ -56,18 +56,23 @@ function Status({ d }: { d: Decision }) {
   return <span className="inline-flex items-center gap-1 text-xs text-muted"><Check aria-hidden className="size-3.5" /> Signed off</span>
 }
 
-/** A paragraph the site changed: tinted by Siteline's outcome; clicking it unfolds the decision. */
+const PANEL_ID = 'decision-panel'
+
+/** A paragraph the site changed: tinted by Siteline's outcome; clicking it opens the decision
+ * beside the contract (under the paragraph on narrow screens). */
 function Redlined({ d, open, onToggle }: { d: Decision; open: boolean; onToggle: () => void }) {
   const o = effectiveOutcome(d)
-  const detailId = `${anchor(d)}-detail`
   return (
     <div id={anchor(d)} className="mb-3 scroll-mt-24">
       <button
         type="button"
         aria-expanded={open}
-        aria-controls={detailId}
+        aria-controls={PANEL_ID}
         onClick={onToggle}
-        className="-mx-3 block w-[calc(100%+1.5rem)] rounded-[4px] border-l-[3px] px-3 py-2 text-left transition-shadow hover:shadow-[inset_0_0_0_1px_var(--line-strong)]"
+        className={cn(
+          '-mx-3 block w-[calc(100%+1.5rem)] rounded-[4px] border-l-[3px] px-3 py-2 text-left transition-shadow',
+          open ? 'shadow-[inset_0_0_0_2px_var(--ink-2)]' : 'hover:shadow-[inset_0_0_0_1px_var(--line-strong)]',
+        )}
         style={{ borderLeftColor: outcomeVar[o], background: outcomeBg[o] }}
       >
         <span className={cn(body, 'block')}>
@@ -78,7 +83,7 @@ function Redlined({ d, open, onToggle }: { d: Decision; open: boolean; onToggle:
           <Status d={d} />
           <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted">
             {open ? 'Hide decision' : 'Show decision'}
-            <ChevronDown aria-hidden className={cn('size-4 transition-transform', open && 'rotate-180')} />
+            <ChevronDown aria-hidden className={cn('size-4 transition-transform', open ? 'rotate-180' : 'lg:-rotate-90')} />
           </span>
         </span>
       </button>
@@ -88,7 +93,42 @@ function Redlined({ d, open, onToggle }: { d: Decision; open: boolean; onToggle:
           <span><span className="font-semibold">{d.author}:</span> {d.siteComment}</span>
         </p>
       )}
-      {open && <div id={detailId}><DecisionDetail d={d} /></div>}
+      {open && <div className="lg:hidden"><DecisionDetail d={d} className="mt-2 mb-4" /></div>}
+    </div>
+  )
+}
+
+/** The open decision, beside the contract and in view while it scrolls. */
+function SidePanel({ d, order, select }: { d: Decision | null; order: Decision[]; select: (d: Decision | null) => void }) {
+  if (!d) {
+    return (
+      <div className="panel p-5 text-sm text-muted">
+        Choose a redlined paragraph to see Siteline’s decision, the rule behind it and any precedent.
+      </div>
+    )
+  }
+  const i = order.findIndex((x) => x.id === d.id)
+  const step = (by: number) => order[i + by] && select(order[i + by])
+  return (
+    <div>
+      <div className="mb-2 flex items-center gap-2">
+        <h2 className="min-w-0 flex-1 truncate font-serif text-[17px]">{d.section}</h2>
+        <span className="text-xs text-muted tabular">{i + 1} of {order.length}</span>
+        <button type="button" className="btn btn-secondary btn-sm px-1.5" disabled={i <= 0} onClick={() => step(-1)} aria-label="Previous change">
+          <ChevronLeft aria-hidden className="size-4" />
+        </button>
+        <button type="button" className="btn btn-secondary btn-sm px-1.5" disabled={i >= order.length - 1} onClick={() => step(1)} aria-label="Next change">
+          <ChevronRight aria-hidden className="size-4" />
+        </button>
+        <button type="button" className="btn btn-secondary btn-sm px-1.5" onClick={() => select(null)} aria-label="Close decision">
+          <X aria-hidden className="size-4" />
+        </button>
+      </div>
+      <div className="mb-2 flex flex-wrap items-center gap-2">
+        <OutcomeBadge outcome={effectiveOutcome(d)} size="sm" />
+        <Status d={d} />
+      </div>
+      <DecisionDetail key={d.id} d={d} />
     </div>
   )
 }
@@ -128,46 +168,52 @@ function OutcomeBar({ decisions, jump }: { decisions: Decision[]; jump: (d: Deci
  */
 export function ContractDocument({ paragraphs, decisions }: { paragraphs: DocParagraph[] | null; decisions: Decision[] }) {
   const { hash } = useLocation()
-  const linked = decisions.find((d) => `#${anchor(d)}` === decodeURIComponent(hash))
-  const [open, setOpen] = useState<Set<string>>(() => new Set(linked ? [linked.id] : []))
+  const [selectedId, setSelectedId] = useState<string | null>(
+    () => decisions.find((d) => `#${anchor(d)}` === decodeURIComponent(hash))?.id ?? null,
+  )
+  const order = [...decisions].sort((a, b) => a.index - b.index)
+  const selected = decisions.find((d) => d.id === selectedId) ?? null
 
-  const toggle = (id: string) =>
-    setOpen((s) => {
-      const n = new Set(s)
-      if (!n.delete(id)) n.add(id)
-      return n
-    })
-  const jump = (d: Decision) => {
-    setOpen((s) => new Set(s).add(d.id))
+  const select = (d: Decision | null) => {
+    setSelectedId(d?.id ?? null)
+    if (!d) return
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    document.getElementById(anchor(d))?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+    document.getElementById(anchor(d))?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' })
   }
 
   const byParagraph = new Map(decisions.map((d) => [d.paragraph, d]))
-  const redlined = (d: Decision) => <Redlined key={d.id} d={d} open={open.has(d.id)} onToggle={() => toggle(d.id)} />
+  const redlined = (d: Decision) => (
+    <Redlined key={d.id} d={d} open={d.id === selectedId} onToggle={() => setSelectedId(d.id === selectedId ? null : d.id)} />
+  )
 
   return (
     <>
-      <OutcomeBar decisions={[...decisions].sort((a, b) => a.index - b.index)} jump={jump} />
-      <article aria-label="Agreement" className="panel mx-auto mt-4 max-w-[52rem] px-6 py-8 sm:px-12 sm:py-12">
-        {paragraphs
-          ? paragraphs.map((p) => {
-              const d = byParagraph.get(p.index)
-              if (d) return redlined(d)
-              return plainText(p).trim() ? <Plain key={p.index} p={p} /> : null
-            })
-          : (
-            <>
-              <p className="mb-6 font-sans text-sm text-muted">The full text wasn’t kept for this agreement, so only the redlined paragraphs are shown.</p>
-              {[...decisions].sort((a, b) => a.index - b.index).map((d) => (
-                <div key={d.id}>
-                  <h4 className="mt-5 mb-1 font-serif text-[16px] font-semibold">{d.section}</h4>
-                  {redlined(d)}
-                </div>
-              ))}
-            </>
-          )}
-      </article>
+      <OutcomeBar decisions={order} jump={select} />
+      <div className="mt-4 grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
+        <article aria-label="Agreement" className="panel px-6 py-8 sm:px-12 sm:py-12">
+          {paragraphs
+            ? paragraphs.map((p) => {
+                const d = byParagraph.get(p.index)
+                if (d) return redlined(d)
+                return plainText(p).trim() ? <Plain key={p.index} p={p} /> : null
+              })
+            : (
+              <>
+                <p className="mb-6 font-sans text-sm text-muted">The full text wasn’t kept for this agreement, so only the redlined paragraphs are shown.</p>
+                {order.map((d) => (
+                  <div key={d.id}>
+                    <h4 className="mt-5 mb-1 font-serif text-[16px] font-semibold">{d.section}</h4>
+                    {redlined(d)}
+                  </div>
+                ))}
+              </>
+            )}
+        </article>
+        <aside id={PANEL_ID} aria-label="Decision" aria-live="polite"
+          className="sticky top-16 hidden max-h-[calc(100vh-5rem)] overflow-y-auto overscroll-contain lg:block">
+          <SidePanel d={selected} order={order} select={select} />
+        </aside>
+      </div>
     </>
   )
 }
