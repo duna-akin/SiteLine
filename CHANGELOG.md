@@ -3,6 +3,19 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · Same eval numbers for everyone
+
+### Changed
+
+- **Eval results are version-controlled.** The stored model answers moved from `var/eval_answers.json` (git-ignored) to `backend/data/evals/answers.json`, next to `latest.json`; both are now in git. A re-run replays all 486 answers with no live calls and reproduces the committed run exactly: 0% unsafe accepts (baseline 2.6%), 93.8% triage accuracy (90.1%), 92.2% escalation recall (97.4%), 99.6% quote pass rate (96.3%). Per-run files in `data/evals/runs/` stay local.
+- `CLAUDE.md` now names the model the app runs on (OpenAI `gpt-5`, with `claude -p` as the no-key fallback) and lists the current open work.
+- The browser tab icon is now the Siteline mark (the dark square with the arc) instead of the old gradient orb.
+- A simulated call now says so in the decision panel ("calling the legal approver (simulated, no phone line set)"), like simulated texts. Eval metric cards with no target no longer show an empty "Target:".
+
+### Added
+
+- `demo/motion-assets/`: screenshots of every page at 3840×2160, the sandbox strip frame by frame from a real Site 07 run, full-page captures, the logo and wordmarks, and a README with brand colours, the exact numbers to quote, a storyboard and a prompt for Motion.
+
 ## [Unreleased] · The sandbox, step by step
 
 ### Changed
