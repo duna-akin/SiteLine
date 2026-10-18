@@ -19,7 +19,7 @@ Other commands:
 
 | Command | What it does |
 |---|---|
-| `uv run siteline make-demo` | Rewrite `data/demo/NSO-417_CTA_Site07_redline.docx` and its seed extraction cache |
+| `uv run siteline make-demo` | Rewrite `data/demo/NSO-417_CTA_Site07_redline.docx`, the clean form `data/templates/NSO-417_CTA_form.docx` and the seed extraction cache |
 | `uv run siteline cache-demo` | Extract the demo file with OpenAI and save that as the demo cache (needs a key) |
 | `uv run siteline make-samples` | Rewrite the nine per-clause sample redlines in `data/samples/` and their seed extractions |
 | `uv run siteline parse FILE.docx` | Print a redline's tracked changes as JSON |
@@ -116,7 +116,8 @@ Cloudflare. ngrok's browser warning page does not affect server-to-server webhoo
 Every generated redline (the Site 07 demo, these samples and the seeded inbound emails' attachments)
 is the same fictional form agreement, `cta_base.py`, with one site's tracked changes applied: key
 terms, recitals, seventeen articles, the signature page and two exhibits, so each one reads as a
-whole contract on the Review page.
+whole contract on the Review page. The clean form itself, with placeholders for the site's details
+and no tracked changes, is `data/templates/NSO-417_CTA_form.docx`.
 
 `data/samples/` holds nine fictional CTAs (Sites 21–29), one per playbook clause, for demos and
 tests. Upload any of them on the Inbound page. They triage from seed extractions, so no key is
@@ -147,4 +148,4 @@ needed, and each change lands on the rule ID listed in `samples.py`.
 - `cta_base.py`: the sponsor's full form agreement that every generated redline is built on
 - `samples.py`: the nine per-clause sample redlines, their seed extractions and expected rule IDs
 - `evals/`: labeled set, harness, Chalk runner
-- `data/`: playbook, demo redline, seed cache, seeded inbound emails (fictional). Runtime state goes to `var/` (git-ignored).
+- `data/`: playbook, demo redline, clean form agreement, seed cache, seeded inbound emails (fictional). Runtime state goes to `var/` (git-ignored).
