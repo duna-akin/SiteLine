@@ -2,7 +2,8 @@
 
 With IMAP_* set, a poller checks the mailbox every 30 s. It accepts an email only when it carries
 exactly one attachment and that attachment is a .docx; any other email is blocked: marked read,
-logged, and never recorded or triaged. The two seeded inbox emails get generated fictional
+logged, and never recorded. An accepted email waits in the inbox, untriaged, until a person
+triages it. The two seeded inbox emails get generated fictional
 redlines so they can be triaged too.
 """
 
@@ -159,16 +160,14 @@ def _mark_seen(uid: str) -> None:
         imap.uid("store", uid, "+FLAGS", "\\Seen")
 
 
-async def receive(meta: dict, data: bytes, triage_now: bool = True) -> dict:
-    """Record one inbound email with its .docx and (optionally) triage it."""
+async def receive(meta: dict, data: bytes) -> dict:
+    """Record one inbound email with its .docx. It waits in the inbox until a person triages it."""
     email_id = f"em-{uuid.uuid4().hex[:8]}"
     INBOX_DIR.mkdir(parents=True, exist_ok=True)
     attachment_path(email_id).write_bytes(data)
     record = {k: v for k, v in meta.items() if k != "data"} | {"id": email_id, "triaged": False}
     store.add_email(record)
     events.publish("email.received", {"email": record})
-    if triage_now:
-        await triage_email(email_id)
     return record
 
 
@@ -188,8 +187,8 @@ async def triage_email(email_id: str) -> dict:
 
 
 async def poll_once() -> None:
-    """Record and triage each unread redline. Each email is marked read once it is recorded, and
-    one that fails (say, a .docx with no tracked changes) never stops the rest of the batch."""
+    """Record each unread redline in the inbox, untriaged, for a person to triage. Each email is
+    marked read once it is recorded, and one that fails to record never stops the rest of the batch."""
     try:
         batch = await asyncio.to_thread(_fetch_unseen)
     except (imaplib.IMAP4.error, OSError) as e:
@@ -198,7 +197,7 @@ async def poll_once() -> None:
     for msg in batch:
         uid, data = msg.pop("uid"), msg.pop("data")
         try:
-            record = await receive(msg, data, triage_now=False)
+            await receive(msg, data)
         except Exception:  # noqa: BLE001 - left unread, so the next poll tries it again
             log.exception("Could not record inbound email %r", msg.get("subject"))
             continue
@@ -206,10 +205,6 @@ async def poll_once() -> None:
             await asyncio.to_thread(_mark_seen, uid)
         except (imaplib.IMAP4.error, OSError) as e:
             log.warning("Could not mark email %s read: %s", uid, e)
-        try:
-            await triage_email(record["id"])
-        except Exception:  # noqa: BLE001 - it stays in the inbox, untriaged, for a person to look at
-            log.exception("Inbound email triage failed for %s", record["id"])
 
 
 async def poll_forever(interval: float = 30) -> None:

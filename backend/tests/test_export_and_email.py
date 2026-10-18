@@ -37,7 +37,7 @@ def test_quotes_in_author_names_keep_the_document_valid():
             assert authors == {author}, part
 
 
-def test_one_failing_email_does_not_drop_the_rest(fresh_state, tmp_path, monkeypatch):
+def test_polled_emails_wait_in_the_inbox_untriaged(fresh_state, tmp_path, monkeypatch):
     monkeypatch.setattr(inbound_email, "INBOX_DIR", tmp_path / "inbox")
     batch = [{"uid": str(i), "from": f"site{i}@example.test", "siteName": f"Site {i}", "subject": f"Redline {i}",
               "attachment": f"r{i}.docx", "receivedAt": "2026-10-01T00:00:00Z", "data": b"docx"} for i in range(3)]
@@ -45,16 +45,31 @@ def test_one_failing_email_does_not_drop_the_rest(fresh_state, tmp_path, monkeyp
 
     async def triage_email(email_id):
         triaged.append(email_id)
-        if len(triaged) == 1:
-            raise ValueError("No tracked changes or comments found in this file.")
 
     monkeypatch.setattr(inbound_email, "_fetch_unseen", lambda: batch)
     monkeypatch.setattr(inbound_email, "_mark_seen", seen.append)
     monkeypatch.setattr(inbound_email, "triage_email", triage_email)
     asyncio.run(inbound_email.poll_once())
-    assert seen == ["0", "1", "2"] and len(triaged) == 3
+    assert seen == ["0", "1", "2"] and triaged == []
     recorded = [e for e in store.list_emails() if e["subject"].startswith("Redline")]
-    assert len(recorded) == 3 and all("uid" not in e and "data" not in e for e in recorded)
+    assert len(recorded) == 3 and not any(e["triaged"] for e in recorded)
+    assert all("uid" not in e and "data" not in e for e in recorded)
+
+
+def test_one_email_that_fails_to_record_does_not_drop_the_rest(fresh_state, tmp_path, monkeypatch):
+    batch = [{"uid": str(i), "subject": f"Redline {i}", "data": b"docx"} for i in range(3)]
+    seen, received = [], []
+
+    async def receive(meta, data):
+        received.append(meta["subject"])
+        if len(received) == 1:
+            raise OSError("disk full")
+
+    monkeypatch.setattr(inbound_email, "_fetch_unseen", lambda: batch)
+    monkeypatch.setattr(inbound_email, "_mark_seen", seen.append)
+    monkeypatch.setattr(inbound_email, "receive", receive)
+    asyncio.run(inbound_email.poll_once())
+    assert len(received) == 3 and seen == ["1", "2"]  # the failed one stays unread for the next poll
 
 
 DOCX = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
