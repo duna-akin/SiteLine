@@ -161,6 +161,9 @@ export const getPlaybook = () => request<PlaybookSettings>('/playbook')
 export const previewPlaybook = (playbook: Playbook) =>
   request<{ changes: PlaybookChange[] }>('/playbook/preview', json('POST', { playbook }))
 
+/** What resetting to the default playbook would re-decide; nothing is saved. */
+export const previewPlaybookReset = () => request<{ changes: PlaybookChange[] }>('/playbook/preview', json('POST', { reset: true }))
+
 export const savePlaybook = (playbook: Playbook, by = 'Reviewer') =>
   request<PlaybookSettings & { changes: PlaybookChange[] }>('/playbook', json('PUT', { playbook, by }))
 

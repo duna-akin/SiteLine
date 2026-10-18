@@ -19,10 +19,19 @@ const TEXTS: { key: 'standard' | 'counter' | 'escalate'; label: string; outcome:
   { key: 'escalate', label: 'Escalate', outcome: 'escalate' },
 ]
 
+const isText = (v: unknown) => typeof v === 'string'
+
+/** Enough of the shape that the page can render it; the server validates the rest on Save. */
 function isPlaybook(value: unknown): value is Playbook {
   const v = value as Playbook
-  return !!v && typeof v === 'object' && Array.isArray(v.clauses) &&
-    v.clauses.every((c) => c && typeof c.clauseType === 'string' && Array.isArray(c.positions))
+  return !!v && typeof v === 'object' && Array.isArray(v.clauses) && v.clauses.every((c) =>
+    !!c && typeof c === 'object' && isText(c.clauseType) && isText(c.label) && isText(c.summary) && Array.isArray(c.positions) &&
+    c.positions.every((p) =>
+      !!p && typeof p === 'object' && [p.id, p.issue, p.form, p.standard, p.counter, p.escalate, p.rationale].every(isText) &&
+      Array.isArray(p.talkingPoints) && p.talkingPoints.every(isText) &&
+      !!p.limits && typeof p.limits === 'object' &&
+      Object.values(p.limits).every((l) => !!l && typeof l === 'object' && typeof l.value === 'number' && isText(l.unit) && isText(l.label)) &&
+      Array.isArray(p.rules) && p.rules.every((r) => !!r && isText(r.id) && isText(r.when) && isText(r.outcome))))
 }
 
 function Position({ clause, p, onChange }: { clause: PlaybookClause; p: PlaybookPosition; onChange: (p: PlaybookPosition) => void }) {
@@ -127,7 +136,7 @@ function Pending({ changes, action, busy, onConfirm, onCancel }: {
         <p className="mt-2 text-sm text-muted">No open suggestion changes. New uploads use the saved playbook.</p>
       ) : (
         <>
-          <p className="mt-2 text-sm">Saving re-decides {changes.length} open suggestion{changes.length === 1 ? '' : 's'}. Confirmed decisions, overrides and answered escalations never move; a new escalation texts its approver.</p>
+          <p className="mt-2 text-sm">{action === 'save' ? 'Saving' : 'Resetting'} re-decides {changes.length} open suggestion{changes.length === 1 ? '' : 's'}. Confirmed decisions, overrides and answered escalations never move; a new escalation texts its approver.</p>
           <ul className="mt-2 space-y-1 text-sm">
             {changes.map((c) => (
               <li key={c.changeId}>
@@ -158,6 +167,8 @@ export function PlaybookPage() {
   const [busy, setBusy] = useState(false)
   const [pending, setPending] = useState<{ action: 'save' | 'reset'; changes: PlaybookChange[] | null } | null>(null)
   const [errors, setErrors] = useState<string[]>([])
+  // Bumped on every save or reset: the priority bands come from the playbook, so that panel reloads
+  const [savedAt, setSavedAt] = useState(0)
   const fileRef = useRef<HTMLInputElement>(null)
   useHashScroll(pb !== null)
 
@@ -168,6 +179,7 @@ export function PlaybookPage() {
   function edit(i: number, c: PlaybookClause) {
     setPb((p) => p && { ...p, clauses: p.clauses.map((x, j) => (j === i ? c : x)) })
     setDirty(true)
+    setPending(null) // the preview no longer describes what Save would do
   }
 
   const fail = (e: unknown) => setErrors(e instanceof api.ApiError && e.details?.length ? e.details : [e instanceof Error ? e.message : 'Not saved.'])
@@ -186,6 +198,19 @@ export function PlaybookPage() {
     }
   }
 
+  async function askReset() {
+    setBusy(true)
+    try {
+      const { changes } = await api.previewPlaybookReset()
+      setErrors([])
+      setPending({ action: 'reset', changes })
+    } catch (e) {
+      fail(e)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function commit() {
     if (!pb || !pending) return
     setBusy(true)
@@ -197,6 +222,7 @@ export function PlaybookPage() {
       setErrors([])
       setPending(null)
       forgetRulePositions()
+      setSavedAt(Date.now())
       notify(`${pending.action === 'save' ? 'Playbook saved' : 'Playbook reset'}; ${res.changes.length} open suggestion${res.changes.length === 1 ? '' : 's'} re-decided.`)
     } catch (e) {
       fail(e)
@@ -255,7 +281,7 @@ export function PlaybookPage() {
             <input ref={fileRef} type="file" accept="application/json,.json" className="sr-only" onChange={importJson} aria-label="Load playbook JSON" tabIndex={-1} />
             <button type="button" className="btn btn-secondary btn-sm" onClick={() => fileRef.current?.click()}><Upload aria-hidden className="size-4" /> Load JSON</button>
             <button type="button" className="btn btn-secondary btn-sm" onClick={exportJson} disabled={!pb}><Download aria-hidden className="size-4" /> Export JSON</button>
-            <button type="button" className="btn btn-secondary btn-sm" onClick={() => setPending({ action: 'reset', changes: null })} disabled={!pb || busy}>
+            <button type="button" className="btn btn-secondary btn-sm" onClick={() => void askReset()} disabled={!pb || busy}>
               <RotateCcw aria-hidden className="size-4" /> Reset to default
             </button>
             <button type="button" className="btn btn-primary btn-sm" onClick={() => void askSave()} disabled={!pb || !dirty || busy || blank.length > 0}
@@ -287,12 +313,13 @@ export function PlaybookPage() {
       </div>
 
       {log.length > 0 && (
-        <section aria-labelledby="log-h" className="mt-8">
-          <h2 id="log-h" className="eyebrow font-sans">Change log</h2>
+        <section aria-labelledby="playbook-log-h" className="mt-8">
+          <h2 id="playbook-log-h" className="eyebrow font-sans">Change log</h2>
           <ol className="mt-2 space-y-1 text-sm">
             {[...log].reverse().map((e, i) => (
               <li key={i} className={cn('flex flex-wrap gap-x-2', i > 0 && 'text-muted')}>
                 <span className="tabular">{formatClock(e.at)}</span><span className="font-medium">{e.by}</span><span>{e.summary}</span>
+                {e.moved !== undefined && <span className="text-muted">· {e.moved} open suggestion{e.moved === 1 ? '' : 's'} re-decided</span>}
               </li>
             ))}
           </ol>
@@ -304,7 +331,7 @@ export function PlaybookPage() {
           <h2 id="priority-h" className="text-[clamp(24px,2.6vw,30px)]">Priority settings</h2>
           <p>How much money at risk makes a site a priority, and how much leeway each level gets on site asks. Escalate floors never move, and every suggestion still needs a person’s confirmation.</p>
         </div>
-        <PrioritySettings />
+        <PrioritySettings key={savedAt} />
       </section>
     </div>
   )

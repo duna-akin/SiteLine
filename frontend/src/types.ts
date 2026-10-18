@@ -62,6 +62,8 @@ export interface PlaybookLogEntry {
   at: number
   by: string
   summary: string
+  /** Open suggestions the save or reset re-decided. */
+  moved?: number
 }
 
 /** An open suggestion a playbook edit would re-decide. */

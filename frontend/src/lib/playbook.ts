@@ -5,7 +5,10 @@ import type { ClauseType, Playbook, PlaybookLimit } from '@/types'
 
 const PLACEHOLDER = /\{(\w+)\}/g
 
-export const formatLimit = (l: PlaybookLimit) => `${Number(l.value.toFixed(2))}${l.unit}`
+/** A limit's number as the server writes it (playbook._fmt): no exponent, up to 4 decimals. */
+export const formatNumber = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(4).replace(/\.?0+$/, ''))
+
+export const formatLimit = (l: PlaybookLimit) => `${formatNumber(l.value)}${l.unit}`
 
 /** A playbook text with its {placeholders} filled from the position's limits (mirrors playbook.render). */
 export function fill(text: string, limits: Record<string, PlaybookLimit>): string {
