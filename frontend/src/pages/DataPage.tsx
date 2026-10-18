@@ -1,40 +1,29 @@
 import { EvalResults } from '@/components/siteline/EvalResults'
 import { useHashScroll } from '@/hooks/useHashScroll'
 import { useDemo } from '@/state/demo'
-import { useDesk } from '@/state/desk'
 
 export function DataPage() {
   const { integrations } = useDemo()
-  const { agreements } = useDesk()
   useHashScroll(Boolean(integrations))
 
-  const executed = (agreements ?? []).filter((a) => a.status === 'executed')
-  const lastDoc = executed.map((a) => a.finalDocumentKey).filter(Boolean).at(-1)
-  const sandboxed = (agreements ?? []).filter((a) => a.parser === 'daytona')
-  const lastSandbox = sandboxed.map((a) => a.sandboxId).filter(Boolean).at(-1)
   // Each store: whether it is live, what it holds, and where that goes without it
   const stores = [
     {
       name: 'Daytona sandbox',
       live: Boolean(integrations?.daytona),
       holds: 'Each file is opened in a fresh sandbox with network access blocked. Only the parsed text reaches the model, then the sandbox is deleted.',
-      detail: sandboxed.length
-        ? `${sandboxed.length} file${sandboxed.length === 1 ? '' : 's'} parsed in a sandbox${lastSandbox ? ` · last ${lastSandbox}` : ''}`
-        : 'No files parsed in a sandbox yet',
       off: 'Off: files are parsed on the server',
     },
     {
       name: 'Postgres',
       live: integrations?.precedentStore === 'postgres',
       holds: 'Confirmed terms from executed agreements, kept as precedents',
-      detail: `${executed.length} executed agreement${executed.length === 1 ? '' : 's'}`,
       off: 'Off: precedents are kept in the server’s state file',
     },
     {
       name: 'S3',
       live: integrations?.documentStore === 's3',
       holds: 'Document storage for the agreements’ files',
-      detail: lastDoc ?? 'No final documents yet',
       off: 'Off: files are kept on the server’s disk',
     },
   ]
@@ -61,7 +50,6 @@ export function DataPage() {
                 <div className="min-w-0">
                   <p className="font-medium">{s.name}</p>
                   <p className="text-sm text-muted">{s.holds}</p>
-                  <code className="chip mt-1.5 inline-block">{s.detail}</code>
                   {!s.live && <p className="mt-1.5 text-sm text-faint">{s.off}</p>}
                 </div>
                 <span className={`pill ${s.live ? 's-ok' : 's-neutral'}`}>{s.live ? 'Live' : 'Off'}</span>
