@@ -109,7 +109,7 @@ def test_export_diff_tracks_only_the_changed_words():
 
 def test_labeled_set_round_trips_through_word():
     items = load_dataset()
-    assert len(items) == 162
+    assert len(items) == 243
     changes, _ = asyncio.run(parse_shards(items, sandboxes=0, log=lambda _: None))
     assert [c["section"] for c in changes] == [it["section"] for it in items]
 

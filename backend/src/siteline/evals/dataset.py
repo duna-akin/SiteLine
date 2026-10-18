@@ -1,12 +1,13 @@
-"""The labeled eval set: 150 fictional redline changes, each with the outcome a contract
-manager would assign under the playbook.
+"""The labeled eval set: 231 fictional redline changes, each with the outcome a contract
+manager would assign under the playbook (about four around each limit of every playbook
+position, plus variants).
 
 Every change is generated from templates written for this project (no real contract
 text). Labels follow the playbook, not Siteline's rules code, and include cases the rules
 do not cover: cosmetic edits (accept), and ambiguous wording or terms the playbook never
 mentions (both human review).
 
-After those 150 come 12 escalations judged with the site's history (precedent_items): six
+After those 231 come 12 escalations judged with the site's history (precedent_items): six
 where precedent should turn them into accepts and six where it must not.
 """
 
@@ -18,7 +19,7 @@ import random
 from siteline.config import DATA_DIR
 
 DATASET_PATH = DATA_DIR / "evals" / "labeled_changes.jsonl"
-TARGET = 150
+TARGET = 231
 
 _ONES = "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen".split()
 _TENS = "_ _ twenty thirty forty fifty sixty seventy eighty ninety".split()
@@ -197,7 +198,200 @@ def build() -> list[dict]:
                     [I("Sponsor acknowledges that Institution does not waive sovereign immunity and Sponsor waives any claim inconsistent with it.")],
                     "escalate", "sovereign immunity demand", mark="ins"))
 
-    # Novel terms (no playbook clause covers them)
+    # Payment: institutional overhead (standard 25% of direct costs, counter above 25 up to 30, escalate above 30)
+    for n, gold in [(20, "accept"), (25, "accept"), (26, "counter"), (30, "counter"), (31, "escalate"), (35, "escalate")]:
+        old = 20 if n == 25 else 25
+        out.append(repl("§6.7 Indirect Costs", "payment_terms", "Sponsor shall pay Institution’s indirect costs at ",
+                        f"{words(old)} percent ({old}%)", f"{words(n)} percent ({n}%)", " of direct costs, included in the per-subject fees in Exhibit B.",
+                        gold, f"overhead {n}%"))
+    out.append(item("§6.7 Indirect Costs", "payment_terms",
+                    [I("Institution’s facilities and administrative rate of twenty-eight percent (28%) applies to all direct costs in Exhibit B.")],
+                    "counter", "overhead 28%, reworded", mark="ins"))
+
+    # Payment: holdback (10% withheld to database lock; under 5% or deleted: restore the form)
+    hb = "Sponsor shall withhold "
+    hb_tail = " of each payment until database lock and the resolution of all queries."
+    for n, gold in [(5, "accept"), (8, "accept"), (4, "counter"), (2, "counter")]:
+        out.append(repl("§6.5 Holdback", "payment_terms", hb, f"{words(10)} percent (10%)", f"{words(n)} percent ({n}%)", hb_tail,
+                        gold, f"holdback {n}%"))
+    out.append(item("§6.5 Holdback", "payment_terms", [D(hb + f"{words(10)} percent (10%)" + hb_tail)], "counter", "holdback deleted", mark="del"))
+
+    # Payment: screen failures (up to 1 per 3 enrolled; counter up to 1 per 2; escalate above 1 per 2 or uncapped)
+    sf = "Sponsor shall pay for screen failures at the screening-visit rate, up to "
+    sf_tail = " enrolled Study Subjects."
+    sf_old = "one (1) screen failure for every three (3)"
+    for new, gold, note in [("one (1) screen failure for every four (4)", "accept", "screen failures 1 per 4"),
+                            ("one (1) screen failure for every two (2)", "counter", "screen failures 1 per 2"),
+                            ("two (2) screen failures for every three (3)", "escalate", "screen failures 2 per 3"),
+                            ("one (1) screen failure for every one (1)", "escalate", "screen failures 1 per 1")]:
+        out.append(repl("§6.8 Screen Failures", "payment_terms", sf, sf_old, new, sf_tail, gold, note))
+    out.append(item("§6.8 Screen Failures", "payment_terms",
+                    [T("Sponsor shall pay for "), I("every "), T("screen failure"), D("s"), T(" at the screening-visit rate"),
+                     D(", up to " + sf_old + sf_tail.rstrip(".")), I(", without limit"), T(".")],
+                    "escalate", "screen failures uncapped"))
+
+    # Confidentiality: disclosure to affiliates (employees and agents who need to know; wider: restore the form)
+    cf = "Institution may disclose Confidential Information only to its "
+    cf_tail = " for the Study and who are bound by obligations of confidentiality at least as protective as these."
+    out.append(repl("§8.1 Confidential Information", "confidentiality", cf, "employees and agents who need to know it",
+                    "employees, agents and affiliates who need to know it", cf_tail, "counter", "affiliates added"))
+    out.append(repl("§8.1 Confidential Information", "confidentiality", cf, "employees and agents who need to know it",
+                    "employees, agents and outside research collaborators who need to know it", cf_tail, "counter", "collaborators added"))
+    out.append(item("§8.1 Confidential Information", "confidentiality",
+                    [I("Institution may also share Confidential Information with its affiliated hospitals for the purposes of the Study.")],
+                    "counter", "affiliated hospitals, inserted", mark="ins"))
+    out.append(repl("§8.1 Confidential Information", "confidentiality", cf + "employees and agents who ", "need to know it", "have a need to know it",
+                    cf_tail, "accept", "wording, scope unchanged"))
+
+    # Confidentiality: marking requirement (all information protected; limited to marked: restore the form)
+    ci = "“Confidential Information” means all non-public information disclosed by or for Sponsor in connection with the Study"
+    out.append(item("§1.1 Defined Terms", "confidentiality",
+                    [T(ci + ", "), D("whether disclosed in writing, orally or by observation"), I("if marked “confidential” when disclosed"), T(".")],
+                    "counter", "marking required"))
+    out.append(item("§1.1 Defined Terms", "confidentiality",
+                    [T(ci + ", "), D("whether disclosed in writing, orally or by observation"),
+                     I("if disclosed in writing and marked confidential, or if disclosed orally and summarized in writing within thirty (30) days"), T(".")],
+                    "counter", "marking or written summary required"))
+    out.append(item("§1.1 Defined Terms", "confidentiality",
+                    [T(ci + ", whether disclosed in writing, orally or by observation"),
+                     I(", but only to the extent it is identified as confidential at the time of disclosure"), T(".")],
+                    "counter", "identification required"))
+    out.append(item("§1.1 Defined Terms", "confidentiality",
+                    [T(ci + ", whether disclosed in writing, orally or by observation"),
+                     I(", and whether or not it is marked as confidential"), T(".")],
+                    "accept", "confirms no marking needed"))
+
+    # Confidentiality: public records (accept only for a public institution giving Sponsor notice first)
+    notice = "Institution may disclose Confidential Information to the extent its state public records law requires, after giving Sponsor prompt written notice."
+    no_notice = "Institution may release any record that its state public records law requires it to disclose, without notice to Sponsor."
+    out.append(item("§8.6 Public Records", "confidentiality", [I(notice)], "accept", "public records, public site, notice", mark="ins", context=PUBLIC))
+    out.append(item("§8.6 Public Records", "confidentiality", [I(no_notice)], "escalate", "public records, public site, no notice", mark="ins", context=PUBLIC))
+    out.append(item("§8.6 Public Records", "confidentiality", [I(notice)], "escalate", "public records, private site, notice", mark="ins", context=PRIVATE))
+    out.append(item("§8.6 Public Records", "confidentiality", [I(no_notice)], "escalate", "public records, private site, no notice", mark="ins", context=PRIVATE))
+    out.append(item("§8.6 Public Records", "confidentiality",
+                    [I("Sponsor acknowledges that Institution is subject to its state’s freedom of information law; Institution shall notify Sponsor "
+                       "at least ten (10) business days before releasing any Confidential Information in response to a request.")],
+                    "accept", "public records reworded, public site, notice", mark="ins", context=PUBLIC))
+
+    # Indemnification: notice of claims (prompt; later than 30 days: counter at 30)
+    ip_before = "A party seeking indemnification shall notify the indemnifying party "
+    ip_after = ", allow it to control the defense and settlement, and cooperate in the defense at the indemnifying party’s expense."
+    for n, gold in [(30, "accept"), (20, "accept"), (45, "counter"), (90, "counter")]:
+        out.append(repl("§9.3 Indemnification Procedures", "indemnification", ip_before, "promptly of the claim",
+                        f"of the claim within {qty(n)} days after learning of it", ip_after, gold, f"claim notice {n}d"))
+    out.append(repl("§9.3 Indemnification Procedures", "indemnification", ip_before, "promptly of the claim",
+                    "of the claim no later than sixty (60) days after service", ip_after, "counter", "claim notice 60d, reworded"))
+
+    # Indemnification: control of defense (Sponsor controls; taken away: escalate)
+    ctl_before = ip_before + "promptly of the claim, "
+    ctl_after = ", and cooperate in the defense at the indemnifying party’s expense."
+    out.append(repl("§9.3 Indemnification Procedures", "indemnification", ctl_before, "allow it to control the defense and settlement",
+                    "allow it to participate in a defense that the indemnified party controls", ctl_after, "escalate", "site controls defense"))
+    out.append(repl("§9.3 Indemnification Procedures", "indemnification", ctl_before, "allow it to control the defense and settlement",
+                    "consult with it on the defense and settlement", ctl_after, "escalate", "sponsor only consulted"))
+    out.append(item("§9.3 Indemnification Procedures", "indemnification",
+                    [I("Institution may select its own counsel and direct the defense of any claim against it, at Sponsor’s expense.")],
+                    "escalate", "site directs defense, inserted", mark="ins"))
+    out.append(repl("§9.3 Indemnification Procedures", "indemnification", ctl_before + "allow it to ", "control", "direct and control",
+                    " the defense and settlement" + ctl_after, "accept", "wording, sponsor keeps control"))
+
+    # Indemnification: additional insured (accepted)
+    ins = "Sponsor shall maintain clinical trial liability insurance with limits of at least five million US dollars (USD 5,000,000) per occurrence"
+    out.append(item("§15.1 Sponsor Insurance", "indemnification",
+                    [I("Sponsor shall name Institution as an additional insured under its clinical trial liability policy.")],
+                    "accept", "additional insured", mark="ins"))
+    out.append(item("§15.1 Sponsor Insurance", "indemnification",
+                    [T(ins), I(", naming Institution as an additional insured,"), T(" for the duration of the Study and three (3) years after.")],
+                    "accept", "additional insured, in place"))
+    out.append(item("§15.1 Sponsor Insurance", "indemnification",
+                    [I("Institution, its trustees and its employees shall be named as additional insureds on Sponsor’s policy, and Sponsor shall provide a certificate on request.")],
+                    "accept", "additional insureds with certificate", mark="ins"))
+    out.append(item("§15.1 Sponsor Insurance", "indemnification",
+                    [I("Sponsor shall provide Institution a certificate of insurance listing Institution as additional insured before the first Study Subject is enrolled.")],
+                    "accept", "additional insured certificate", mark="ins"))
+
+    # Subject injury: travel to treatment (accepted; lost wages still escalate)
+    out.append(item("§10.2 Subject Injury", "subject_injury", [T(si), I(" and reasonable travel costs to receive that treatment"), T(tail)],
+                    "accept", "travel to treatment"))
+    out.append(item("§10.2 Subject Injury", "subject_injury", [T(si), I(", including mileage and parking for treatment visits,"), T(tail)],
+                    "accept", "mileage and parking"))
+    out.append(item("§10.2 Subject Injury", "subject_injury", [T(si), I(" and reasonable transportation to and from treatment"), T(tail)],
+                    "accept", "transportation, reworded"))
+    out.append(item("§10.2 Subject Injury", "subject_injury", [T(si), I(", reasonable travel costs and lost wages"), T(tail)],
+                    "escalate", "travel plus lost wages"))
+
+    # Subject injury: exclusions (deleted: escalate)
+    ex = "Sponsor is not obligated to reimburse expenses for an injury caused by the underlying disease, by standard-of-care treatment, or by a failure of Institution or the Study Subject to follow the Protocol."
+    out.append(item("§10.3 Exclusions", "subject_injury", [D(ex)], "escalate", "exclusions deleted", mark="del"))
+    out.append(item("§10.3 Exclusions", "subject_injury", [D(ex), I("Sponsor shall reimburse expenses for any Study Injury, whatever its cause.")],
+                    "escalate", "exclusions replaced by any cause"))
+    out.append(item("§10.3 Exclusions", "subject_injury",
+                    [T("Sponsor is not obligated to reimburse expenses for an injury caused "), D("by the underlying disease, by standard-of-care treatment, or "),
+                     T("by a failure of Institution or the Study Subject to follow the Protocol.")],
+                    "escalate", "disease and standard-of-care exclusions deleted"))
+    out.append(repl("§10.3 Exclusions", "subject_injury", "Sponsor is not obligated to reimburse expenses for an injury caused by the ",
+                    "underlying disease", "Study Subject’s underlying illness",
+                    ", by standard-of-care treatment, or by a failure of Institution or the Study Subject to follow the Protocol.", "accept", "wording"))
+
+    # Publication: multi-site first publication (18 months, 12 accepted; under 12: counter at 18)
+    ms = "Institution shall not publish results from its site before the first multi-site publication of the Study, or "
+    ms_tail = " after the Study ends at all sites, whichever is earlier."
+    for n, gold in [(24, "accept"), (12, "accept"), (15, "accept"), (11, "counter"), (6, "counter")]:
+        out.append(repl("§12.2 Multi-site Publication", "publication", ms, qty(18) + " months", qty(n) + " months", ms_tail, gold, f"multi-site wait {n}mo"))
+    out.append(repl("§12.2 Multi-site Publication", "publication", ms, qty(18) + " months", "nine (9) months", " after database lock at its site, whichever is earlier.",
+                    "counter", "multi-site wait 9mo, reworded"))
+
+    # Intellectual property: patent prosecution (Sponsor files; site step-in: restore the form)
+    for text, gold, note in [
+        ("If Sponsor declines to file a patent application on a Study invention, Institution may file it in its own name.", "counter", "site step-in right"),
+        ("Institution may file and prosecute patent applications on Study inventions made by its personnel.", "counter", "site files patents"),
+        ("Institution may file a provisional patent application in its own name to protect a Study invention.", "counter", "site provisional filing"),
+        ("Institution shall sign any document Sponsor reasonably needs to file patent applications on Study inventions in Sponsor’s name, at Sponsor’s expense.",
+         "accept", "site assists sponsor filings"),
+    ]:
+        out.append(item("§13.2 Study Inventions", "intellectual_property", [I(text)], gold, note, mark="ins"))
+
+    # Data privacy: security-incident notice (10 business days, 5 accepted; under 5: counter at 5)
+    inc = "Sponsor shall notify Institution of any security incident involving Study Data within "
+    for n, gold in [(5, "accept"), (7, "accept"), (4, "counter"), (2, "counter")]:
+        out.append(repl("§11.7 Security Incidents", "data_privacy", inc, qty(10) + " business days", qty(n) + " business days", " of discovery.",
+                        gold, f"incident notice {n}d"))
+    out.append(repl("§11.7 Security Incidents", "data_privacy", inc, qty(10) + " business days", "forty-eight (48) hours", " of discovery.",
+                    "counter", "incident notice 48 hours"))
+
+    # Data privacy: data transfer (restricted to one place: escalate)
+    for text, gold, note in [
+        ("Sponsor shall not transfer Study Data outside the United States.", "escalate", "transfer restricted to one country"),
+        ("Study Data shall be stored and processed only on servers located in Institution’s state.", "escalate", "storage restricted to one state"),
+        ("Sponsor and its vendors shall host Study Data only in data centers located in Canada.", "escalate", "hosting restricted abroad"),
+        ("Sponsor may transfer coded Study Data to its vendors in other countries, in compliance with Applicable Law.", "accept", "transfer allowed under law"),
+    ]:
+        out.append(item("§11.8 Data Transfer", "data_privacy", [I(text)], gold, note, mark="ins"))
+
+    # Termination for convenience (with non-cancellable costs paid: accept; without: escalate)
+    out.append(item("§14.3 Termination for Convenience", "termination",
+                    [I("Either party may terminate for convenience on sixty (60) days’ written notice, and Sponsor shall pay non-cancellable obligations incurred before the termination date.")],
+                    "accept", "mutual convenience with costs", mark="ins"))
+    out.append(item("§14.3 Termination for Convenience", "termination",
+                    [I("Institution may terminate for convenience on thirty (30) days’ notice; Sponsor shall pay only for subject visits completed before that date.")],
+                    "escalate", "convenience, visits only", mark="ins"))
+
+    # Termination: sponsor notice (30 days, to 60 accepted; over 60: counter at 60)
+    sp = "Sponsor may terminate this Agreement on "
+    sp_tail = " days’ written notice and shall pay for work completed."
+    for n, gold in [(60, "accept"), (45, "accept"), (15, "accept"), (75, "counter"), (90, "counter")]:
+        out.append(repl("§14.1 Termination by Sponsor", "termination", sp, qty(30), qty(n), sp_tail, gold, f"sponsor notice {n}d"))
+
+    # Governing law: domestic arbitration (counter: restore the form); abroad escalates
+    for text, gold, note in [
+        ("All disputes shall be resolved by binding arbitration before a single arbitrator in New York, New York.", "counter", "arbitration in the US"),
+        ("Any dispute shall be settled by confidential arbitration seated in Boston, Massachusetts.", "counter", "arbitration in the US, reworded"),
+        ("Disputes not resolved by negotiation within thirty (30) days shall go to binding arbitration in the United States.", "counter", "arbitration after negotiation"),
+        ("All disputes shall be resolved by binding arbitration seated in Toronto, Ontario.", "escalate", "arbitration abroad (Canada)"),
+    ]:
+        out.append(item("§17.2 Disputes", "governing_law", [I(text)], gold, note, mark="ins"))
+
+    # Novel terms (no playbook position covers them, except data residency: a data-transfer restriction)
     novel = [
         ("§11.5 Machine Learning", "Sponsor shall not use study data to train artificial intelligence models without Institution’s written consent."),
         ("§11.5 Machine Learning", "Any model trained on study data must be disclosed to Institution and deleted at study close."),
@@ -216,9 +410,11 @@ def build() -> list[dict]:
         ("§18.13 Biobank", "Leftover samples shall transfer to Institution’s biobank at study close."),
         ("§18.14 Wellness", "Sponsor shall fund parking and meals for each Study Subject visit."),
     ]
+    covered = {"§18.11 Data Residency": ("escalate", "data storage restricted to one state (data transfer)")}
     for section, text in novel:
+        gold, note = covered.get(section, ("human_review", "no playbook rule"))
         out.append(item(section, "data_privacy" if "Machine" in section or "AI" in section or "Data" in section else "payment_terms",
-                        [I(text)], "human_review", "no playbook rule", mark="ins"))
+                        [I(text)], gold, note, mark="ins"))
 
     # Ambiguous wording (a person should read it)
     amb = [
