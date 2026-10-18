@@ -19,6 +19,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The "What approvers see" text preview on the home page. The escalation queue now spans the full row.
 - The "Where your data lives" tile on the home page. It is on the Data page.
 - The data flow diagram (email, upload, parser, OpenAI), the priority-figures and sandbox rows, and the Integrations list on the Data page.
+- The header's protocol and sponsor name, the signed-in icon, and the footer (demo note and sponsor chips).
+- The counts, file key and sandbox ID under each store in "Where your data lives".
+- Per-person details: sender emails in the inbound list and search, tracked-change author names on hover, the comment author's name (now "Site comment"), "by you" on overrides, and the protocol on the home page.
+- Vendor and stack names outside the Data page: the Daytona and OpenAI chips on Upload and Inbound, and Photon, iMessage, Twilio, IMAP, key names and config file paths in hints, statuses and the triage log. The wording now says sandbox, text or extraction instead.
 
 ## [Unreleased] · Open sites as bars
 
