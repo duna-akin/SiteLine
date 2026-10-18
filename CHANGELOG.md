@@ -3,6 +3,13 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · The sandbox, step by step
+
+### Changed
+
+- Upload opens with "Isolated sandbox" (Daytona): five steps, Created (network off), File in, Parsed, Text out (JSON only) and Deleted, each with its measured time, the sandbox ID, and a "Sandbox alive" clock from created to deleted. It replaces the five pipeline icons; the elapsed timer and triage log stay. With the Local parser flag on, no key, or a sandbox failure, it says the file was parsed locally and why.
+- The sandbox parser reports each phase with its time as `triage.sandbox` events on `/api/events`.
+
 ## [Unreleased] · Eval fixes
 
 ### Fixed
