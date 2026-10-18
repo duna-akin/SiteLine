@@ -229,14 +229,6 @@
   .drop[data-over="true"] { border-color: var(--accent); background: var(--accent-bg); }
   .drop code, code.chip { font: 500 12.5px var(--mono); color: var(--ink); background: var(--sunken); padding: 1px 6px; border-radius: 4px; overflow-wrap: anywhere; }
 
-  /* Data map (static: no moving beams) */
-  .beam-base { stroke: var(--line); stroke-width: 2; fill: none; }
-  .beam { stroke: var(--faint); stroke-width: 1.5; fill: none; stroke-linecap: round; stroke-dasharray: 3 5; }
-  .kept { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13.5px; }
-  .kept li { display: flex; align-items: flex-start; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; min-width: 0; }
-  .kept code { font: 500 12px var(--mono); color: var(--muted); display: block; overflow-wrap: anywhere; margin-top: 2px; }
-  .kept .gone { color: var(--muted); }
-
   @media (max-width: 860px) {
     .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .stats > div:nth-child(3) { padding-left: 0; border-left: 0; }
@@ -244,7 +236,6 @@
   }
   @media (max-width: 640px) {
     .tile { padding: 16px; }
-    .kept { grid-template-columns: minmax(0, 1fr); }
     .q { grid-template-columns: 28px minmax(0, 1fr); }
     .q .money { grid-column: 2; text-align: left; align-items: flex-start; flex-direction: row; gap: 8px; }
     .site-bars li > * { grid-template-columns: 30px minmax(0, 1fr) 48px minmax(56px, auto); grid-template-areas: "n nm nm m" ". bar d s"; row-gap: 6px; }
