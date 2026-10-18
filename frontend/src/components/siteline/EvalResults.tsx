@@ -154,12 +154,12 @@ export function EvalResults() {
     setRunning(false)
   })
 
-  async function run() {
+  async function run(fresh = false) {
     setRunError(null)
     clearStoredError()
     setParsed(false)
     try {
-      await api.startEvalRun()
+      await api.startEvalRun(0, fresh)
       setRunning(true)
     } catch (e) {
       setRunError(e instanceof Error ? e.message : 'Could not start the eval')
@@ -218,13 +218,18 @@ export function EvalResults() {
           </div>
         </div>
       )}
-      <button type="button" className="btn btn-primary mt-5 w-full" onClick={run} disabled={running || !integrations?.claude}>
+      <button type="button" className="btn btn-primary mt-5 w-full" onClick={() => void run()} disabled={running || !integrations?.claude}>
         {running ? <LoaderCircle aria-hidden className="size-4 animate-spin" /> : <Play aria-hidden className="size-4" />}
         {running ? 'Running…' : latest.available ? 'Re-run eval' : 'Run eval'}
       </button>
+      {latest.available && (
+        <button type="button" className="btn btn-secondary btn-sm mt-2 w-full" onClick={() => void run(true)} disabled={running || !integrations?.claude}>
+          <RotateCw aria-hidden className="size-4" /> Ask the model again
+        </button>
+      )}
       <p className="mt-2 text-xs text-muted">
         {integrations?.claude
-          ? 'Runs Siteline and the LLM-only baseline on every labeled change (about 300 OpenAI calls).'
+          ? `Runs Siteline and the LLM-only baseline on every labeled change. Rows whose prompt hasn’t changed replay their stored model answers, so a re-run takes seconds; quote checks and the rules run again on every row. “Ask the model again” makes all ${(latest.available ? latest.result.labeledChanges : latest.dataset.labeledChanges) * 2} OpenAI calls (about a minute).`
           : 'Needs an OpenAI API key on the server (OPENAI_API_KEY).'}
       </p>
       {error && <p role="alert" className="alert mt-2">{error}</p>}
@@ -253,6 +258,7 @@ export function EvalResults() {
     <div className="flex flex-col gap-6">
       <p className="text-sm text-muted">
         {results.labeledChanges} labeled changes, {results.shouldEscalate} of which should escalate · run {results.runId} · finished {new Date(results.finishedAt).toLocaleString()}
+        {results.replayedRows != null && ` · ${results.replayedRows} of ${results.labeledChanges} rows replayed stored model answers, ${results.liveCalls ?? 0} live calls`}
         <span className="ml-2 inline-flex flex-wrap gap-2 align-middle">
           {results.harness.includes('Chalk') && <SponsorChip sponsor="Chalk" label={results.harness} />}
           {results.parallelSandboxes > 0 && <SponsorChip sponsor="Daytona" label={`${results.parallelSandboxes} parallel Daytona sandboxes`} />}

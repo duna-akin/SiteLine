@@ -373,6 +373,9 @@ export interface EvalResults {
   labeledChanges: number
   shouldEscalate: number
   parallelSandboxes: number
+  /** Rows whose stored model answers were replayed (their prompts had not changed). */
+  replayedRows?: number
+  liveCalls?: number
   finishedAt: string
   metrics: EvalMetric[]
   /** Rows = labeled outcome, columns = Siteline outcome. */

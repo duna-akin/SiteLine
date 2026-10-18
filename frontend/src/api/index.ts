@@ -153,7 +153,9 @@ export interface EvalStatus {
 
 export const getEvalResults = () => request<EvalLatest>('/evals/latest')
 
-export const startEvalRun = (limit = 0) => request<{ started: boolean }>(`/evals/run?limit=${limit}`, { method: 'POST' })
+/** `fresh` asks the model again instead of replaying stored answers for unchanged rows. */
+export const startEvalRun = (limit = 0, fresh = false) =>
+  request<{ started: boolean }>(`/evals/run?limit=${limit}${fresh ? '&fresh=true' : ''}`, { method: 'POST' })
 
 export const getPlaybook = () => request<PlaybookSettings>('/playbook')
 
