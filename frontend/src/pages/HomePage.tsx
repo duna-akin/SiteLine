@@ -7,10 +7,8 @@ import { EscalationQueue } from '@/components/siteline/EscalationQueue'
 import { InboundFeed } from '@/components/siteline/InboundFeed'
 import { byMoney, isOnUs, openSites, usd } from '@/components/siteline/priority-style'
 import { SiteBars, SiteBarsLegend } from '@/components/siteline/SiteBars'
-import { TextBubble } from '@/components/siteline/TextBubble'
-import { formatClock } from '@/lib/format'
-import { byArrival, hasPriorityLine } from '@/lib/sites'
-import { SPONSOR, approvers } from '@/mocks/playbook'
+import { byArrival } from '@/lib/sites'
+import { SPONSOR } from '@/mocks/playbook'
 import { useDemo } from '@/state/demo'
 import { useDesk } from '@/state/desk'
 import type { EscalationQueueItem } from '@/types'
@@ -68,7 +66,7 @@ function QueueTile({ queue }: { queue: EscalationQueueItem[] }) {
   const rest = queue.slice(QUEUE_SHOWN)
   const restSites = [...new Set(rest.map((q) => q.siteNumber))]
   return (
-    <section className="tile min-[1081px]:col-span-7" aria-labelledby="q-h">
+    <section className="tile min-[1081px]:col-span-12" aria-labelledby="q-h">
       <div className="tile-head">
         <h2 id="q-h">Escalation queue <span className="badge tabular">{queue.length}</span></h2>
       </div>
@@ -83,30 +81,6 @@ function QueueTile({ queue }: { queue: EscalationQueueItem[] }) {
           <span>{plural(rest.length, 'more')} for {restSites.map((n) => `Site ${n}`).join(', ')}</span>
           <Link to="/inbound#queue" className="btn btn-secondary btn-sm">See all <ArrowRight aria-hidden className="size-4" /></Link>
         </div>
-      )}
-    </section>
-  )
-}
-
-function PhoneTile({ queue }: { queue: EscalationQueueItem[] }) {
-  const top = queue.find((q) => q.decision.approval.state !== 'none' && q.decision.approval.text)
-  const a = top?.decision.approval
-  const text = a && a.state !== 'none' ? a.text ?? '' : ''
-  const title = top ? approvers[top.decision.owner].title : null
-  return (
-    <section className="tile min-[1081px]:col-span-5" aria-labelledby="ph-h">
-      <div className="tile-head"><h2 id="ph-h">{title ? `What the ${title.toLowerCase()} sees` : 'What approvers see'}</h2></div>
-      <p className="tile-sub">{hasPriorityLine(text) ? 'Each escalation text carries one priority line.' : 'The text sent for the top escalation.'}</p>
-      {a && a.state !== 'none' ? (
-        <>
-          <div className="phone" role="img" aria-label={`Text message to the ${title?.toLowerCase()}: ${text.replace(/\n+/g, ' ')}`}>
-            <div className="phone-top"><span><b>Siteline</b> · Text message</span><span className="tabular">{formatClock(a.sentAt)}</span></div>
-            <TextBubble text={text} />
-          </div>
-          <p className="phone-note">A bare “1”, “2” or “3” still answers the oldest question that approver was sent.</p>
-        </>
-      ) : (
-        <p className="empty">No approver has an open text right now.</p>
       )}
     </section>
   )
@@ -207,7 +181,7 @@ export function HomePage() {
       <div className="wrap pb-12" role="status" aria-label="Loading your desk">
         <div className="hello pt-9 pb-6"><div className="h-12 w-2/3 animate-pulse rounded-[6px] bg-sunken" /></div>
         <div className="grid grid-cols-1 gap-6 min-[1081px]:grid-cols-12">
-          {['min-[1081px]:col-span-7', 'min-[1081px]:col-span-5', 'min-[1081px]:col-span-7', 'min-[1081px]:col-span-5', 'min-[1081px]:col-span-12'].map((span, i) => (
+          {['min-[1081px]:col-span-12', 'min-[1081px]:col-span-7', 'min-[1081px]:col-span-5', 'min-[1081px]:col-span-12'].map((span, i) => (
             <div key={i} className={`tile h-64 animate-pulse ${span}`} />
           ))}
         </div>
@@ -225,7 +199,6 @@ export function HomePage() {
       )}
       <div className="grid grid-cols-1 gap-6 pb-4 min-[1081px]:grid-cols-12">
         <QueueTile queue={queue} />
-        <PhoneTile queue={queue} />
         <SitesTile />
         <InboundTile />
         <DataTile />
