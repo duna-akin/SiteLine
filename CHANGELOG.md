@@ -13,6 +13,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The per-patient amount is still extracted and shown, but it no longer decides priority; only the enrollment target and period are required.
 - The `--radar-*` colour tokens are now `--stuck-none`, `--stuck-some` and `--stuck-many`.
 
+### Removed
+
+- The "What approvers see" text preview on the home page. The escalation queue now spans the full row.
+
 ## [Unreleased] · Open sites as bars
 
 ### Changed
