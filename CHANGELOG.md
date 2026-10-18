@@ -3,6 +3,14 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · Four outcomes
+
+### Changed
+
+- **Novel is now part of Human review.** A change that adds a term no playbook rule covers is decided by a person on the Review page, the same as an unclear reading, so the two are one outcome: Accept, Fallback, Escalate, Human review. The reason is in the rule: `SYS-NOVEL` (with the new term described) next to `SYS-QUOTE`, `SYS-LOWCONF`, `SYS-ERROR`, `SYS-CONFLICT`, `SYS-NORULE` and `SYS-COMMENT`. A term that is new and also trips an escalation still escalates, and precedent never downgrades it.
+- Everywhere: the rules engine, the override form and API, the Word export, the eval labels (16 rows relabeled) and the LLM-only baseline's prompt, the samples' expected outcomes, and the outcome bar and tags on Review. Saved state from before loads with its novel decisions as human review.
+- A Human review redline no longer also carries a "Needs your decision" pill; the tag already says it.
+
 ## [Unreleased] · A full form agreement
 
 ### Changed

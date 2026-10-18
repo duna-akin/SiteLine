@@ -131,7 +131,7 @@ needed, and each change lands on the rule ID listed in `samples.py`.
 | 24 Saltmarsh | Subject injury | Pain and suffering and an uncapped reimbursement escalate to Finance |
 | 25 Thornbury | Publication | 21-day review, patent delay removed, open-ended thesis review; public-institution law accepted |
 | 26 Ashgrove | Intellectual property | Institution and joint ownership escalate; the research license is pre-approved |
-| 27 Kestrel Valley | Data protection | BAA and blocked secondary use escalate to Privacy; AI-training limit is novel |
+| 27 Kestrel Valley | Data protection | BAA and blocked secondary use escalate to Privacy; AI-training limit goes to human review (`SYS-NOVEL`) |
 | 28 Brightwater | Termination | 10-day notice, convenience termination, conflicting notice, a failed quote |
 | 29 Cardinal Plains | Governing law | Sovereign immunity and arbitration abroad escalate; county venue is countered |
 
