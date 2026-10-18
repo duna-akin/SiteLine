@@ -37,3 +37,6 @@ docs/superpowers/
 /chalk.yaml
 /.chalkignore
 .claude/skills/
+
+# Local agent notes
+CLAUDE.md
