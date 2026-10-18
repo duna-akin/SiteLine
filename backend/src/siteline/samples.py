@@ -1,7 +1,7 @@
 """Nine sample redlines for tests and demos, one per playbook clause (Sites 21–29).
 
-Each sample is a full fictional CTA whose tracked changes center on one clause's issues, plus a
-few edits elsewhere. Every change carries a hand-written seed extraction, so the samples triage
+Each sample is the form agreement (cta_base) with tracked changes that center on one clause's
+issues, plus a few edits elsewhere. Every change carries a hand-written seed extraction, so the samples triage
 without an API key, and the outcome and rule ID a contract manager would expect. Between them
 the samples reach every clause rule and system check in rules.py, and every priority level.
 
@@ -14,16 +14,15 @@ extraction cache.
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass, field
 
 from siteline.config import DATA_DIR
+from siteline.cta_base import PRIVATE, Block, Site, agreement_blocks
 from siteline.demo import build_redline
 from siteline.docx_redline import parse_docx
 
 SAMPLES_DIR = DATA_DIR / "samples"
 DATE = "2026-10-16T13:20:00Z"
-PRIVATE = "a private, non-profit corporation"
 
 
 def T(text: str) -> dict:
@@ -87,48 +86,6 @@ class Sample:
     @property
     def path(self):
         return SAMPLES_DIR / self.file_name
-
-
-# The sponsor's form text, shared by every sample. A sample's change replaces the form text of
-# its section, or adds the section to its article.
-BASE: list[tuple[str, list[tuple[str, str]]]] = [
-    ("Article 6. Payment", [
-        ("§6.1 Budget", "Sponsor shall pay Institution in accordance with the budget attached as Exhibit B."),
-        ("§6.2 Invoices", "Sponsor shall pay each undisputed invoice within forty-five (45) days of receipt, with quarterly reconciliation."),
-        ("§6.3 Start-up Fee", "Sponsor shall pay a non-refundable start-up fee equal to ten percent (10%) of the study budget."),
-    ]),
-    ("Article 8. Confidentiality", [
-        ("§8.1 Confidential Information", "Institution shall hold Sponsor’s Confidential Information in confidence and use it only to conduct the Study."),
-        ("§8.4 Term of Confidentiality", "The obligations in this Section 8 survive for seven (7) years after study close."),
-    ]),
-    ("Article 9. Indemnification", [
-        ("§9.1 Indemnification by Sponsor", "Sponsor shall indemnify and hold harmless Institution from claims arising from the Study Drug or the Protocol, except to the extent caused by the negligence of Institution."),
-    ]),
-    ("Article 10. Subject Injury", [
-        ("§10.2 Subject Injury Reimbursement", "Sponsor shall reimburse reasonable and necessary medical expenses incurred by a Study Subject for the diagnosis and treatment of a Study Injury."),
-        ("§10.4 Coordination of Benefits", "Reimbursement is net of amounts paid by the subject’s insurance."),
-    ]),
-    ("Article 11. Data Protection", [
-        ("§11.1 Coded Data", "Institution shall provide Study data to Sponsor in coded form only."),
-        ("§11.2 HIPAA Authorization", "Institution shall obtain each subject’s HIPAA authorization before collecting Study data."),
-    ]),
-    ("Article 12. Publication", [
-        ("§12.1 Sponsor Review", "Institution shall provide Sponsor sixty (60) days to review any proposed publication."),
-        ("§12.3 Patent Delay", "At Sponsor’s request, Institution shall delay publication up to an additional sixty (60) days to permit patent filings."),
-    ]),
-    ("Article 13. Intellectual Property", [
-        ("§13.1 Background IP", "Each party retains ownership of its background intellectual property."),
-        ("§13.2 Study Inventions", "All inventions arising from the Protocol or Study Drug shall belong to Sponsor."),
-    ]),
-    ("Article 14. Term and Termination", [
-        ("§14.1 Termination by Sponsor", "Sponsor may terminate this Agreement on thirty (30) days’ written notice and shall pay for work completed."),
-        ("§14.2 Termination by Institution", "Institution may terminate this Agreement on thirty (30) days’ written notice."),
-    ]),
-    ("Article 17. General", [
-        ("§17.1 Governing Law and Venue", "This Agreement is governed by the laws of the State of New Jersey, with venue in its state courts."),
-        ("§17.4 Entire Agreement", "This Agreement and its exhibits are the entire agreement of the parties regarding the Study."),
-    ]),
-]
 
 
 def _invoices(new: str) -> list[dict]:
@@ -474,51 +431,17 @@ SAMPLES: list[Sample] = [
 ]
 
 
-def _key(section: str) -> tuple[int, int]:
-    m = re.match(r"§(\d+)\.(\d+)", section)
-    if not m:
-        raise ValueError(f"Sample section needs a §N.N number: {section!r}")
-    return int(m.group(1)), int(m.group(2))
-
-
-def blocks(s: Sample) -> list[tuple]:
-    from siteline.inbound_email import enrollment_sentence, payment_sentence
-
-    def text(t: str) -> list[dict]:
-        return [T(t)]
-
-    subjects, months, usd = s.enrollment
-    fig = {"targetSubjects": subjects, "months": months, "perPatientUsd": usd}
-    b: list[tuple] = [
-        ("Title", text("Clinical Trial Agreement"), None, None),
-        ("", text("Protocol NSO-417: Phase II study of NSO-417 in relapsed solid tumors"), None, None),
-        ("", text("Sponsor: Northstar Oncology, Inc., Princeton, New Jersey"), None, None),
-        ("", text(f"Institution: {s.name}, {s.city}"), None, None),
-        ("", text(f"Site Number: {s.number}"), None, None),
-        ("", text(enrollment_sentence(fig)), None, None),
-        ("", text(payment_sentence(fig)), None, None),
-        ("", text(f"This Clinical Trial Agreement is entered into by Northstar Oncology, Inc. (“Sponsor”) and {s.name}, "
-                  f"{s.status} (“Institution”). This document is fictional and was written for Siteline tests and demos."), None, None),
+def blocks(s: Sample) -> list[Block]:
+    """The form agreement (cta_base) with this sample's changes, each signed by the site's author."""
+    site = Site(s.number, s.name, s.city, s.status, *s.enrollment)
+    edits = [
+        (c.section,
+         [seg if seg["type"] == "text" else {**seg, "author": s.author, "date": DATE} for seg in c.segments],
+         (s.author, c.comment) if c.comment else None,
+         (c.mark, s.author) if c.mark else None)
+        for c in s.changes
     ]
-    by_section = {c.section: c for c in s.changes}
-    articles = {_key(sections[0][0])[0] for _, sections in BASE}
-    if stray := [c.section for c in s.changes if _key(c.section)[0] not in articles]:
-        raise ValueError(f"Site {s.number}: no article for {stray}")
-    for article, sections in BASE:
-        number = _key(sections[0][0])[0]
-        form = dict(sections)
-        extra = [(c.section, "") for c in s.changes if _key(c.section)[0] == number and c.section not in form]
-        b.append(("Heading1", text(article), None, None))
-        for section, form_text in sorted([*sections, *extra], key=lambda x: _key(x[0])):
-            b.append(("Heading2", text(section), None, None))
-            c = by_section.get(section)
-            if c is None:
-                b.append(("", text(form_text), None, None))
-                continue
-            segs = [seg if seg["type"] == "text" else {**seg, "author": s.author, "date": DATE} for seg in c.segments]
-            comment = (s.author, c.comment) if c.comment else None
-            b.append(("", segs, comment, (c.mark, s.author) if c.mark else None))
-    return b
+    return agreement_blocks(site, edits, "This document is fictional and was written for Siteline tests and demos.")
 
 
 def sample_bytes(s: Sample) -> bytes:
@@ -538,7 +461,7 @@ def seed_entries() -> dict[str, dict]:
     """Extraction-cache entries for every sample: one per change, plus the whole-agreement figures."""
     from siteline.demo_cache import _figures
     from siteline.extraction import cache_key, doc_cache_key
-    from siteline.inbound_email import enrollment_sentence, payment_sentence
+    from siteline.cta_base import enrollment_sentence, payment_sentence
     from siteline.priority import document_text
 
     out: dict[str, dict] = {}
