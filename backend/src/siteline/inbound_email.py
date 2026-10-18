@@ -1,13 +1,17 @@
 """Inbound email (P2): a site emails its redline; Siteline triages the .docx attachment.
 
-With IMAP_* set, a poller checks the mailbox every 30 s for unread mail with a .docx.
-The two seeded inbox emails get generated fictional redlines so they can be triaged too.
+With IMAP_* set, a poller checks the mailbox every 30 s. It accepts an email only when it carries
+exactly one attachment and that attachment is a .docx; any other email is blocked: marked read,
+logged, and never recorded. An accepted email waits in the inbox, untriaged, until a person
+triages it. The two seeded inbox emails get generated fictional
+redlines so they can be triaged too.
 """
 
 from __future__ import annotations
 
 import asyncio
 import email
+import email.message
 import imaplib
 import json
 import logging
@@ -82,10 +86,51 @@ def _connect() -> imaplib.IMAP4_SSL:
     return imap
 
 
+def _attachments(msg: email.message.Message) -> list[email.message.Message]:
+    """Parts that are attached files. Inline images (signature logos) don't count; an inline part
+    with a file name that isn't an image does, since some mail clients attach that way."""
+    out = []
+    for part in msg.walk():
+        if part.is_multipart() or not part.get_filename():
+            continue
+        if part.get_content_disposition() == "inline" and part.get_content_maintype() == "image":
+            continue
+        out.append(part)
+    return out
+
+
+def screen(msg: email.message.Message) -> tuple[dict | None, str]:
+    """The redline in this email, or None and why it's blocked. Only an email with exactly one
+    attachment, a non-empty .docx, gets through."""
+    parts = _attachments(msg)
+    if not parts:
+        return None, "no attachment"
+    if len(parts) > 1:
+        return None, f"{len(parts)} attachments"
+    name = _decode(parts[0].get_filename())
+    if not name.lower().endswith(".docx"):
+        return None, f"attachment is not a .docx ({name})"
+    payload = parts[0].get_payload(decode=True)
+    if not payload:
+        return None, "empty attachment"
+    sender = parseaddr(msg.get("From", ""))
+    try:
+        received = parsedate_to_datetime(msg.get("Date")).isoformat()
+    except (TypeError, ValueError):
+        received = store.iso_now()
+    return {
+        "from": sender[1],
+        "siteName": sender[0] or sender[1].split("@")[-1],
+        "subject": _decode(msg.get("Subject")),
+        "attachment": name,
+        "receivedAt": received,
+        "data": payload,
+    }, ""
+
+
 def _fetch_unseen() -> list[dict]:
-    """Unread emails with a .docx attachment, each with its IMAP uid. They are read with
-    BODY.PEEK so they stay unread until poll_once has recorded them; an email without a .docx
-    is marked read here."""
+    """Unread emails that pass screen(), each with its IMAP uid. They are read with BODY.PEEK so
+    they stay unread until poll_once has recorded them; a blocked email is marked read here."""
     out = []
     with _connect() as imap:
         status, data = imap.uid("search", None, "UNSEEN")
@@ -96,30 +141,11 @@ def _fetch_unseen() -> list[dict]:
             if status != "OK" or not msg_data or not isinstance(msg_data[0], tuple):
                 continue
             msg = email.message_from_bytes(msg_data[0][1])
-            found = None
-            for part in msg.walk():
-                name = _decode(part.get_filename())
-                if name.lower().endswith(".docx"):
-                    payload = part.get_payload(decode=True)
-                    if payload:
-                        sender = parseaddr(msg.get("From", ""))
-                        try:
-                            received = parsedate_to_datetime(msg.get("Date")).isoformat()
-                        except (TypeError, ValueError):
-                            received = store.iso_now()
-                        found = {
-                            "uid": uid.decode(),
-                            "from": sender[1],
-                            "siteName": sender[0] or sender[1].split("@")[-1],
-                            "subject": _decode(msg.get("Subject")),
-                            "attachment": name,
-                            "receivedAt": received,
-                            "data": payload,
-                        }
-                        break
+            found, reason = screen(msg)
             if found:
-                out.append(found)
+                out.append({"uid": uid.decode()} | found)
             else:
+                log.info("Blocked inbound email %r from %s: %s", _decode(msg.get("Subject")), parseaddr(msg.get("From", ""))[1], reason)
                 imap.uid("store", uid, "+FLAGS", "\\Seen")
     return out
 
@@ -129,16 +155,14 @@ def _mark_seen(uid: str) -> None:
         imap.uid("store", uid, "+FLAGS", "\\Seen")
 
 
-async def receive(meta: dict, data: bytes, triage_now: bool = True) -> dict:
-    """Record one inbound email with its .docx and (optionally) triage it."""
+async def receive(meta: dict, data: bytes) -> dict:
+    """Record one inbound email with its .docx. It waits in the inbox until a person triages it."""
     email_id = f"em-{uuid.uuid4().hex[:8]}"
     INBOX_DIR.mkdir(parents=True, exist_ok=True)
     attachment_path(email_id).write_bytes(data)
     record = {k: v for k, v in meta.items() if k != "data"} | {"id": email_id, "triaged": False}
     store.add_email(record)
     events.publish("email.received", {"email": record})
-    if triage_now:
-        await triage_email(email_id)
     return record
 
 
@@ -158,8 +182,8 @@ async def triage_email(email_id: str) -> dict:
 
 
 async def poll_once() -> None:
-    """Record and triage each unread redline. Each email is marked read once it is recorded, and
-    one that fails (say, a .docx with no tracked changes) never stops the rest of the batch."""
+    """Record each unread redline in the inbox, untriaged, for a person to triage. Each email is
+    marked read once it is recorded, and one that fails to record never stops the rest of the batch."""
     try:
         batch = await asyncio.to_thread(_fetch_unseen)
     except (imaplib.IMAP4.error, OSError) as e:
@@ -168,7 +192,7 @@ async def poll_once() -> None:
     for msg in batch:
         uid, data = msg.pop("uid"), msg.pop("data")
         try:
-            record = await receive(msg, data, triage_now=False)
+            await receive(msg, data)
         except Exception:  # noqa: BLE001 - left unread, so the next poll tries it again
             log.exception("Could not record inbound email %r", msg.get("subject"))
             continue
@@ -176,10 +200,6 @@ async def poll_once() -> None:
             await asyncio.to_thread(_mark_seen, uid)
         except (imaplib.IMAP4.error, OSError) as e:
             log.warning("Could not mark email %s read: %s", uid, e)
-        try:
-            await triage_email(record["id"])
-        except Exception:  # noqa: BLE001 - it stays in the inbox, untriaged, for a person to look at
-            log.exception("Inbound email triage failed for %s", record["id"])
 
 
 async def poll_forever(interval: float = 30) -> None:

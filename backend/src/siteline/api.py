@@ -533,7 +533,7 @@ async def simulate_email(
     siteName: str = Form("Unknown site"),
     subject: str = Form("Our redline"),
 ) -> dict:
-    """Stand-in for a real mailbox: record an email with this attachment and triage it."""
+    """Stand-in for a real mailbox: record an email with this attachment, untriaged, in the inbox."""
     if not (file.filename or "").lower().endswith(".docx"):
         raise HTTPException(400, "Attach a .docx")
     data = await file.read()
