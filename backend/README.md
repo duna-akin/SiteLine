@@ -38,7 +38,7 @@ Other commands:
 | Daytona parsing | `DAYTONA_API_KEY` | Local parser (same code) |
 | Photon texts | `PHOTON_*` + real `APPROVER_*_PHONE` | On-screen phone in the UI |
 | Voice call | `TWILIO_*` + `PUBLIC_BASE_URL` | On-screen call keypad |
-| Inbound email | `IMAP_*` (optional: `SITELINE_INBOUND_ADDRESS`, which defaults to `IMAP_USER`) | Seeded inbox emails only. With a mailbox, only an email with exactly one `.docx` attached is triaged; any other is blocked (marked read and logged) |
+| Inbound email | `IMAP_*` (optional: `SITELINE_INBOUND_ADDRESS`, which defaults to `IMAP_USER`) | Seeded inbox emails only. With a mailbox, only an email with exactly one `.docx` attached gets in, and it waits on the Inbound page for someone to triage it; any other is blocked (marked read and logged) |
 | Eval | `OPENAI_API_KEY` (or the Claude Code backend) | Evals page shows "no run yet" |
 | Precedent history | `DATABASE_URL` | Precedents are kept in `var/state.json` |
 | Source documents | `S3_*` (Supabase Storage) | Final documents are kept in `var/documents/` |
