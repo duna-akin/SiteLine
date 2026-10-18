@@ -86,7 +86,10 @@ class Settings:
     imap_user: str = field(default_factory=lambda: _env("IMAP_USER"))
     imap_password: str = field(default_factory=lambda: _env("IMAP_PASSWORD"))
     imap_folder: str = field(default_factory=lambda: _env("IMAP_FOLDER", "INBOX"))
-    inbound_address: str = field(default_factory=lambda: _env("SITELINE_INBOUND_ADDRESS", "redlines@siteline.demo"))
+    # The address the UI shows sites; it defaults to the IMAP mailbox itself once one is connected
+    inbound_address: str = field(
+        default_factory=lambda: _env("SITELINE_INBOUND_ADDRESS") or _env("IMAP_USER") or "redlines@siteline.demo"
+    )
 
     # Postgres for precedent history (local now, Supabase later: only the URL changes)
     database_url: str = field(default_factory=lambda: _env("DATABASE_URL"))
