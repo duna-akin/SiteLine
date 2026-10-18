@@ -125,15 +125,15 @@ needed, and each change lands on the rule ID listed in `samples.py`.
 
 | Site | Clause | What to look for |
 |---|---|---|
-| 21 Copperline | Payment | Net 20 escalates; the 14% fee is accepted only because the site is high priority (`PAY-A3P`) |
-| 22 Halvorsen | Confidentiality | 2-year survival and trade-secret cap escalate; a site comment and a low-confidence read go to review |
-| 23 Marrowgate | Indemnification | Carve-out removed and mutual indemnity escalate; "as finally adjudicated" is struck |
-| 24 Saltmarsh | Subject injury | Pain and suffering and an uncapped reimbursement escalate to Finance |
-| 25 Thornbury | Publication | 21-day review, patent delay removed, open-ended thesis review; public-institution law accepted |
-| 26 Ashgrove | Intellectual property | Institution and joint ownership escalate; the research license is pre-approved |
-| 27 Kestrel Valley | Data protection | BAA and blocked secondary use escalate to Privacy; AI-training limit goes to human review (`SYS-NOVEL`) |
-| 28 Brightwater | Termination | 10-day notice, convenience termination, conflicting notice, a failed quote |
-| 29 Cardinal Plains | Governing law | Sovereign immunity and arbitration abroad escalate; county venue is countered |
+| 21 Copperline | Payment | Net 20 escalates; the 14% fee is accepted only because the site is high priority (`PAY-A3P`); deleted holdback and 28% overhead are countered; uncapped screen failures escalate |
+| 22 Halvorsen | Confidentiality | 2-year survival, trade-secret cap and a private site's public-records clause escalate; affiliates and marking are countered; a site comment and a low-confidence read go to review |
+| 23 Marrowgate | Indemnification | Carve-out removed, mutual indemnity, site-controlled defense, 35% overhead and deleted injury exclusions escalate; "as finally adjudicated" and 60-day claim notice are countered; the damages-waiver edit has no rule (`SYS-NORULE`) |
+| 24 Saltmarsh | Subject injury | Pain and suffering and an uncapped reimbursement escalate to Finance; travel costs accepted; arbitration in Georgia countered |
+| 25 Thornbury | Publication | 21-day review, patent delay removed, open-ended thesis review escalate; 12-month multi-site wait and 5% holdback accepted; public-institution law accepted |
+| 26 Ashgrove | Intellectual property | Institution and joint ownership escalate; the research license is pre-approved; the site's own patent filings, 6-month multi-site wait and one-in-two screen failures are countered |
+| 27 Kestrel Valley | Data protection | BAA, blocked secondary use and Washington-only data escalate to Privacy; 2-day breach notice countered; AI-training limit goes to human review (`SYS-NOVEL`) |
+| 28 Brightwater | Termination | 10-day notice and convenience termination escalate; 90-day sponsor notice countered; conflicting notice and a failed quote go to review |
+| 29 Cardinal Plains | Governing law | Sovereign immunity and arbitration abroad escalate; county venue is countered; public-records disclosure after notice and paid convenience termination accepted |
 
 ## Layout
 

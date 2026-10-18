@@ -80,12 +80,11 @@ def test_one_sample_per_clause_each_escalating_its_own_clause():
 
 
 def test_samples_reach_every_rule_and_outcome():
-    ids = set(re.findall(r'"((?:PAY|CONF|IND|SI|PUB|IP|DP|TERM|GOV|SYS)-[A-Z0-9]+)"', inspect.getsource(rules)))
     # Widened bands need high priority (Site 21 has one); an extraction error needs a failed call
-    need = {i for i in ids if not i.endswith("P")} - {"SYS-ERROR"}
+    system = set(re.findall(r'"(SYS-[A-Z]+)"', inspect.getsource(rules))) - {"SYS-ERROR"}
+    need = {i for i in rules.RULE_IDS if not i.endswith("P")} | {"PAY-A3P"} | system
     got = {c.expect[1] for s in SAMPLES for c in s.changes}
     assert need <= got, f"no sample reaches {sorted(need - got)}"
-    assert "PAY-A3P" in got
     assert {c.expect[0] for s in SAMPLES for c in s.changes} == set(store.OUTCOMES)
     assert {s.priority for s in SAMPLES} == {"high", "elevated", "standard"}
 
