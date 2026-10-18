@@ -1,0 +1,126 @@
+{
+ "runId": "eval-20261018-034325",
+ "harness": "Siteline eval harness",
+ "model": "gpt-5",
+ "datasetName": "cta-redlines-labeled-v1",
+ "labeledChanges": 243,
+ "shouldEscalate": 77,
+ "parallelSandboxes": 12,
+ "replayedRows": 0,
+ "liveCalls": 486,
+ "finishedAt": "2026-10-18T03:46:56Z",
+ "metrics": [
+  {
+   "key": "unsafe",
+   "label": "Unsafe accept rate",
+   "description": "Should escalate, but was accepted or countered",
+   "siteline": 0.0,
+   "baseline": 2.6,
+   "unit": "%",
+   "lowerIsBetter": true,
+   "target": "0 for Siteline"
+  },
+  {
+   "key": "unsafeHigh",
+   "label": "Unsafe accept rate, high-priority site",
+   "description": "Same readings decided with the widest leniency (75% of the gap)",
+   "siteline": 0.0,
+   "baseline": 2.6,
+   "unit": "%",
+   "lowerIsBetter": true,
+   "target": "Equal to the standard-site rate"
+  },
+  {
+   "key": "recall",
+   "label": "Escalation recall",
+   "description": "Labeled escalations that were escalated",
+   "siteline": 92.2,
+   "baseline": 97.4,
+   "unit": "%",
+   "lowerIsBetter": false,
+   "target": "As high as possible"
+  },
+  {
+   "key": "accuracy",
+   "label": "Triage accuracy",
+   "description": "Outcome matches the label",
+   "siteline": 93.8,
+   "baseline": 90.1,
+   "unit": "%",
+   "lowerIsBetter": false,
+   "target": "Report both"
+  },
+  {
+   "key": "quotes",
+   "label": "Quote pass rate",
+   "description": "Quotes found verbatim in the redline",
+   "siteline": 99.6,
+   "baseline": 96.3,
+   "unit": "%",
+   "lowerIsBetter": false,
+   "target": "Near 100%"
+  },
+  {
+   "key": "latency",
+   "label": "Latency per change",
+   "description": "Mean model call time per change, as measured when each answer was made",
+   "siteline": 7.9,
+   "baseline": 5.4,
+   "unit": "s",
+   "lowerIsBetter": true
+  }
+ ],
+ "confusion": {
+  "accept": {
+   "accept": 83,
+   "counter": 0,
+   "escalate": 0,
+   "human_review": 7
+  },
+  "counter": {
+   "accept": 0,
+   "counter": 51,
+   "escalate": 0,
+   "human_review": 2
+  },
+  "escalate": {
+   "accept": 0,
+   "counter": 0,
+   "escalate": 71,
+   "human_review": 6
+  },
+  "human_review": {
+   "accept": 0,
+   "counter": 0,
+   "escalate": 0,
+   "human_review": 23
+  }
+ },
+ "baselineConfusion": {
+  "accept": {
+   "accept": 73,
+   "counter": 5,
+   "escalate": 6,
+   "human_review": 6
+  },
+  "counter": {
+   "accept": 0,
+   "counter": 53,
+   "escalate": 0,
+   "human_review": 0
+  },
+  "escalate": {
+   "accept": 0,
+   "counter": 2,
+   "escalate": 75,
+   "human_review": 0
+  },
+  "human_review": {
+   "accept": 0,
+   "counter": 2,
+   "escalate": 3,
+   "human_review": 18
+  }
+ },
+ "placeholder": false
+}

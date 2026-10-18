@@ -25,7 +25,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from siteline import events, precedent
-from siteline.config import DATA_DIR, RUNTIME_DIR, settings
+from siteline.config import DATA_DIR, settings
 from siteline.demo import build_redline
 from siteline.docx_redline import parse_docx
 from siteline.evals.dataset import load_dataset
@@ -43,7 +43,8 @@ RESULTS_DIR = DATA_DIR / "evals"
 LATEST = RESULTS_DIR / "latest.json"
 # Model calls in flight at once (each change makes an extraction and a baseline call)
 CONCURRENCY = 16
-ANSWERS = RUNTIME_DIR / "eval_answers.json"
+# Stored model answers, in git next to latest.json, so a re-run anywhere replays the same answers
+ANSWERS = RESULTS_DIR / "answers.json"
 
 BASELINE_SCHEMA = {
     "type": "object",
@@ -257,7 +258,7 @@ async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = CONCU
     rows = await asyncio.gather(*(one(it, ch) for it, ch in zip(items, changes, strict=True)))
     if stored:
         ANSWERS.parent.mkdir(parents=True, exist_ok=True)
-        ANSWERS.write_text(json.dumps({**load_answers(), **stored}))
+        ANSWERS.write_text(json.dumps({**load_answers(), **stored}, indent=1, sort_keys=True))
     replayed = sum(1 for r in rows if r["extraction"].get("replayed") and r["baseline_replayed"])
     log(f"{replayed} of {len(rows)} rows replayed stored model answers; {live_calls} live model calls")
     scored = score(rows)
