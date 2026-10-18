@@ -575,7 +575,7 @@ async def eval_latest() -> dict:
 
 
 @app.post("/api/evals/run")
-async def eval_run(limit: int = 0, sandboxes: int = 12, concurrency: int = 16) -> dict:
+async def eval_run(limit: int = 0, sandboxes: int = 12, concurrency: int = 32, fresh: bool = False) -> dict:
     from siteline.evals.harness import run_eval
 
     if _eval_state["running"]:
@@ -586,7 +586,7 @@ async def eval_run(limit: int = 0, sandboxes: int = 12, concurrency: int = 16) -
 
     async def go() -> None:
         try:
-            result = await run_eval(limit=limit, sandboxes=sandboxes, concurrency=concurrency)
+            result = await run_eval(limit=limit, sandboxes=sandboxes, concurrency=concurrency, fresh=fresh)
             _eval_state["runId"] = result["runId"]
         except Exception as e:
             log.exception("eval failed")

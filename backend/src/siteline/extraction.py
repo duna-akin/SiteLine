@@ -220,7 +220,7 @@ def client() -> openai.AsyncOpenAI:
     except RuntimeError:
         loop = None
     if _client is None or _client_loop is not loop:
-        _client = openai.AsyncOpenAI(max_retries=2, timeout=settings.openai_timeout)
+        _client = openai.AsyncOpenAI(max_retries=5, timeout=settings.openai_timeout)
         _client_loop = loop
     return _client
 

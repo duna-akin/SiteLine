@@ -6,22 +6,30 @@
    that carry a site history).
    Baseline: the same OpenAI model reads the playbook and picks the outcome directly.
 3. Score: unsafe accept rate, escalation recall, triage accuracy, quote pass rate, latency.
+
+Each row's model answers are stored under its id and a hash of everything that shapes them
+(model, effort, system prompt with the playbook, the change and its context, the schema) and
+replayed on the next run when none of that changed, so an unchanged row costs no API call.
+Keyed per row because some rows share a change and differ only in site history, and the
+model doesn't answer the same prompt identically twice. Quote checks, the
+rules engine and precedent run again on every row. `fresh=True` asks the model again.
 """
 
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import json
 import time
 from datetime import UTC, datetime
 from typing import Any
 
 from siteline import events, precedent
-from siteline.config import DATA_DIR, settings
+from siteline.config import DATA_DIR, RUNTIME_DIR, settings
 from siteline.demo import build_redline
 from siteline.docx_redline import parse_docx
 from siteline.evals.dataset import load_dataset
-from siteline.extraction import ExtractionError, complete_json, extract_live
+from siteline.extraction import SCHEMA, ExtractionError, _system_prompt, _user_prompt, complete_json, extract_live
 from siteline.playbook import playbook_text
 from siteline.priority import MAX_SHARE
 from siteline.rules import Verdict, decide
@@ -33,8 +41,9 @@ OUTCOMES = ["accept", "counter", "escalate", "human_review"]
 HIGH_TIER = {"level": "high", "share": MAX_SHARE, "days": 120, "bucket": "eval", "moneyAtRiskPerWeek": 25000}
 RESULTS_DIR = DATA_DIR / "evals"
 LATEST = RESULTS_DIR / "latest.json"
-# Changes in flight at once; each one makes its extraction and baseline calls together
-CONCURRENCY = 16
+# Model calls in flight at once (each change makes an extraction and a baseline call)
+CONCURRENCY = 32
+ANSWERS = RUNTIME_DIR / "eval_answers.json"
 
 BASELINE_SCHEMA = {
     "type": "object",
@@ -63,8 +72,6 @@ Also give a verbatim quote from the change that supports your answer, and one se
 
 
 async def baseline(change: dict, context: str) -> dict:
-    from siteline.extraction import _user_prompt
-
     started = time.perf_counter()
     try:
         data, _ = await complete_json(_baseline_system(), _user_prompt(change, context), BASELINE_SCHEMA, "baseline", 8000)
@@ -160,7 +167,7 @@ def score(rows: list[dict]) -> dict[str, Any]:
          "siteline": acc("siteline"), "baseline": acc("baseline"), "unit": "%", "lowerIsBetter": False, "target": "Report both"},
         {"key": "quotes", "label": "Quote pass rate", "description": "Quotes found verbatim in the redline",
          "siteline": _rate(sum(s_q), len(s_q)), "baseline": _rate(sum(b_q), len(b_q)), "unit": "%", "lowerIsBetter": False, "target": "Near 100%"},
-        {"key": "latency", "label": "Latency per change", "description": "Mean model call time per change",
+        {"key": "latency", "label": "Latency per change", "description": "Mean model call time per change, as measured when each answer was made",
          "siteline": lat("siteline_ms"), "baseline": lat("baseline_ms"), "unit": "s", "lowerIsBetter": True},
     ]
     if rows and all("siteline_high" in r for r in rows):
@@ -173,7 +180,20 @@ def score(rows: list[dict]) -> dict[str, Any]:
     return {"metrics": metrics, "confusion": confusion("siteline"), "baselineConfusion": confusion("baseline"), "shouldEscalate": len(esc)}
 
 
-async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = CONCURRENCY) -> dict:
+def answer_key(kind: str, row_id: str, system: str, user: str, schema: dict) -> str:
+    """Changes whenever anything that shapes this row's model answer changes."""
+    raw = json.dumps([kind, row_id, settings.extraction_model, settings.claude_effort, system, user, schema], sort_keys=True)
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
+def load_answers() -> dict[str, dict]:
+    try:
+        return json.loads(ANSWERS.read_text())
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = CONCURRENCY, fresh: bool = False) -> dict:
     if not settings.claude_enabled:
         raise RuntimeError("The eval needs OPENAI_API_KEY in backend/.env")
     items = load_dataset()
@@ -189,7 +209,21 @@ async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = CONCU
     log(f"parsed {len(changes)} labeled changes" + (f" in {used_sandboxes} parallel Daytona sandboxes" if used_sandboxes else " locally"))
 
     sem = asyncio.Semaphore(concurrency)
-    done = 0
+    answers = {} if fresh else load_answers()
+    stored: dict[str, dict] = {}
+    done = live_calls = 0
+
+    async def answer(key: str, call) -> dict:
+        """The stored answer for this exact prompt, or a live call (stored when it succeeds)."""
+        nonlocal live_calls
+        if key in answers:
+            return {**answers[key], "replayed": True}
+        async with sem:
+            live_calls += 1
+            result = await call()
+        if not result.get("error"):
+            stored[key] = result
+        return result
 
     async def one(it: dict, change: dict) -> dict:
         nonlocal done
@@ -199,8 +233,11 @@ async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = CONCU
             except ExtractionError as e:
                 return {"error": str(e), "latencyMs": 0}
 
-        async with sem:
-            ex, b = await asyncio.gather(extract(), baseline(change, it["context"]))
+        user = _user_prompt(change, it["context"])
+        ex, b = await asyncio.gather(
+            answer(answer_key("extraction", it["id"], _system_prompt(), user, SCHEMA), extract),
+            answer(answer_key("baseline", it["id"], _baseline_system(), user, BASELINE_SCHEMA), lambda: baseline(change, it["context"])),
+        )
         verdict, quotes = siteline_verdict(change, ex, it["context"], it)
         # The same reading decided for a high-priority site at the widest leniency the config allows
         high, _ = siteline_verdict(change, ex, it["context"], it, HIGH_TIER)
@@ -214,9 +251,15 @@ async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = CONCU
             "siteline_ms": ex.get("latencyMs", 0), "extraction": ex,
             "baseline": b_out, "baseline_quote_ok": verify_quote(b["quote"], change, it["context"]) if b.get("quote") else None,
             "baseline_ms": b.get("latencyMs", 0), "baseline_rationale": b.get("rationale") or b.get("error"),
+            "baseline_replayed": bool(b.get("replayed")),
         }
 
     rows = await asyncio.gather(*(one(it, ch) for it, ch in zip(items, changes, strict=True)))
+    if stored:
+        ANSWERS.parent.mkdir(parents=True, exist_ok=True)
+        ANSWERS.write_text(json.dumps({**load_answers(), **stored}))
+    replayed = sum(1 for r in rows if r["extraction"].get("replayed") and r["baseline_replayed"])
+    log(f"{replayed} of {len(rows)} rows replayed stored model answers; {live_calls} live model calls")
     scored = score(rows)
     result = {
         "runId": run_id,
@@ -226,6 +269,8 @@ async def run_eval(limit: int = 0, sandboxes: int = 12, concurrency: int = CONCU
         "labeledChanges": len(rows),
         "shouldEscalate": scored["shouldEscalate"],
         "parallelSandboxes": used_sandboxes,
+        "replayedRows": replayed,
+        "liveCalls": live_calls,
         "finishedAt": datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z"),
         "metrics": scored["metrics"],
         "confusion": scored["confusion"],
