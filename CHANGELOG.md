@@ -3,6 +3,16 @@
 All notable changes to this project are documented here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased] · A re-run eval takes seconds
+
+### Changed
+
+- **Re-running the eval replays stored model answers** for rows whose prompt hasn't changed. Answers are kept per row in `var/eval_answers.json`, under a hash of the model, effort, system prompt (with the playbook), change, context and schema. Quote checks, the rules engine and precedent still run on every row, so a rules change is scored fresh. A full re-run of the 243 rows takes about 2 s end to end (was 70–80 s) and scores the same as the live run it replays, row for row.
+- Rows are keyed by id because some share a change and differ only in site history, and the model doesn't answer the same prompt identically twice.
+- "Ask the model again" on the eval page (`fresh=true`, `siteline eval --fresh`) makes every call live. A failed call is never stored, so the next run asks it again.
+- Live calls: 32 in flight (was 16 changes × 2 calls), and the OpenAI client retries rate limits up to 5 times (was 2). At 64 in flight, a cold run hit the rate limit on 8 of its 486 calls.
+- The latency metric reports the model time measured when each answer was made.
+
 ## [Unreleased] · Money at risk is the cost of delay
 
 ### Changed
