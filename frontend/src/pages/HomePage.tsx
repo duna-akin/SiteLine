@@ -35,7 +35,7 @@ function DeskHeader() {
       <div className="grid items-end gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div>
           <span className="eyebrow">Protocol {SPONSOR.protocol} · {today()}</span>
-          <h1>Negotiation desk</h1>
+          <h1>Central Contract Intelligence</h1>
           <p>
             {news}{' '}
             {atRisk > 0 ? (
