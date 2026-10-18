@@ -24,3 +24,9 @@ idea
 .claude/settings.local.json
 
 .superpowers/
+
+# Editor settings and planning notes (kept locally)
+.helix/
+.vscode/
+.zed/
+docs/superpowers/
