@@ -249,12 +249,12 @@ async def _triage(data: bytes, file_name: str, options: TriageOptions, source: s
             parsed, sandbox_id = await parse_in_daytona(data, job.log, label=job.id)
             job.step("sandbox", "done", f"Sandbox {sandbox_id} · network blocked", "Daytona")
         except SandboxError as e:
-            job.log(f"Daytona failed: {e}. Falling back to the local parser.")
+            job.log(f"Sandbox failed: {e}. Falling back to the local parser.")
             job.step("sandbox", "failed", f"{e} · fell back to local parser", "Daytona")
             parsed = parse_local(data)
             use_daytona = False
     else:
-        reason = "Local parser flag is on" if options.local_parser else "No DAYTONA_API_KEY; local parser"
+        reason = "Local parser flag is on" if options.local_parser else "No sandbox set up; local parser"
         job.step("sandbox", "skipped", reason)
         parsed = parse_local(data)
 
