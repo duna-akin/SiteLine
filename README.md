@@ -13,6 +13,9 @@ Before a trial can enroll a single patient at a hospital, the sponsor and the si
 clinical trial agreement. Sites send back redlines: dozens of tracked edits in a Word file. A
 sponsor's contracts team checks every edit against its playbook by hand, chases approvers, and
 writes the counter-proposal. Meanwhile that site can't enroll, and the whole trial runs late.
+Across 61 cancer centers, study start-up took a median of 167 days against a 90-day target, and
+slower activation is linked to missed enrollment goals (*Contemporary Clinical Trials
+Communications*, 2025).
 
 ## What Siteline does
 
