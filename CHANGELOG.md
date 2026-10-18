@@ -12,7 +12,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - The Priority page edits the cost-of-delay inputs, shows each input's source and the live value of a trial day, and logs changes to them. Configs saved before this load with the new defaults filled in.
 - The per-patient amount is still extracted and shown, but it no longer decides priority; only the enrollment target and period are required.
 - The `--radar-*` colour tokens are now `--stuck-none`, `--stuck-some` and `--stuck-many`.
-- The Data page opens with Siteline vs the LLM-only baseline. Below it, "Where your data lives" lists two stores: Postgres for executed agreements' confirmed terms, kept as precedents, and S3 for the agreements' files. Each shows whether it is live and, when off, where the data goes instead.
+- The Data page opens with Siteline vs the LLM-only baseline. Below it, "Where your data lives" lists the Daytona sandbox each file is parsed in (network blocked, deleted after the parse, so only the parsed text reaches the model), then two stores: Postgres for executed agreements' confirmed terms, kept as precedents, and S3 for the agreements' files. Each shows whether it is live and, when off, where the data goes instead.
 
 ### Removed
 
