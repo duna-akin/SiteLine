@@ -5,7 +5,6 @@ import { ArrowRight, Box, Check, CircleSlash, Download, FileSearch, FileText, Ga
 import * as api from '@/api'
 import { runTriage } from '@/api/events'
 import { OutcomeBadge } from '@/components/siteline/outcome'
-import { SponsorChip } from '@/components/siteline/SponsorChip'
 import { cn } from '@/lib/utils'
 import { outcomeOrder } from '@/mocks/playbook'
 import { DEMO_FILE_NAME, stepLabels } from '@/mocks/site07'
@@ -58,11 +57,10 @@ const nodeTone: Record<NodeState, string> = {
   skipped: 'border-dashed border-line-strong text-faint opacity-60',
 }
 
-function Node({ icon, label, state, sponsor }: {
+function Node({ icon, label, state }: {
   icon: ReactNode
   label: string
   state: NodeState
-  sponsor?: string
 }) {
   return (
     <div className="z-10 flex w-[4.5rem] flex-col items-center gap-2 text-center sm:w-24">
@@ -70,7 +68,6 @@ function Node({ icon, label, state, sponsor }: {
         {icon}
       </div>
       <span className="text-xs leading-tight font-medium">{label}</span>
-      {sponsor && <span className="text-[11px] leading-tight text-muted">{sponsor}</span>}
     </div>
   )
 }
@@ -214,7 +211,7 @@ export function UploadPage() {
             <Toggle
               id="flag-local"
               label="Local parser"
-              hint={integrations && !integrations.daytona ? 'No Daytona key on the server, so parsing runs locally.' : 'Fallback flag: parse here instead of in a fresh Daytona sandbox.'}
+              hint={integrations && !integrations.daytona ? 'No sandbox is set up on the server, so parsing runs locally.' : 'Fallback flag: parse here instead of in a fresh sandbox.'}
               checked={localParser || (!!integrations && !integrations.daytona)}
               onChange={(v) => setFlag('localParser', v)}
               disabled={run === 'running' || (!!integrations && !integrations.daytona)}
@@ -222,7 +219,7 @@ export function UploadPage() {
             <Toggle
               id="flag-cache"
               label="Cached extraction"
-              hint={integrations && !integrations.claude ? 'No OpenAI key on the server: only cached changes are extracted; others go to human review.' : 'Reuse a stored extraction when the change was seen before. Quotes are still verified.'}
+              hint={integrations && !integrations.claude ? 'Extraction is off on the server: only cached changes are extracted; others go to human review.' : 'Reuse a stored extraction when the change was seen before. Quotes are still verified.'}
               checked={useCache}
               onChange={(v) => setFlag('useCache', v)}
               disabled={run === 'running'}
@@ -244,20 +241,14 @@ export function UploadPage() {
         </section>
 
         <section aria-labelledby="pipeline-heading" className="tile min-[1081px]:col-span-6">
-          <div className="tile-head">
-            <h2 id="pipeline-heading">Parse pipeline</h2>
-            <div className="flex flex-wrap gap-2">
-              {daytonaLive && <SponsorChip sponsor="Daytona" />}
-              <SponsorChip sponsor="OpenAI" />
-            </div>
-          </div>
+          <div className="tile-head"><h2 id="pipeline-heading">Parse pipeline</h2></div>
 
           <div className="well relative mt-4 flex items-start justify-between gap-1 overflow-hidden px-2 py-4">
             {/* A static rule behind the steps; each step's border shows its state */}
             <span aria-hidden className="absolute inset-x-10 top-[calc(1rem+24px)] h-px bg-line-strong sm:top-[calc(1rem+28px)]" />
             <Node icon={<FileText className="size-5" />} label=".docx" state={nodeState(['upload'])} />
-            <Node icon={<Box className="size-5" />} label={daytonaLive ? 'Sandbox' : 'Local parser'} sponsor={daytonaLive ? 'Daytona' : undefined} state={nodeState(['sandbox', 'parse'])} />
-            <Node icon={<FileSearch className="size-5" />} label="Extract + verify" sponsor="OpenAI" state={nodeState(['extract', 'verify'])} />
+            <Node icon={<Box className="size-5" />} label={daytonaLive ? 'Sandbox' : 'Local parser'} state={nodeState(['sandbox', 'parse'])} />
+            <Node icon={<FileSearch className="size-5" />} label="Extract + verify" state={nodeState(['extract', 'verify'])} />
             <Node icon={<Gavel className="size-5" />} label="Rules" state={nodeState(['rules'])} />
             <Node icon={<ListChecks className="size-5" />} label="Decisions" state={nodeState(['teardown'])} />
           </div>
@@ -318,8 +309,8 @@ export function UploadPage() {
                 {escalations.length === 0
                   ? 'No escalations: nothing to text.'
                   : viaPhoton > 0
-                    ? `${viaPhoton} of ${escalations.length} escalation texts sent to approvers by Photon.`
-                    : `${escalations.length} escalation texts sent to the on-screen approver phone (Photon not configured).`}
+                    ? `${viaPhoton} of ${escalations.length} escalation texts sent to approvers.`
+                    : `${escalations.length} escalation texts simulated: no text line is set up, so record replies on Review.`}
               </p>
             </div>
             <button type="button" className="btn btn-primary" onClick={() => navigate(`/review/${agreement.id}`)}>

@@ -321,7 +321,7 @@ export function PrioritySettings() {
           <div className="tile-head"><h3 id="log-h" className="text-[19px]">Change log</h3></div>
           <p className="tile-sub">Who changed what, newest first.</p>
           {settings.log.length === 0 ? (
-            <p className="text-sm text-muted">No changes yet. Defaults come from backend/data/priority_config.json.</p>
+            <p className="text-sm text-muted">No changes yet. The defaults are in use.</p>
           ) : (
             <ul className="flex flex-col gap-3 text-sm">
               {settings.log.map((entry) => (

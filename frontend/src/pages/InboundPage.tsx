@@ -5,7 +5,6 @@ import { ArrowRight, AtSign, Copy, RotateCw, Upload } from 'lucide-react'
 import { EscalationQueue } from '@/components/siteline/EscalationQueue'
 import { InboundFeed } from '@/components/siteline/InboundFeed'
 import { openSites } from '@/components/siteline/priority-style'
-import { SponsorChip } from '@/components/siteline/SponsorChip'
 import { useHashScroll } from '@/hooks/useHashScroll'
 import { byArrival } from '@/lib/sites'
 import { useDemo } from '@/state/demo'
@@ -93,7 +92,7 @@ export function InboundPage() {
           <p className="tile-sub">
             Sites email a redline straight to the agent and it lands here. Only an email with exactly one .docx
             attached gets through; anything else is blocked.{' '}
-            {imap ? 'The mailbox is checked every 30 s.' : 'No mailbox is connected (IMAP), so these are the seeded emails.'}
+            {imap ? 'The mailbox is checked every 30 s.' : 'No mailbox is connected, so these are the seeded emails.'}
           </p>
           <div className="well mb-4 flex items-center gap-2 py-1 pr-1 pl-3">
             <AtSign aria-hidden className="size-4 shrink-0 text-faint" />
@@ -111,10 +110,6 @@ export function InboundPage() {
           ) : (
             <InboundFeed emails={byArrival(emails!)} />
           )}
-          <div className="mt-4 flex flex-wrap gap-2">
-            <SponsorChip sponsor="Daytona" label="Parsed in Daytona" />
-            <SponsorChip sponsor="OpenAI" label="Extracted by OpenAI" />
-          </div>
         </section>
 
         <section className="tile min-[1081px]:col-span-5" aria-labelledby="up-h">

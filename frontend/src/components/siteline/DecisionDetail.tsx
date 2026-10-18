@@ -45,14 +45,14 @@ function ApprovalLine({ d }: { d: Decision }) {
       >
         <ShieldCheck aria-hidden className="size-4 text-ok" />
         <span className="font-semibold">{person.title} replied “{a.reply}” · {replyMeaning[a.reply]}</span>
-        <span className="text-muted">via {a.channel === 'imessage' ? 'iMessage' : 'voice call'} in {formatDuration(a.answeredAt - a.sentAt)}</span>
+        <span className="text-muted">by {a.channel === 'imessage' ? 'text' : 'voice call'} in {formatDuration(a.answeredAt - a.sentAt)}</span>
       </motion.div>
     )
   }
 
   const left = a.sentAt + noReplyMs - now
-  const how = a.delivery === 'photon' ? 'by Photon iMessage' : '(simulated, no phone line set)'
-  const callHow = a.state === 'calling' && a.callDelivery && a.callDelivery !== 'simulated' ? ' (live call via Twilio + Photon SIP)' : ''
+  const how = a.delivery === 'photon' ? 'by text' : '(simulated, no phone line set)'
+  const callHow = a.state === 'calling' && a.callDelivery && a.callDelivery !== 'simulated' ? ' (live call)' : ''
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-[6px] border border-line border-l-[3px] border-l-high bg-surface px-4 py-3 text-sm">
       {a.state === 'calling' ? <Phone aria-hidden className="size-4 text-high" /> : <MessageSquareText aria-hidden className="size-4 text-high" />}
@@ -296,7 +296,7 @@ export function DecisionDetail({ d, className }: { d: Decision; className?: stri
 
       {d.override && (
         <p className="well mt-4 px-4 py-3 text-sm">
-          <span className="font-semibold">Overridden by you:</span> “{d.override.reason}”
+          <span className="font-semibold">Overridden:</span> “{d.override.reason}”
         </p>
       )}
       {editing && !d.override && <OverrideForm d={d} onDone={() => setEditing(false)} />}

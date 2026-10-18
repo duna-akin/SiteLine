@@ -105,7 +105,7 @@ export function ReviewPage() {
               {agreement.triageSeconds !== undefined && (
                 <span className="tabular"><Timer aria-hidden className="mr-1 inline size-4" />Triaged in {agreement.triageSeconds} s</span>
               )}
-              {agreement.parser && <span>Parsed {agreement.parser === 'daytona' ? 'in a Daytona sandbox' : 'locally'}</span>}
+              {agreement.parser && <span>Parsed {agreement.parser === 'daytona' ? 'in a sandbox' : 'locally'}</span>}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
