@@ -9,7 +9,9 @@ import type {
   InboundEmail,
   Integrations,
   Outcome,
-  PlaybookRule,
+  Playbook,
+  PlaybookChange,
+  PlaybookSettings,
   PriorityConfig,
   PrioritySettings,
   RedecidedChange,
@@ -153,9 +155,18 @@ export const getEvalResults = () => request<EvalLatest>('/evals/latest')
 
 export const startEvalRun = (limit = 0) => request<{ started: boolean }>(`/evals/run?limit=${limit}`, { method: 'POST' })
 
-export const getPlaybook = () => request<PlaybookRule[]>('/playbook')
+export const getPlaybook = () => request<PlaybookSettings>('/playbook')
 
-export const savePlaybook = (rules: PlaybookRule[]) => request<{ saved: number; at: number }>('/playbook', json('PUT', rules))
+/** What saving `playbook` would re-decide (open suggestions only); nothing is saved. */
+export const previewPlaybook = (playbook: Playbook) =>
+  request<{ changes: PlaybookChange[] }>('/playbook/preview', json('POST', { playbook }))
+
+export const savePlaybook = (playbook: Playbook, by = 'Reviewer') =>
+  request<PlaybookSettings & { changes: PlaybookChange[] }>('/playbook', json('PUT', { playbook, by }))
+
+/** Back to the default playbook; open suggestions are re-decided under it. */
+export const resetPlaybook = (by = 'Reviewer') =>
+  request<PlaybookSettings & { changes: PlaybookChange[] }>(`/playbook?by=${encodeURIComponent(by)}`, { method: 'DELETE' })
 
 export const getInboundEmails = () => request<{ address: string; imap: boolean; emails: InboundEmail[] }>('/inbound-emails')
 

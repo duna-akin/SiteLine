@@ -1,12 +1,14 @@
 import { useId, useState, type FormEvent } from 'react'
 import { Check, FileText, History, MessageSquareText, Pencil, Phone, ShieldAlert, ShieldCheck, Undo2 } from 'lucide-react'
 import { motion } from 'motion/react'
+import { Link } from 'react-router-dom'
 
 import * as api from '@/api'
 import { outcomeBg, outcomeIcon, outcomeVar } from '@/components/siteline/outcome-style'
 import { ownerIcon } from '@/components/siteline/owner-style'
 import { useNow } from '@/hooks/useNow'
 import { formatDuration } from '@/lib/format'
+import { positionAnchor, useRulePositions } from '@/lib/playbook'
 import { cn } from '@/lib/utils'
 import { approvers, clauseLabel, outcomeLabel, outcomeOrder, replyMeaning } from '@/mocks/playbook'
 import { effectiveOutcome, isConfirmed, isWaiting } from '@/state/decision'
@@ -168,6 +170,7 @@ export function DecisionDetail({ d, className }: { d: Decision; className?: stri
   const widened = Boolean(d.leniency && d.ruleId.endsWith('P'))
   const person = approvers[d.owner]
   const OwnerIcon = ownerIcon[d.owner]
+  const position = useRulePositions()[d.ruleId]
 
   return (
     <div className={cn('panel @container p-4 font-sans sm:p-5', className)} style={{ borderLeft: `3px solid ${outcomeVar[outcome]}` }}>
@@ -180,7 +183,14 @@ export function DecisionDetail({ d, className }: { d: Decision; className?: stri
         <div>
           <dt className="eyebrow">Rule fired</dt>
           <dd className="mt-1">
-            <code className="chip mr-1 text-xs">{d.ruleId}</code>
+            {position ? (
+              <Link to={`/playbook#${positionAnchor(position.clauseType, position.positionId)}`} className="mr-1 inline-flex items-center gap-1 hover:underline"
+                title="Open this position in the playbook">
+                <code className="chip text-xs">{d.ruleId}</code><span className="text-xs font-medium text-accent">{position.issue}</span>
+              </Link>
+            ) : (
+              <code className="chip mr-1 text-xs">{d.ruleId}</code>
+            )}
             {widened && <span className="pill s-high mr-1">Widened for site priority</span>}
             {d.ruleText}
           </dd>

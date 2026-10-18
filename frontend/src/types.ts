@@ -15,15 +15,69 @@ export type Owner = 'legal' | 'finance' | 'privacy'
 
 export type ChangeKind = 'insertion' | 'deletion' | 'replacement' | 'comment'
 
+/** A number a playbook position decides by, e.g. the 10% standard start-up fee. */
+export interface PlaybookLimit {
+  value: number
+  unit: string
+  label: string
+}
+
 export interface PlaybookRule {
+  id: string
+  outcome: Exclude<Outcome, 'human_review'>
+  /** Template; {name} placeholders name the position's limits. */
+  when: string
+}
+
+/** One negotiable issue: the form's standard, the counter and the escalation trigger, all enforced. */
+export interface PlaybookPosition {
+  id: string
+  issue: string
+  /** Where the form agreement states it, e.g. "§6.3". */
+  form: string
+  fields: string[]
+  standard: string
+  counter: string
+  escalate: string
+  rationale: string
+  talkingPoints: string[]
+  limits: Record<string, PlaybookLimit>
+  rules: PlaybookRule[]
+}
+
+export interface PlaybookClause {
   clauseType: ClauseType
   label: string
   owner: Owner
-  standard: string
-  fallback: string
-  escalateWhen: string
-  /** Open question carried over from the PRD, shown as a flag in the editor. */
-  openQuestion?: string
+  summary: string
+  positions: PlaybookPosition[]
+}
+
+export interface Playbook {
+  name: string
+  clauses: PlaybookClause[]
+}
+
+export interface PlaybookLogEntry {
+  at: number
+  by: string
+  summary: string
+}
+
+/** An open suggestion a playbook edit would re-decide. */
+export interface PlaybookChange {
+  agreementId: string
+  changeId: string
+  section: string
+  from: { outcome: Outcome; ruleId: string; owner: Owner }
+  to: { outcome: Outcome; ruleId: string; owner: Owner }
+}
+
+export interface PlaybookSettings {
+  playbook: Playbook
+  log: PlaybookLogEntry[]
+  /** Rule IDs older decisions may carry → the rule that replaced each. */
+  aliases: Record<string, string>
 }
 
 export interface ExtractedValue {

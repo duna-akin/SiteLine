@@ -20,7 +20,7 @@ from siteline.extraction import SEED_CACHE
 from siteline.playbook import (SPONSOR, approvers, load_playbook, playbook_log, render, reset_playbook,
                                save_playbook, strip_rendered, validate_playbook)
 from siteline.pipeline import Job, TriageOptions, replay_playbook, reprioritize_all, triage
-from siteline.rules import RULE_IDS, bands
+from siteline.rules import RULE_ALIASES, RULE_IDS, bands
 
 log = logging.getLogger("siteline.api")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
@@ -401,7 +401,7 @@ async def source_document(key: str) -> Response:
 
 
 def _playbook_settings() -> dict:
-    return {"playbook": render(load_playbook()), "log": playbook_log()}
+    return {"playbook": render(load_playbook()), "log": playbook_log(), "aliases": RULE_ALIASES}
 
 
 class PlaybookBody(BaseModel):
