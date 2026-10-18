@@ -23,11 +23,11 @@ function hitsFor(query: string, agreements: Agreement[], emails: InboundEmail[])
     .filter((a) => has(`site ${a.siteNumber}`, a.siteNumber, a.siteName, a.city, a.fileName))
     .map((a) => ({ key: `a-${a.id}`, label: `Site ${a.siteNumber} · ${a.siteName}`, detail: a.fileName ?? a.city, to: agreementPath(a) }))
   const files = emails
-    .filter((e) => has(e.subject, e.attachment, e.siteName, e.from))
+    .filter((e) => has(e.subject, e.attachment, e.siteName))
     .map((e) => ({
       key: `e-${e.id}`,
       label: e.subject,
-      detail: `${e.attachment} · ${e.from}`,
+      detail: e.attachment,
       to: e.triaged && e.agreementId ? `/review/${e.agreementId}` : `/inbound#email-${e.id}`,
     }))
   return [...sites, ...files].slice(0, MAX_HITS)

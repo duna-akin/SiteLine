@@ -17,14 +17,13 @@ const body = 'font-serif text-[15.5px] leading-relaxed text-ink'
 const anchor = (d: Decision) => `change-${d.id}`
 
 /** Segments as the site marked them up: struck deletions and underlined insertions in place. */
-function MarkedUp({ segments, author }: { segments: Segment[]; author?: string }) {
+function MarkedUp({ segments }: { segments: Segment[] }) {
   return segments.map((s, i) => {
-    const by = s.author ?? author
-    if (s.type === 'del') return <del key={i} className={del} title={by && `Deleted by ${by}`}>{s.text}</del>
+    if (s.type === 'del') return <del key={i} className={del}>{s.text}</del>
     if (s.type === 'ins') {
       // A replacement's new words sit right after the struck ones; keep the two apart.
       const afterDel = segments[i - 1]?.type === 'del'
-      return <ins key={i} className={afterDel ? `${ins} ml-1` : ins} title={by && `Inserted by ${by}`}>{s.text}</ins>
+      return <ins key={i} className={afterDel ? `${ins} ml-1` : ins}>{s.text}</ins>
     }
     return <span key={i}>{s.text}</span>
   })
@@ -76,7 +75,7 @@ function Redlined({ d, open, onToggle }: { d: Decision; open: boolean; onToggle:
         style={{ borderLeftColor: outcomeVar[o], background: outcomeBg[o] }}
       >
         <span className={cn(body, 'block')}>
-          <MarkedUp segments={d.segments?.length ? d.segments : fromChange(d)} author={d.author} />
+          <MarkedUp segments={d.segments?.length ? d.segments : fromChange(d)} />
         </span>
         <span className="mt-1.5 flex flex-wrap items-center gap-2 font-sans">
           <OutcomeBadge outcome={o} size="sm" />
@@ -90,7 +89,7 @@ function Redlined({ d, open, onToggle }: { d: Decision; open: boolean; onToggle:
       {d.siteComment && (
         <p className="mt-1.5 flex gap-2 font-sans text-sm">
           <MessageSquare aria-hidden className="mt-0.5 size-4 shrink-0 text-accent" />
-          <span><span className="font-semibold">{d.author}:</span> {d.siteComment}</span>
+          <span><span className="font-semibold">Site comment:</span> {d.siteComment}</span>
         </p>
       )}
       {open && <div className="lg:hidden"><DecisionDetail d={d} className="mt-2 mb-4" /></div>}

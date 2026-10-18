@@ -7,7 +7,6 @@ import { InboundFeed } from '@/components/siteline/InboundFeed'
 import { byMoney, isOnUs, openSites, usd } from '@/components/siteline/priority-style'
 import { SiteBars, SiteBarsLegend } from '@/components/siteline/SiteBars'
 import { byArrival } from '@/lib/sites'
-import { SPONSOR } from '@/mocks/playbook'
 import { useDemo } from '@/state/demo'
 import { useDesk } from '@/state/desk'
 import type { EscalationQueueItem } from '@/types'
@@ -31,7 +30,7 @@ function DeskHeader() {
     <section className="hello pt-9">
       <div className="grid items-end gap-8 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div>
-          <span className="eyebrow">Protocol {SPONSOR.protocol} · {today()}</span>
+          <span className="eyebrow">{today()}</span>
           <h1>Central Contract Intelligence</h1>
           <p>
             {news}{' '}

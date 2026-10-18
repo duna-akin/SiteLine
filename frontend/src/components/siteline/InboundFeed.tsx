@@ -25,7 +25,7 @@ function Item({ e, agreement, busy, onTriage }: { e: InboundEmail; agreement?: A
         <div className="meta">
           {done && agreement
             ? `Site ${agreement.siteNumber} · ${agreement.changes} changes · ${arrivedLabel(e.receivedAt)}`
-            : `${e.siteName} · ${e.from} · ${arrivedLabel(e.receivedAt)}`}
+            : `${e.siteName} · ${arrivedLabel(e.receivedAt)}`}
         </div>
       </div>
       <div className="act">
