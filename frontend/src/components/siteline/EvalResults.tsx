@@ -51,7 +51,7 @@ function MetricCard({ m }: { m: EvalMetric }) {
         ))}
       </div>
       <p className="mt-auto flex items-center justify-between pt-3 text-xs text-muted">
-        <span>Target: {m.target}</span>
+        <span>{m.target && `Target: ${m.target}`}</span>
         <span className={cn('pill', better(m) ? 's-ok' : 's-elevated')}>{better(m) ? 'Siteline ahead' : 'Baseline ahead'}</span>
       </p>
     </article>
