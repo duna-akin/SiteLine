@@ -30,7 +30,10 @@ def main() -> None:
     if args.cmd == "serve":
         import uvicorn
 
-        uvicorn.run("siteline.api:app", host=args.host, port=args.port, reload=args.reload)
+        uvicorn.run(
+            "siteline.api:app", host=args.host, port=args.port, reload=args.reload,
+            timeout_graceful_shutdown=3,  # the browser's /api/events stream never closes on its own
+        )
     elif args.cmd == "make-demo":
         from siteline.demo import write_demo, write_template
         from siteline.demo_cache import write_seed
