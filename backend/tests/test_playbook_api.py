@@ -141,3 +141,10 @@ def test_agreement_mid_triage_is_not_redecided(client, monkeypatch):
     pb = copy.deepcopy(default_playbook())
     _position(pb, "start_up_fee")["limits"]["standard"]["value"] = 5
     assert client.post("/api/playbook/preview", json={"playbook": pb}).json()["changes"] == []
+
+
+def test_save_response_log_carries_the_moved_count(client):
+    pb = copy.deepcopy(default_playbook())
+    _position(pb, "start_up_fee")["limits"]["standard"]["value"] = 5
+    assert client.put("/api/playbook", json={"playbook": pb, "by": "Test"}).json()["log"][-1]["moved"] == 1
+    assert client.delete("/api/playbook", params={"by": "Test"}).json()["log"][-1]["moved"] == 1

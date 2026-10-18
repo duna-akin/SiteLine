@@ -457,14 +457,16 @@ async def put_playbook(body: PlaybookBody) -> dict:
     if errors:
         return JSONResponse({"errors": errors}, status_code=422)
     save_playbook(pb, body.by.strip())
-    return {**_playbook_settings(), "changes": await _apply_playbook()}
+    changes = await _apply_playbook()  # before reading the log: it records how many moved
+    return {**_playbook_settings(), "changes": changes}
 
 
 @app.delete("/api/playbook")
 async def delete_playbook(by: str = "Reviewer") -> dict:
     """Back to the default playbook, re-deciding open suggestions under it."""
     reset_playbook(by.strip() or "Reviewer")
-    return {**_playbook_settings(), "changes": await _apply_playbook()}
+    changes = await _apply_playbook()
+    return {**_playbook_settings(), "changes": changes}
 
 
 # ---- site priority ----------------------------------------------------------------------
