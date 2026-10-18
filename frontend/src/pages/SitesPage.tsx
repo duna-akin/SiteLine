@@ -79,8 +79,8 @@ export function SitesPage() {
         <span className="eyebrow">Portfolio</span>
         <h1>Sites</h1>
         <p>
-          Every site still negotiating. Each bar shows how long the site has been open; past the dashed line is over the {TARGET_DAYS}-day
-          start-up target. Colour shows how many clauses are stuck.
+          Every site still negotiating. Each bar shows money at risk per week of delay, and colour shows how many clauses are stuck.
+          Days open turn gold past the {TARGET_DAYS}-day start-up target.
         </p>
         <dl className="stats">
           <Stat value={String(sites.length)} label="Open sites" />

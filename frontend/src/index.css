@@ -217,7 +217,6 @@
   .site-bars .nm { grid-area: nm; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .site-bars .bar { grid-area: bar; position: relative; height: 8px; border-radius: 2px; background: var(--sunken); }
   .site-bars .bar > span { position: absolute; inset: 0 auto 0 0; border-radius: 2px; }
-  .site-bars .bar::after { content: ""; position: absolute; left: 50%; top: -5px; bottom: -5px; border-left: 1.5px dashed var(--elevated); }
   .site-bars .d { grid-area: d; text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
   .site-bars .d.over { color: var(--elevated); font-weight: 600; }
   .site-bars .m { grid-area: m; text-align: right; }

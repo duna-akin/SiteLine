@@ -5,7 +5,6 @@ import { agreementPath, notTriaged } from '@/lib/sites'
 import { cn } from '@/lib/utils'
 import type { Agreement } from '@/types'
 
-const MAX_DAYS = 180
 const TARGET_DAYS = 90
 
 const unknownFigures = (a: Agreement) => a.priority?.moneyAtRiskPerWeek == null
@@ -24,7 +23,7 @@ function rowLabel(a: Agreement) {
   }`
 }
 
-function Row({ a }: { a: Agreement }) {
+function Row({ a, maxMoney }: { a: Agreement; maxMoney: number }) {
   const money = a.priority?.moneyAtRiskPerWeek
   const stuck = a.stuckClauses.length
   return (
@@ -32,7 +31,7 @@ function Row({ a }: { a: Agreement }) {
       <span className="n">{a.siteNumber}</span>
       <span className="nm">{a.siteName}</span>
       <span className="bar" aria-hidden>
-        <span style={{ width: `${(Math.min(Math.max(a.daysOpen, 0), MAX_DAYS) / MAX_DAYS) * 100}%`, background: barColour(a) }} />
+        <span style={{ width: `${money != null && maxMoney ? (money / maxMoney) * 100 : 0}%`, background: barColour(a) }} />
       </span>
       <span className={cn('d', a.daysOpen > TARGET_DAYS && 'over')}>{a.daysOpen} d</span>
       <span className="m">
@@ -50,8 +49,9 @@ function Row({ a }: { a: Agreement }) {
 }
 
 /**
- * One row per open site, in the order given: bar length = days open (dashed line at the
- * 90-day target), colour = stuck clauses. With `onSelect` rows are buttons; otherwise links.
+ * One row per open site, in the order given: bar length = money at risk per week (relative to
+ * the largest shown), colour = stuck clauses; days open is text, marked past the 90-day target.
+ * With `onSelect` rows are buttons; otherwise links.
  */
 export function SiteBars({ sites, selected, onSelect, label = 'Open sites' }: {
   sites: Agreement[]
@@ -59,6 +59,7 @@ export function SiteBars({ sites, selected, onSelect, label = 'Open sites' }: {
   onSelect?: (id: string) => void
   label?: string
 }) {
+  const maxMoney = Math.max(0, ...sites.map((s) => s.priority?.moneyAtRiskPerWeek ?? 0))
   return (
     <ol className="site-bars" aria-label={label}>
       {sites.map((a) => (
@@ -71,11 +72,11 @@ export function SiteBars({ sites, selected, onSelect, label = 'Open sites' }: {
               className={cn(selected === a.id && 'sel')}
               onClick={() => onSelect(a.id)}
             >
-              <Row a={a} />
+              <Row a={a} maxMoney={maxMoney} />
             </button>
           ) : (
             <Link to={agreementPath(a)} aria-label={rowLabel(a)}>
-              <Row a={a} />
+              <Row a={a} maxMoney={maxMoney} />
             </Link>
           )}
         </li>
@@ -87,12 +88,12 @@ export function SiteBars({ sites, selected, onSelect, label = 'Open sites' }: {
 export function SiteBarsLegend() {
   return (
     <ul className="legend" aria-label="Legend">
-      <li>Bar = days open</li>
+      <li>Bar = money at risk per week</li>
       <li><i style={{ background: 'var(--radar-ok)' }} />No stuck clauses</li>
       <li><i style={{ background: 'var(--radar-warn)' }} />1–2 stuck</li>
       <li><i style={{ background: 'var(--radar-bad)' }} />3+ stuck</li>
       <li><i style={{ background: 'var(--muted)' }} />No figures yet</li>
-      <li><i style={{ borderLeft: '1.5px dashed var(--elevated)', borderRadius: 0, height: 12, width: 0 }} />{TARGET_DAYS}-day target</li>
+      <li><b className="font-semibold text-elevated">Days in gold</b> = over the {TARGET_DAYS}-day target</li>
     </ul>
   )
 }
