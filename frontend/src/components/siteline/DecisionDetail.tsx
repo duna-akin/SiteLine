@@ -52,7 +52,7 @@ function ApprovalLine({ d }: { d: Decision }) {
 
   const left = a.sentAt + noReplyMs - now
   const how = a.delivery === 'photon' ? 'by text' : '(simulated, no phone line set)'
-  const callHow = a.state === 'calling' && a.callDelivery && a.callDelivery !== 'simulated' ? ' (live call)' : ''
+  const callHow = a.state !== 'calling' || !a.callDelivery ? '' : a.callDelivery === 'simulated' ? ' (simulated, no phone line set)' : ' (live call)'
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-[6px] border border-line border-l-[3px] border-l-high bg-surface px-4 py-3 text-sm">
       {a.state === 'calling' ? <Phone aria-hidden className="size-4 text-high" /> : <MessageSquareText aria-hidden className="size-4 text-high" />}
